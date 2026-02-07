@@ -1,0 +1,1446 @@
+//@version=6
+indicator("Technical Indicators", overlay=true, max_bars_back=500, max_lines_count=500, max_labels_count=500, max_boxes_count=500, max_polylines_count=100, explicit_plot_zorder=true)
+
+// ==================================================================================
+// INPUT PARAMETERS
+// ==================================================================================
+
+// === Trend Filter Settings ===
+var g1 = "Trend Filter"
+hullLength = input.int(20, "Hull MA Length", minval=1, group=g1)
+useHTF = input.bool(true, "Use Higher Timeframe Filter", group=g1)
+htfTimeframe = input.timeframe("D", "Higher Timeframe", group=g1)
+htfEmaLength = input.int(50, "HTF EMA Length", group=g1)
+adxLength = input.int(14, "ADX Length", group=g1)
+adxThreshold = input.float(25, "ADX Threshold", minval=0, group=g1)
+
+// === Momentum Settings ===
+var g2 = "Momentum"
+rsiLength = input.int(14, "RSI Length", minval=1, group=g2)
+rsiOverbought = input.float(70, "RSI Overbought", minval=50, maxval=100, group=g2)
+rsiOversold = input.float(30, "RSI Oversold", minval=0, maxval=50, group=g2)
+macdFast = input.int(12, "MACD Fast", minval=1, group=g2)
+macdSlow = input.int(26, "MACD Slow", minval=1, group=g2)
+macdSignal = input.int(9, "MACD Signal", minval=1, group=g2)
+useRSIRegime = input.bool(false, "Use Trend-Adjusted RSI Levels", group=g2, tooltip="Bull regime: oversold 40, overbought 80. Bear regime: 20/60.")
+rsiBullOversold = input.float(40, "RSI Bull Oversold", minval=20, maxval=50, group=g2)
+rsiBullOverbought = input.float(80, "RSI Bull Overbought", minval=50, maxval=100, group=g2)
+rsiBearOversold = input.float(20, "RSI Bear Oversold", minval=0, maxval=40, group=g2)
+rsiBearOverbought = input.float(60, "RSI Bear Overbought", minval=40, maxval=80, group=g2)
+
+// === Volatility Settings ===
+var g3 = "Volatility"
+atrLength = input.int(14, "ATR Length", minval=1, group=g3)
+atrMultiplierSL = input.float(2.0, "ATR Stop Loss Multiplier", minval=0.5, step=0.1, group=g3)
+atrMultiplierTP = input.float(3.0, "ATR Take Profit Multiplier", minval=0.5, step=0.1, group=g3)
+bbLength = input.int(20, "Bollinger Bands Length", minval=1, group=g3)
+bbMultiplier = input.float(2.0, "Bollinger Bands StdDev", minval=0.5, step=0.1, group=g3)
+squeezeLength = input.int(20, "BB Squeeze Length", minval=1, group=g3)
+useBBNotExtremes = input.bool(true, "BB: Not at Band Extremes", group=g3)
+useNoSqueeze = input.bool(false, "Avoid BB Squeeze", group=g3)
+useATRExpanding = input.bool(false, "Require ATR Expanding", group=g3)
+
+// === Volume Settings ===
+var g4 = "Volume"
+volumeLength = input.int(20, "Volume MA Length", minval=1, group=g4)
+volumeMultiplier = input.float(1.0, "Volume Multiplier", minval=0.1, step=0.1, group=g4)
+useVolumeTrend = input.bool(true, "Volume Trend Up", group=g4)
+volumeTrendBars = input.int(3, "Volume Trend Bars", minval=2, group=g4)
+useOBV = input.bool(true, "Use OBV Alignment", group=g4)
+obvLength = input.int(5, "OBV MA Length", minval=1, group=g4)
+
+// === Signal Settings ===
+var g5 = "Signal Quality"
+minSignalScore = input.float(70, "Minimum Signal Score (0-100)", minval=0, maxval=100, group=g5)
+useDivergence = input.bool(true, "Enable Divergence Detection", group=g5)
+divergenceLookback = input.int(5, "Divergence Lookback", minval=2, group=g5)
+
+// === Structure ===
+var g7 = "Structure"
+useStructure = input.bool(true, "Use Structure Filter", group=g7)
+swingLookback = input.int(5, "Swing Lookback", minval=2, group=g7)
+useBreakout = input.bool(true, "Require Breakout", group=g7)
+swingDisplacementATR = input.float(1.0, "Swing Displacement (ATR mult)", minval=0, step=0.1, group=g7)
+swingMinBars = input.int(5, "Min Bars Left/Right of Pivot", minval=2, group=g7)
+useBOSBody = input.bool(true, "BOS: Require Close Beyond Swing", group=g7)
+useCHoCHFilter = input.bool(true, "Disable Trend Entries on CHoCH", group=g7)
+
+// === MA Alignment ===
+var g8 = "MA Alignment"
+useMAStack = input.bool(true, "Use MA Stack Filter", group=g8)
+maFastLen = input.int(9, "Fast MA Length", minval=1, group=g8)
+maSlowLen = input.int(21, "Slow MA Length", minval=1, group=g8)
+maSlowerLen = input.int(50, "Slower MA Length", minval=1, group=g8)
+
+// === Extra Momentum ===
+var g9 = "Extra Momentum"
+useStoch = input.bool(true, "Use Stochastic", group=g9)
+stochK = input.int(14, "Stochastic %K", minval=1, group=g9)
+stochD = input.int(3, "Stochastic %D", minval=1, group=g9)
+stochOverbought = input.int(80, "Stochastic Overbought", minval=50, group=g9)
+stochOversold = input.int(20, "Stochastic Oversold", maxval=50, group=g9)
+useROC = input.bool(true, "Use ROC", group=g9)
+rocLength = input.int(10, "ROC Length", minval=1, group=g9)
+useMacdHist = input.bool(true, "Use MACD Histogram", group=g9)
+
+// === Price Action ===
+var g10 = "Price Action"
+useCandleFilter = input.bool(true, "Candle Direction Filter", group=g10)
+
+// === Session ===
+var g11 = "Session"
+useSessionFilter = input.bool(false, "Use Session Filter", group=g11)
+sessionInput = input.string("0800-1700", "Session (HHMM-HHMM)", group=g11)
+
+// === HTF Momentum ===
+var g12 = "HTF Momentum"
+useHTFRSI = input.bool(true, "Use HTF RSI Filter", group=g12)
+htfRsiLength = input.int(14, "HTF RSI Length", minval=1, group=g12)
+htfRsiNotOverbought = input.float(70, "HTF RSI Max (buy when below)", minval=50, group=g12)
+htfRsiNotOversold = input.float(30, "HTF RSI Min (sell when above)", maxval=50, group=g12)
+
+// === Risk Filter ===
+var g13 = "Risk Filter"
+useATRFilter = input.bool(false, "Use ATR Range Filter", group=g13)
+atrMinPct = input.float(0, "ATR Min (% of avg, 0=off)", minval=0, step=0.1, group=g13)
+atrMaxPct = input.float(0, "ATR Max (% of avg, 0=off)", minval=0, step=0.1, group=g13)
+
+// === Confluence Protocol ===
+var gConfluence = "Confluence Protocol"
+useConfluenceScore = input.bool(true, "Use 6-Pillar Confluence Score (0-100)", group=gConfluence, tooltip="Trend+Momentum+Volume+Structure+Volatility+Regime, 100 pts total.")
+confluenceMinScore = input.int(70, "Min Confluence Score to Signal", minval=0, maxval=100, group=gConfluence)
+
+// === Premium/Discount ===
+var gPD = "Premium / Discount"
+usePremiumDiscount = input.bool(false, "Filter by Premium/Discount", group=gPD)
+pdLookback = input.int(50, "Range Lookback Bars", minval=10, group=gPD)
+
+// === FVG ===
+var gFVG = "Fair Value Gaps"
+useFVG = input.bool(false, "Show Fair Value Gaps", group=gFVG)
+fvgMinBodyPct = input.float(0.5, "Min Candle Body % of Range", minval=0.1, step=0.1, group=gFVG)
+
+// ==================================================================================
+// NEW FACTOR INPUTS
+// ==================================================================================
+
+// === SuperTrend ===
+var gST = "SuperTrend"
+useSuperTrend = input.bool(true, "Enable SuperTrend", group=gST)
+stFactor = input.float(3.0, "SuperTrend Factor", minval=1.0, step=0.1, group=gST)
+stAtrLen = input.int(10, "SuperTrend ATR Length", minval=1, group=gST)
+
+// === Parabolic SAR ===
+var gSAR = "Parabolic SAR"
+useSAR = input.bool(true, "Enable Parabolic SAR", group=gSAR)
+sarStart = input.float(0.02, "SAR Start", minval=0.001, step=0.001, group=gSAR)
+sarIncrement = input.float(0.02, "SAR Increment", minval=0.001, step=0.001, group=gSAR)
+sarMax = input.float(0.2, "SAR Max", minval=0.01, step=0.01, group=gSAR)
+
+// === Ichimoku Cloud ===
+var gICH = "Ichimoku Cloud"
+useIchimoku = input.bool(true, "Enable Ichimoku Cloud", group=gICH)
+ichConversion = input.int(9, "Conversion Line Period", minval=1, group=gICH)
+ichBase = input.int(26, "Base Line Period", minval=1, group=gICH)
+ichSpan = input.int(52, "Leading Span B Period", minval=1, group=gICH)
+
+// === Aroon ===
+var gAroon = "Aroon"
+useAroon = input.bool(true, "Enable Aroon", group=gAroon)
+aroonLength = input.int(25, "Aroon Length", minval=1, group=gAroon)
+
+// === Linear Regression ===
+var gLR = "Linear Regression"
+useLinReg = input.bool(true, "Enable Linear Regression", group=gLR)
+linRegLength = input.int(20, "LinReg Length", minval=5, group=gLR)
+
+// === Keltner / TTM Squeeze ===
+var gKC = "Keltner / TTM Squeeze"
+useKeltner = input.bool(true, "Enable Keltner Channels", group=gKC)
+kcLength = input.int(20, "KC Length", minval=1, group=gKC)
+kcMult = input.float(1.5, "KC ATR Multiplier", minval=0.5, step=0.1, group=gKC)
+useTTMSqueeze = input.bool(true, "Enable TTM Squeeze", group=gKC)
+
+// === Historical Volatility ===
+var gHV = "Historical Volatility"
+useHVRank = input.bool(true, "Enable HV Percentile Rank", group=gHV)
+hvLength = input.int(20, "HV Calculation Length", minval=5, group=gHV)
+hvRankLength = input.int(252, "HV Rank Lookback", minval=50, group=gHV)
+
+// === Chandelier Exit ===
+var gCE = "Chandelier Exit"
+useChandelier = input.bool(true, "Enable Chandelier Exit", group=gCE)
+chandLength = input.int(22, "Chandelier Length", minval=1, group=gCE)
+chandMult = input.float(3.0, "Chandelier ATR Mult", minval=1.0, step=0.1, group=gCE)
+
+// === VWAP ===
+var gVWAP = "VWAP"
+useVWAP = input.bool(true, "Enable VWAP", group=gVWAP)
+
+// === Chaikin Money Flow ===
+var gCMF = "Chaikin Money Flow"
+useCMF = input.bool(true, "Enable CMF", group=gCMF)
+cmfLength = input.int(20, "CMF Length", minval=1, group=gCMF)
+
+// === Money Flow Index ===
+var gMFI = "Money Flow Index"
+useMFI = input.bool(true, "Enable MFI", group=gMFI)
+mfiLength = input.int(14, "MFI Length", minval=1, group=gMFI)
+
+// === A/D Line ===
+var gAD = "Accumulation/Distribution"
+useADLine = input.bool(true, "Enable A/D Line", group=gAD)
+adLineMALen = input.int(20, "A/D MA Length", minval=1, group=gAD)
+
+// === PVT ===
+var gPVT = "Price Volume Trend"
+usePVT = input.bool(true, "Enable PVT", group=gPVT)
+pvtMALen = input.int(20, "PVT MA Length", minval=1, group=gPVT)
+
+// === CCI ===
+var gCCI = "CCI"
+useCCI = input.bool(true, "Enable CCI", group=gCCI)
+cciLength = input.int(20, "CCI Length", minval=1, group=gCCI)
+
+// === Williams %R ===
+var gWR = "Williams %R"
+useWilliamsR = input.bool(true, "Enable Williams %R", group=gWR)
+wrLength = input.int(14, "Williams %R Length", minval=1, group=gWR)
+
+// === CMO ===
+var gCMO = "Chande Momentum"
+useCMO = input.bool(true, "Enable CMO", group=gCMO)
+cmoLength = input.int(14, "CMO Length", minval=1, group=gCMO)
+
+// === Fisher Transform ===
+var gFisher = "Fisher Transform"
+useFisher = input.bool(true, "Enable Fisher Transform", group=gFisher)
+fisherLength = input.int(10, "Fisher Length", minval=2, group=gFisher)
+
+// === Elder Force Index ===
+var gEFI = "Elder Force Index"
+useEFI = input.bool(true, "Enable EFI", group=gEFI)
+efiLength = input.int(13, "EFI EMA Length", minval=1, group=gEFI)
+
+// === Order Blocks ===
+var gOB = "Order Blocks"
+useOrderBlocks = input.bool(true, "Enable Order Blocks", group=gOB)
+obDisplacementMult = input.float(1.5, "OB Displacement ATR Mult", minval=0.5, step=0.1, group=gOB)
+
+// === Intermarket ===
+var gIM = "Intermarket"
+useCorrelation = input.bool(false, "Enable Correlation Filter", group=gIM, tooltip="Requires benchmark symbol. Uses request.security().")
+useRelStrength = input.bool(false, "Enable Relative Strength", group=gIM)
+benchmarkSymbol = input.symbol("SPY", "Benchmark Symbol", group=gIM)
+corrLength = input.int(20, "Correlation Length", minval=5, group=gIM)
+
+// === Candlestick Patterns ===
+var gPat = "Candlestick Patterns"
+useEngulfing = input.bool(true, "Enable Engulfing Pattern", group=gPat)
+usePinBar = input.bool(true, "Enable Pin Bar / Hammer", group=gPat)
+pinBarWickRatio = input.float(2.0, "Pin Bar Min Wick/Body Ratio", minval=1.5, step=0.1, group=gPat)
+useMorningStar = input.bool(true, "Enable Morning/Evening Star", group=gPat)
+useDoji = input.bool(true, "Enable Doji", group=gPat)
+dojiBodyPct = input.float(0.1, "Doji Max Body % of Range", minval=0.05, maxval=0.5, step=0.05, group=gPat)
+useHarami = input.bool(true, "Enable Harami", group=gPat)
+useThreeSoldiers = input.bool(true, "Enable Three White Soldiers / Black Crows", group=gPat)
+useTweezer = input.bool(true, "Enable Tweezer Tops/Bottoms", group=gPat)
+tweezerTolerance = input.float(0.1, "Tweezer High/Low Tolerance (ATR mult)", minval=0.02, step=0.05, group=gPat)
+usePiercingLine = input.bool(true, "Enable Piercing Line / Dark Cloud Cover", group=gPat)
+
+// === Statistical ===
+var gStats = "Statistical"
+useZScore = input.bool(true, "Enable Z-Score Filter", group=gStats)
+zScoreLength = input.int(20, "Z-Score Length", minval=5, group=gStats)
+useRSquared = input.bool(true, "Enable R-Squared", group=gStats)
+
+// === Sentiment Proxies ===
+var gSent = "Sentiment Proxies"
+useATRAccel = input.bool(true, "Enable ATR Acceleration", group=gSent)
+useBuySellPressure = input.bool(true, "Enable Buy/Sell Pressure", group=gSent)
+pressureLength = input.int(14, "Pressure Length", minval=5, group=gSent)
+
+// === Cycle Analysis ===
+var gCycle = "Cycle Analysis"
+useEhlersSine = input.bool(true, "Enable Ehlers Sine Wave", group=gCycle)
+
+// === Wyckoff ===
+var gWyck = "Wyckoff"
+useWyckoff = input.bool(true, "Enable Wyckoff Detection", group=gWyck)
+wyckoffLookback = input.int(50, "Wyckoff Range Lookback", minval=20, group=gWyck)
+
+// === VWMA ===
+var gVWMA = "VWMA"
+useVWMA = input.bool(true, "Enable VWMA Confirmation", group=gVWMA)
+vwmaLength = input.int(20, "VWMA Length", minval=1, group=gVWMA)
+
+// === Displacement Detection ===
+var gDisp = "Displacement"
+useDisplacement = input.bool(true, "Enable Displacement Detection", group=gDisp)
+dispBodyMult = input.float(1.5, "Displacement Body Mult", minval=1.0, step=0.1, group=gDisp)
+
+// === Display Settings ===
+var g6 = "Display"
+showDashboard = input.bool(true, "Show Dashboard", group=g6)
+showHullMA = input.bool(true, "Show Hull MA", group=g6)
+showSuperTrendLine = input.bool(true, "Show SuperTrend Line", group=g6)
+showVWAPLine = input.bool(true, "Show VWAP Line", group=g6)
+showBackground = input.bool(true, "Show Trend Background", group=g6)
+showMTFHeatmap = input.bool(true, "Show MTF Trend Heatmap", group=g6)
+showBB = input.bool(true, "Show Bollinger Bands", group=g6)
+showPatternMarkers = input.bool(true, "Show Candlestick Pattern Markers", group=g6)
+showIchimokuCloud = input.bool(false, "Show Ichimoku Cloud", group=g6)
+showSARDots = input.bool(false, "Show Parabolic SAR Dots", group=g6)
+showKeltner = input.bool(false, "Show Keltner Channels", group=g6)
+useProfessionalPalette = input.bool(true, "Professional Palette (Dark Mode)", group=g6)
+useAsciiSymbols = input.bool(true, "Use ASCII symbols (no Unicode)", group=g6, tooltip="Use plain text instead of Unicode in dashboard when fonts don't render symbols.")
+
+// ==================================================================================
+// COLOR PALETTE
+// ==================================================================================
+bullPrimary   = useProfessionalPalette ? color.rgb(0, 229, 255) : color.green
+bearPrimary   = useProfessionalPalette ? color.rgb(255, 64, 129) : color.red
+bullSecondary = useProfessionalPalette ? color.rgb(0, 200, 83) : color.lime
+bearSecondary = useProfessionalPalette ? color.rgb(255, 23, 68) : color.maroon
+neutralColor  = useProfessionalPalette ? color.rgb(176, 190, 197) : color.gray
+warningColor  = useProfessionalPalette ? color.rgb(255, 214, 0) : color.orange
+structureClr  = useProfessionalPalette ? color.rgb(124, 77, 255) : color.purple
+volumeClr     = useProfessionalPalette ? color.rgb(68, 138, 255) : color.blue
+
+// ==================================================================================
+// FUNCTIONS
+// ==================================================================================
+
+f_hma(src, length) =>
+    wma1 = ta.wma(src, length / 2)
+    wma2 = ta.wma(src, length)
+    ta.wma(2 * wma1 - wma2, math.round(math.sqrt(length)))
+
+f_adx(len) =>
+    up = ta.change(high)
+    down = -ta.change(low)
+    plusDM = na(up) ? na : (up > down and up > 0 ? up : 0)
+    minusDM = na(down) ? na : (down > up and down > 0 ? down : 0)
+    trur = ta.rma(ta.tr, len)
+    plus = fixnan(100 * ta.rma(plusDM, len) / trur)
+    minus = fixnan(100 * ta.rma(minusDM, len) / trur)
+    sum = plus + minus
+    adx = 100 * ta.rma(math.abs(plus - minus) / (sum == 0 ? 1 : sum), len)
+    [adx, plus, minus]
+
+f_divergence(src, oscType) =>
+    osc = float(na)
+    if oscType == "RSI"
+        osc := ta.rsi(src, rsiLength)
+    else
+        [macdL, _, _] = ta.macd(src, macdFast, macdSlow, macdSignal)
+        osc := macdL
+    pivotHigh = ta.pivothigh(src, divergenceLookback, divergenceLookback)
+    pivotLow = ta.pivotlow(src, divergenceLookback, divergenceLookback)
+    oscPivotHigh = ta.pivothigh(osc, divergenceLookback, divergenceLookback)
+    oscPivotLow = ta.pivotlow(osc, divergenceLookback, divergenceLookback)
+    bullDiv = not na(pivotLow) and not na(oscPivotLow) and pivotLow < pivotLow[divergenceLookback] and oscPivotLow > oscPivotLow[divergenceLookback]
+    bearDiv = not na(pivotHigh) and not na(oscPivotHigh) and pivotHigh > pivotHigh[divergenceLookback] and oscPivotHigh < oscPivotHigh[divergenceLookback]
+    bullHidden = not na(pivotLow) and not na(oscPivotLow) and pivotLow > pivotLow[divergenceLookback] and oscPivotLow < oscPivotLow[divergenceLookback]
+    bearHidden = not na(pivotHigh) and not na(oscPivotHigh) and pivotHigh < pivotHigh[divergenceLookback] and oscPivotHigh > oscPivotHigh[divergenceLookback]
+    [bullDiv, bearDiv, bullHidden, bearHidden]
+
+f_fisherTransform(length) =>
+    hl2Val = hl2
+    maxH = ta.highest(hl2Val, length)
+    minL = ta.lowest(hl2Val, length)
+    rangeHL = maxH - minL
+    var float val = 0.0
+    var float fish = 0.0
+    var float prevFish = 0.0
+    rawVal = rangeHL > 0 ? 2.0 * ((hl2Val - minL) / rangeHL - 0.5) : 0.0
+    val := 0.33 * rawVal + 0.67 * nz(val[1])
+    val := math.max(-0.999, math.min(0.999, val))
+    prevFish := nz(fish[1])
+    fish := 0.5 * math.log((1 + val) / (1 - val)) + 0.5 * prevFish
+    [fish, prevFish]
+
+f_ehlersSineWave() =>
+    var float smooth = 0.0
+    var float detrender = 0.0
+    var float i1 = 0.0
+    var float q1 = 0.0
+    var float ji = 0.0
+    var float jq = 0.0
+    var float i2 = 0.0
+    var float q2 = 0.0
+    var float re = 0.0
+    var float im = 0.0
+    var float period = 0.0
+    var float smoothPeriod = 0.0
+    var float dcPhase = 0.0
+    var float sine = 0.0
+    var float leadSine = 0.0
+    price = (high + low) / 2.0
+    smooth := (4 * price + 3 * nz(price[1]) + 2 * nz(price[2]) + nz(price[3])) / 10.0
+    detrender := (0.0962 * smooth + 0.5769 * nz(smooth[2]) - 0.5769 * nz(smooth[4]) - 0.0962 * nz(smooth[6])) * (0.075 * nz(period[1]) + 0.54)
+    q1 := (0.0962 * detrender + 0.5769 * nz(detrender[2]) - 0.5769 * nz(detrender[4]) - 0.0962 * nz(detrender[6])) * (0.075 * nz(period[1]) + 0.54)
+    i1 := nz(detrender[3])
+    ji := (0.0962 * i1 + 0.5769 * nz(i1[2]) - 0.5769 * nz(i1[4]) - 0.0962 * nz(i1[6])) * (0.075 * nz(period[1]) + 0.54)
+    jq := (0.0962 * q1 + 0.5769 * nz(q1[2]) - 0.5769 * nz(q1[4]) - 0.0962 * nz(q1[6])) * (0.075 * nz(period[1]) + 0.54)
+    i2 := i1 - jq
+    q2 := q1 + ji
+    i2 := 0.2 * i2 + 0.8 * nz(i2[1])
+    q2 := 0.2 * q2 + 0.8 * nz(q2[1])
+    re := i2 * nz(i2[1]) + q2 * nz(q2[1])
+    im := i2 * nz(q2[1]) - q2 * nz(i2[1])
+    re := 0.2 * re + 0.8 * nz(re[1])
+    im := 0.2 * im + 0.8 * nz(im[1])
+    tempPeriod = im != 0 and re != 0 ? 2 * math.acos(1) / math.atan(im / re) : nz(period[1])
+    tempPeriod2 = math.max(math.min(tempPeriod, 1.5 * nz(period[1])), 0.67 * nz(period[1]))
+    tempPeriod3 = math.max(math.min(tempPeriod2, 50.0), 6.0)
+    period := 0.2 * tempPeriod3 + 0.8 * nz(period[1])
+    smoothPeriod := 0.33 * period + 0.67 * nz(smoothPeriod[1])
+    dcPeriod = math.round(smoothPeriod)
+    realPart = 0.0
+    imagPart = 0.0
+    for i = 0 to math.max(dcPeriod - 1, 0)
+        realPart += math.sin(2 * math.acos(1) * i / math.max(dcPeriod, 1)) * nz(smooth[i])
+        imagPart += math.cos(2 * math.acos(1) * i / math.max(dcPeriod, 1)) * nz(smooth[i])
+    dcPhase := imagPart != 0 ? math.atan(realPart / imagPart) * 180 / math.pi : 90.0 * (realPart > 0 ? 1 : -1)
+    dcPhase += 90
+    dcPhase += (360 / smoothPeriod > 0 ? 360 / smoothPeriod : 1)
+    if imagPart < 0
+        dcPhase += 180
+    if dcPhase > 315
+        dcPhase -= 360
+    sine := math.sin(dcPhase * math.acos(1) / 180)
+    leadSine := math.sin((dcPhase + 45) * math.acos(1) / 180)
+    [sine, leadSine, smoothPeriod]
+
+// ==================================================================================
+// CALCULATIONS - EXISTING FACTORS
+// ==================================================================================
+
+// === Trend ===
+hullMA = f_hma(close, hullLength)
+hullTrend = hullMA > hullMA[1]
+
+htfEma = request.security(syminfo.tickerid, htfTimeframe, ta.ema(close, htfEmaLength), lookahead=barmerge.lookahead_off)
+htfEmaPrev = htfEma[1]
+htfTrendUp = close[1] > htfEmaPrev
+
+[adxValue, plusDI, minusDI] = f_adx(adxLength)
+adxStrong = adxValue[1] > adxThreshold
+
+trendUp = close[1] > hullMA[1] and hullMA[1] > hullMA[2]
+trendDown = close[1] < hullMA[1] and hullMA[1] < hullMA[2]
+
+// === Momentum ===
+rsiValue = ta.rsi(close, rsiLength)
+rsiPrev = rsiValue[1]
+rsiRegimeBull = close[1] > hullMA[1]
+rsiOS = useRSIRegime ? (rsiRegimeBull ? rsiBullOversold : rsiBearOversold) : rsiOversold
+rsiOB = useRSIRegime ? (rsiRegimeBull ? rsiBullOverbought : rsiBearOverbought) : rsiOverbought
+rsiOversoldCross = ta.crossover(rsiValue, rsiOS)
+rsiOverboughtCross = ta.crossunder(rsiValue, rsiOB)
+rsiBullish = rsiPrev > 50 or rsiOversoldCross[1]
+rsiBearish = rsiPrev < 50 or rsiOverboughtCross[1]
+
+[macdLine, macdSignalLine, macdHist] = ta.macd(close, macdFast, macdSlow, macdSignal)
+macdLinePrev = macdLine[1]
+macdSignalPrev = macdSignalLine[1]
+macdCrossUp = ta.crossover(macdLine, macdSignalLine)
+macdCrossDown = ta.crossunder(macdLine, macdSignalLine)
+macdBullish = macdLinePrev > macdSignalPrev or macdCrossUp[1]
+macdBearish = macdLinePrev < macdSignalPrev or macdCrossDown[1]
+
+// === Volatility ===
+atr = ta.atr(atrLength)
+atrPrev = atr[1]
+bbBasis = ta.sma(close, bbLength)
+bbDev = bbMultiplier * ta.stdev(close, bbLength)
+bbUpper = bbBasis + bbDev
+bbLower = bbBasis - bbDev
+bbWidth = bbUpper - bbLower
+bbWidthSma = ta.sma(bbWidth, squeezeLength)
+bbSqueeze = bbWidth < bbWidthSma * 0.7
+bbPercent = (close - bbLower) / (bbUpper - bbLower)
+notAtExtremes = bbPercent > 0.2 and bbPercent < 0.8
+
+// === Volume ===
+volumeMA = ta.sma(volume, volumeLength)
+volumeConfirm = volume[1] > volumeMA[1] * volumeMultiplier
+
+// === Divergence ===
+[rsiBullDiv, rsiBearDiv, rsiBullHidden, rsiBearHidden] = f_divergence(close, "RSI")
+[macdBullDiv, macdBearDiv, macdBullHidden, macdBearHidden] = f_divergence(close, "MACD")
+bullDivAny = rsiBullDiv or macdBullDiv
+bearDivAny = rsiBearDiv or macdBearDiv
+bullHiddenAny = rsiBullHidden or macdBullHidden
+bearHiddenAny = rsiBearHidden or macdBearHidden
+bullishDivergence = useDivergence and (bullDivAny or bullHiddenAny)
+bearishDivergence = useDivergence and (bearDivAny or bearHiddenAny)
+
+// === DI ===
+plusDIPrev = plusDI[1]
+minusDIPrev = minusDI[1]
+diBullish = plusDIPrev > minusDIPrev
+diBearish = minusDIPrev > plusDIPrev
+
+// === Premium/Discount ===
+rangeHigh = ta.highest(high, pdLookback)
+rangeLow = ta.lowest(low, pdLookback)
+equilibrium = (rangeHigh + rangeLow) / 2
+inPremium = close[1] >= equilibrium
+inDiscount = close[1] <= equilibrium
+premiumDiscountOkBuy = not usePremiumDiscount or inDiscount
+premiumDiscountOkSell = not usePremiumDiscount or inPremium
+
+// === Structure ===
+swingHigh = ta.pivothigh(high, swingLookback, swingLookback)
+swingLow = ta.pivotlow(low, swingLookback, swingLookback)
+lastSwingHigh = ta.valuewhen(not na(swingHigh), swingHigh, 0)
+lastSwingLow = ta.valuewhen(not na(swingLow), swingLow, 0)
+breakoutUp = useBreakout ? (na(lastSwingHigh) or close[1] > lastSwingHigh) : true
+breakoutDown = useBreakout ? (na(lastSwingLow) or close[1] < lastSwingLow) : true
+nearSupport = not na(lastSwingLow) and lastSwingLow > 0 and low[1] <= lastSwingLow * 1.002
+nearResistance = not na(lastSwingHigh) and lastSwingHigh > 0 and high[1] >= lastSwingHigh * 0.998
+structureBull = (not useStructure or (breakoutUp or nearSupport)) and premiumDiscountOkBuy
+structureBear = (not useStructure or (breakoutDown or nearResistance)) and premiumDiscountOkSell
+
+displacementThreshold = atr * swingDisplacementATR
+validSwingHigh = not na(swingHigh)
+validSwingLow = not na(swingLow)
+lastValidSwingHigh = ta.valuewhen(validSwingHigh, swingHigh, 0)
+lastValidSwingLow = ta.valuewhen(validSwingLow, swingLow, 0)
+
+bosBull = useBOSBody ? (close[1] > lastSwingHigh and lastSwingHigh > 0) : (high[1] > lastSwingHigh and lastSwingHigh > 0)
+bosBear = useBOSBody ? (close[1] < lastSwingLow and lastSwingLow > 0) : (low[1] < lastSwingLow and lastSwingLow > 0)
+sfpBear = lastSwingHigh > 0 and high[1] > lastSwingHigh and close[1] <= lastSwingHigh
+sfpBull = lastSwingLow > 0 and low[1] < lastSwingLow and close[1] >= lastSwingLow
+chochBearish = trendUp and not na(lastSwingLow) and lastSwingLow > 0 and close[1] < lastSwingLow
+chochBullish = trendDown and not na(lastSwingHigh) and lastSwingHigh > 0 and close[1] > lastSwingHigh
+chochBlockBuy = useCHoCHFilter and chochBearish
+chochBlockSell = useCHoCHFilter and chochBullish
+
+// === MA Stack ===
+emaFast = ta.ema(close, maFastLen)
+emaSlow = ta.ema(close, maSlowLen)
+emaSlower = ta.ema(close, maSlowerLen)
+maStackUp = useMAStack ? (emaFast[1] > emaSlow[1] and emaSlow[1] > emaSlower[1]) : true
+maStackDown = useMAStack ? (emaFast[1] < emaSlow[1] and emaSlow[1] < emaSlower[1]) : true
+
+// === Volatility extended ===
+bbNotExtremes = useBBNotExtremes ? notAtExtremes[1] : true
+noSqueeze = useNoSqueeze ? not bbSqueeze[1] : true
+atrMA = ta.sma(atr, atrLength)
+atrExpanding = useATRExpanding ? atr[1] >= atrMA[1] : true
+
+// === Volume extended ===
+volumeRising = useVolumeTrend ? (volume[1] >= volume[2] and volume[2] >= volume[volumeTrendBars]) : true
+obv = ta.cum(close > close[1] ? volume : close < close[1] ? -volume : 0)
+obvMA = ta.sma(obv, obvLength)
+obvBullish = useOBV ? obv[1] > obvMA[1] : true
+obvBearish = useOBV ? obv[1] < obvMA[1] : true
+
+// === Stochastic ===
+stochKVal = ta.stoch(close, high, low, stochK)
+stochDVal = ta.sma(stochKVal, stochD)
+stochBullish = useStoch ? (stochKVal[1] > stochDVal[1] or stochKVal[1] < stochOversold) : true
+stochBearish = useStoch ? (stochKVal[1] < stochDVal[1] or stochKVal[1] > stochOverbought) : true
+
+// === ROC ===
+roc = ta.roc(close, rocLength)
+rocBullish = useROC ? roc[1] > 0 : true
+rocBearish = useROC ? roc[1] < 0 : true
+
+// === MACD Histogram ===
+macdHistBullish = useMacdHist ? macdHist[1] > 0 : true
+macdHistBearish = useMacdHist ? macdHist[1] < 0 : true
+
+// === Candle direction ===
+bullishCandle = useCandleFilter ? close[1] > open[1] : true
+bearishCandle = useCandleFilter ? close[1] < open[1] : true
+
+// === Session ===
+inSession = useSessionFilter ? not na(time(timeframe.period, sessionInput)) : true
+
+// === HTF RSI ===
+htfRsi = request.security(syminfo.tickerid, htfTimeframe, ta.rsi(close, htfRsiLength), lookahead=barmerge.lookahead_off)
+htfRsiPrev = htfRsi[1]
+htfRsiOkBuy = useHTFRSI ? htfRsiPrev < htfRsiNotOverbought : true
+htfRsiOkSell = useHTFRSI ? htfRsiPrev > htfRsiNotOversold : true
+
+// === MTF Heatmap ===
+mtfEmaLen = 20
+mtf5  = request.security(syminfo.tickerid, "5",  close > ta.ema(close, mtfEmaLen), lookahead=barmerge.lookahead_off)
+mtf15 = request.security(syminfo.tickerid, "15", close > ta.ema(close, mtfEmaLen), lookahead=barmerge.lookahead_off)
+mtf60 = request.security(syminfo.tickerid, "60", close > ta.ema(close, mtfEmaLen), lookahead=barmerge.lookahead_off)
+mtf240 = request.security(syminfo.tickerid, "240", close > ta.ema(close, mtfEmaLen), lookahead=barmerge.lookahead_off)
+mtfD  = request.security(syminfo.tickerid, "D",  close > ta.ema(close, mtfEmaLen), lookahead=barmerge.lookahead_off)
+
+// === ATR Range Filter ===
+atrAvg = ta.sma(atr, atrLength * 2)
+atrInRange = useATRFilter ? (atrMinPct <= 0 or atr[1] >= atrAvg[1] * (atrMinPct / 100.0)) and (atrMaxPct <= 0 or atr[1] <= atrAvg[1] * (1 + atrMaxPct / 100.0)) : true
+
+// === FVG ===
+bodyPctBull = (close[2] - open[2]) / (high[2] - low[2] + 1e-10)
+bodyPctBear = (open[2] - close[2]) / (high[2] - low[2] + 1e-10)
+bullFVG = low[2] > high[0] and bodyPctBull >= fvgMinBodyPct
+bearFVG = high[2] < low[0] and bodyPctBear >= fvgMinBodyPct
+
+// ==================================================================================
+// CALCULATIONS - NEW FACTORS (36)
+// ==================================================================================
+
+// === 1. SuperTrend ===
+[stValue, stDir] = ta.supertrend(stFactor, stAtrLen)
+stBullish = useSuperTrend ? stDir[1] < 0 : true
+stBearish = useSuperTrend ? stDir[1] > 0 : true
+
+// === 2. Parabolic SAR ===
+sarValue = ta.sar(sarStart, sarIncrement, sarMax)
+sarBullish = useSAR ? close[1] > sarValue[1] : true
+sarBearish = useSAR ? close[1] < sarValue[1] : true
+
+// === 3. Ichimoku Cloud ===
+ichConvLine = (ta.highest(high, ichConversion) + ta.lowest(low, ichConversion)) / 2
+ichBaseLine = (ta.highest(high, ichBase) + ta.lowest(low, ichBase)) / 2
+ichSpanA = (ichConvLine + ichBaseLine) / 2
+ichSpanB = (ta.highest(high, ichSpan) + ta.lowest(low, ichSpan)) / 2
+ichCloudTop = math.max(ichSpanA[ichBase], ichSpanB[ichBase])
+ichCloudBot = math.min(ichSpanA[ichBase], ichSpanB[ichBase])
+ichTKCross = ichConvLine > ichBaseLine
+ichAboveCloud = close[1] > ichCloudTop[1]
+ichBelowCloud = close[1] < ichCloudBot[1]
+ichGreenCloud = ichSpanA > ichSpanB
+ichBullish = useIchimoku ? (ichAboveCloud and ichTKCross[1]) : true
+ichBearish = useIchimoku ? (ichBelowCloud and not ichTKCross[1]) : true
+
+// === 4. Aroon ===
+aroonUp = useAroon ? 100.0 * (aroonLength - ta.highestbars(high, aroonLength + 1)) / aroonLength : 50.0
+aroonDown = useAroon ? 100.0 * (aroonLength - ta.lowestbars(low, aroonLength + 1)) / aroonLength : 50.0
+aroonBullish = useAroon ? (aroonUp[1] > 70 and aroonDown[1] < 30) : true
+aroonBearish = useAroon ? (aroonDown[1] > 70 and aroonUp[1] < 30) : true
+
+// === 5. Linear Regression + R-Squared ===
+linRegVal = ta.linreg(close, linRegLength, 0)
+linRegSlope = linRegVal - ta.linreg(close, linRegLength, 1)
+corrVal = ta.correlation(close, bar_index, linRegLength)
+rSquared = corrVal * corrVal
+linRegBullish = useLinReg ? (linRegSlope[1] > 0 and rSquared[1] > 0.3) : true
+linRegBearish = useLinReg ? (linRegSlope[1] < 0 and rSquared[1] > 0.3) : true
+
+// === 6. Keltner Channels + TTM Squeeze ===
+kcBasis = ta.ema(close, kcLength)
+kcRange = ta.atr(kcLength) * kcMult
+kcUpper = kcBasis + kcRange
+kcLower = kcBasis - kcRange
+ttmSqueezeOn = useTTMSqueeze ? (bbUpper < kcUpper and bbLower > kcLower) : false
+ttmSqueezeOff = useTTMSqueeze ? not ttmSqueezeOn : true
+ttmMomentum = ta.linreg(close - (ta.highest(high, kcLength) + ta.lowest(low, kcLength)) / 2, kcLength, 0)
+ttmFirBull = useTTMSqueeze ? (not ttmSqueezeOn and ttmSqueezeOn[1] and ttmMomentum > 0) : false
+ttmFirBear = useTTMSqueeze ? (not ttmSqueezeOn and ttmSqueezeOn[1] and ttmMomentum < 0) : false
+kcBullish = useKeltner ? (close[1] > kcBasis[1]) : true
+kcBearish = useKeltner ? (close[1] < kcBasis[1]) : true
+
+// === 7. Historical Volatility Percentile ===
+hvol = ta.stdev(math.log(close / close[1]), hvLength) * math.sqrt(252)
+hvRank = ta.percentrank(hvol, hvRankLength)
+hvLow = useHVRank ? hvRank[1] < 25 : false
+hvHigh = useHVRank ? hvRank[1] > 75 : false
+
+// === 8. Chandelier Exit ===
+chandLong = ta.highest(high, chandLength) - chandMult * ta.atr(chandLength)
+chandShort = ta.lowest(low, chandLength) + chandMult * ta.atr(chandLength)
+chandBullish = useChandelier ? close[1] > chandLong[1] : true
+chandBearish = useChandelier ? close[1] < chandShort[1] : true
+
+// === 9. VWAP ===
+vwapValue = ta.vwap(close)
+vwapBullish = useVWAP ? close[1] > vwapValue[1] : true
+vwapBearish = useVWAP ? close[1] < vwapValue[1] : true
+
+// === 10. Chaikin Money Flow ===
+clv = ((close - low) - (high - close)) / math.max(high - low, 1e-10)
+cmfValue = ta.sma(clv * volume, cmfLength) / math.max(ta.sma(volume, cmfLength), 1e-10)
+cmfBullish = useCMF ? cmfValue[1] > 0 : true
+cmfBearish = useCMF ? cmfValue[1] < 0 : true
+
+// === 11. Money Flow Index ===
+mfiValue = ta.mfi(hlc3, mfiLength)
+mfiBullish = useMFI ? mfiValue[1] > 50 : true
+mfiBearish = useMFI ? mfiValue[1] < 50 : true
+
+// === 12. Accumulation/Distribution Line ===
+adLine = ta.cum(((close - low) - (high - close)) / math.max(high - low, 1e-10) * volume)
+adLineMA = ta.sma(adLine, adLineMALen)
+adLineBullish = useADLine ? adLine[1] > adLineMA[1] : true
+adLineBearish = useADLine ? adLine[1] < adLineMA[1] : true
+
+// === 13. Price Volume Trend ===
+pvtVal = ta.cum(ta.change(close) / math.max(close[1], 1e-10) * volume)
+pvtMA = ta.sma(pvtVal, pvtMALen)
+pvtBullish = usePVT ? pvtVal[1] > pvtMA[1] : true
+pvtBearish = usePVT ? pvtVal[1] < pvtMA[1] : true
+
+// === 14. CCI ===
+cciValue = ta.cci(close, cciLength)
+cciBullish = useCCI ? cciValue[1] > 0 : true
+cciBearish = useCCI ? cciValue[1] < 0 : true
+
+// === 15. Williams %R ===
+wrValue = -100 * (ta.highest(high, wrLength) - close) / math.max(ta.highest(high, wrLength) - ta.lowest(low, wrLength), 1e-10)
+wrBullish = useWilliamsR ? wrValue[1] > -50 : true
+wrBearish = useWilliamsR ? wrValue[1] < -50 : true
+
+// === 16. Chande Momentum Oscillator ===
+cmoValue = ta.cmo(close, cmoLength)
+cmoBullish = useCMO ? cmoValue[1] > 0 : true
+cmoBearish = useCMO ? cmoValue[1] < 0 : true
+
+// === 17. Fisher Transform ===
+[fisherVal, fisherPrev] = f_fisherTransform(fisherLength)
+fisherBullish = useFisher ? (fisherVal[1] > fisherPrev[1]) : true
+fisherBearish = useFisher ? (fisherVal[1] < fisherPrev[1]) : true
+
+// === 18. Elder Force Index ===
+efiValue = ta.ema(volume * (close - close[1]), efiLength)
+efiBullish = useEFI ? efiValue[1] > 0 : true
+efiBearish = useEFI ? efiValue[1] < 0 : true
+
+// === 19. Order Blocks ===
+obDispThreshold = atr * obDisplacementMult
+bullOBCandle = close[2] < open[2] and math.abs(close[1] - open[1]) > obDispThreshold[1] and close[1] > open[1]
+bearOBCandle = close[2] > open[2] and math.abs(close[1] - open[1]) > obDispThreshold[1] and close[1] < open[1]
+var float lastBullOBHigh = na
+var float lastBullOBLow = na
+var float lastBearOBHigh = na
+var float lastBearOBLow = na
+if useOrderBlocks and bullOBCandle
+    lastBullOBHigh := high[2]
+    lastBullOBLow := low[2]
+if useOrderBlocks and bearOBCandle
+    lastBearOBHigh := high[2]
+    lastBearOBLow := low[2]
+nearBullOB = useOrderBlocks and not na(lastBullOBLow) ? (low[1] <= lastBullOBHigh and low[1] >= lastBullOBLow) : false
+nearBearOB = useOrderBlocks and not na(lastBearOBHigh) ? (high[1] >= lastBearOBLow and high[1] <= lastBearOBHigh) : false
+
+// === 20. Intermarket (Correlation + Relative Strength) ===
+benchClose = (useCorrelation or useRelStrength) ? request.security(benchmarkSymbol, timeframe.period, close, lookahead=barmerge.lookahead_off) : close
+corrValue = useCorrelation ? ta.correlation(close, benchClose, corrLength) : 0.0
+benchTrendUp = benchClose > benchClose[1]
+corrBullish = useCorrelation ? (corrValue[1] > 0.5 and benchTrendUp[1]) or (corrValue[1] < -0.3 and not benchTrendUp[1]) : true
+corrBearish = useCorrelation ? (corrValue[1] > 0.5 and not benchTrendUp[1]) or (corrValue[1] < -0.3 and benchTrendUp[1]) : true
+
+rsRatio = useRelStrength ? close / math.max(benchClose, 1e-10) : 1.0
+rsMA = ta.sma(rsRatio, corrLength)
+rsBullish = useRelStrength ? rsRatio[1] > rsMA[1] : true
+rsBearish = useRelStrength ? rsRatio[1] < rsMA[1] : true
+
+// === 21. Engulfing Pattern ===
+bullEngulfing = useEngulfing ? (close[2] < open[2] and close[1] > open[1] and open[1] <= close[2] and close[1] >= open[2]) : false
+bearEngulfing = useEngulfing ? (close[2] > open[2] and close[1] < open[1] and open[1] >= close[2] and close[1] <= open[2]) : false
+
+// === 22. Pin Bar / Hammer ===
+bodySize = math.abs(close[1] - open[1])
+upperWick = high[1] - math.max(close[1], open[1])
+lowerWick = math.min(close[1], open[1]) - low[1]
+hammerBull = usePinBar ? (lowerWick >= bodySize * pinBarWickRatio and upperWick < bodySize and close[1] > open[1]) : false
+shootingStar = usePinBar ? (upperWick >= bodySize * pinBarWickRatio and lowerWick < bodySize and close[1] < open[1]) : false
+
+// === 23. Morning Star / Evening Star ===
+bar3Bearish = close[3] < open[3] and math.abs(close[3] - open[3]) > atr[3] * 0.5
+bar2Small = math.abs(close[2] - open[2]) < atr[2] * 0.3
+bar1Bullish = close[1] > open[1] and close[1] > (open[3] + close[3]) / 2
+morningStar = useMorningStar ? (bar3Bearish and bar2Small and bar1Bullish) : false
+
+bar3BullishStar = close[3] > open[3] and math.abs(close[3] - open[3]) > atr[3] * 0.5
+bar1BearishStar = close[1] < open[1] and close[1] < (open[3] + close[3]) / 2
+eveningStar = useMorningStar ? (bar3BullishStar and bar2Small and bar1BearishStar) : false
+
+// === Doji (1-bar) ===
+candleRange1 = high[1] - low[1]
+doji = useDoji ? (bodySize / math.max(candleRange1, 1e-10) <= dojiBodyPct and bodySize < atr[1] * 0.2) : false
+
+// === Harami (2-bar) ===
+bullHarami = useHarami ? (close[2] < open[2] and close[1] > open[1] and open[1] > close[2] and close[1] < open[2]) : false
+bearHarami = useHarami ? (close[2] > open[2] and close[1] < open[1] and open[1] < close[2] and close[1] > open[2]) : false
+
+// === Three White Soldiers / Three Black Crows (3-bar) ===
+threeWhiteSoldiers = useThreeSoldiers ? (close[3] > open[3] and close[2] > open[2] and close[1] > open[1] and open[1] > open[2] and open[1] < close[2] and open[2] > open[3] and open[2] < close[3] and close[1] > close[2] and close[2] > close[3]) : false
+threeBlackCrows = useThreeSoldiers ? (close[3] < open[3] and close[2] < open[2] and close[1] < open[1] and open[1] < open[2] and open[1] > close[2] and open[2] < open[3] and open[2] > close[3] and close[1] < close[2] and close[2] < close[3]) : false
+
+// === Tweezer Bottoms / Tweezer Tops (2-bar) ===
+tweezerBottom = useTweezer ? (math.abs(low[1] - low[2]) <= atr * tweezerTolerance and close[1] > open[1] and close[2] < open[2]) : false
+tweezerTop = useTweezer ? (math.abs(high[1] - high[2]) <= atr * tweezerTolerance and close[1] < open[1] and close[2] > open[2]) : false
+
+// === Piercing Line / Dark Cloud Cover (2-bar) ===
+mid2 = (open[2] + close[2]) / 2
+piercingLine = usePiercingLine ? (close[2] < open[2] and open[1] < low[2] and close[1] > mid2 and close[1] < open[2] and close[1] > open[1]) : false
+darkCloudCover = usePiercingLine ? (close[2] > open[2] and open[1] > high[2] and close[1] < mid2 and close[1] > close[2] and close[1] < open[1]) : false
+
+// === 24. Z-Score ===
+zScore = useZScore ? (close - ta.sma(close, zScoreLength)) / math.max(ta.stdev(close, zScoreLength), 1e-10) : 0.0
+zScoreOverextBull = useZScore and zScore[1] > 2.0
+zScoreOverextBear = useZScore and zScore[1] < -2.0
+
+// === 25. R-Squared (for meta-modifier) ===
+rSqValue = useRSquared ? rSquared[1] : 0.5
+
+// === 26. ATR Acceleration (Sentiment) ===
+atrRoc = ta.roc(atr, 10)
+atrDecelerating = useATRAccel ? atrRoc[1] < 0 and atrRoc[2] > 0 : false
+atrAccelerating = useATRAccel ? atrRoc[1] > 0 and atrRoc[2] < 0 : false
+
+// === 27. Buying/Selling Pressure ===
+buyPressure = ta.sma((close - low) / math.max(high - low, 1e-10) * volume, pressureLength)
+sellPressure = ta.sma((high - close) / math.max(high - low, 1e-10) * volume, pressureLength)
+pressureRatio = buyPressure / math.max(buyPressure + sellPressure, 1e-10)
+pressureBullish = useBuySellPressure ? pressureRatio[1] > 0.55 : true
+pressureBearish = useBuySellPressure ? pressureRatio[1] < 0.45 : true
+
+// === 28. Ehlers Sine Wave ===
+[sineVal, leadSineVal, dominantPeriod] = f_ehlersSineWave()
+sineBullish = useEhlersSine ? (sineVal[1] > leadSineVal[1] and sineVal[2] <= leadSineVal[2]) or sineVal[1] > leadSineVal[1] : true
+sineBearish = useEhlersSine ? (sineVal[1] < leadSineVal[1] and sineVal[2] >= leadSineVal[2]) or sineVal[1] < leadSineVal[1] : true
+
+// === 29. Wyckoff Phase Detection ===
+wyckHigh = ta.highest(high, wyckoffLookback)
+wyckLow = ta.lowest(low, wyckoffLookback)
+wyckRange = wyckHigh - wyckLow
+wyckVolAvg = ta.sma(volume, wyckoffLookback)
+wyckInRange = wyckRange > 0 and wyckRange < atr * wyckoffLookback * 0.5
+wyckSpring = useWyckoff and wyckInRange ? (low[1] < wyckLow[1] and close[1] > wyckLow[1] and volume[1] > wyckVolAvg[1]) : false
+wyckUpthrust = useWyckoff and wyckInRange ? (high[1] > wyckHigh[1] and close[1] < wyckHigh[1] and volume[1] > wyckVolAvg[1]) : false
+
+// === 30. VWMA ===
+vwmaVal = ta.vwma(close, vwmaLength)
+smaForVwma = ta.sma(close, vwmaLength)
+vwmaBullish = useVWMA ? vwmaVal[1] > smaForVwma[1] : true
+vwmaBearish = useVWMA ? vwmaVal[1] < smaForVwma[1] : true
+
+// === 31. Displacement Candle ===
+avgBody = ta.sma(math.abs(close - open), 20)
+bullDisplacement = useDisplacement ? (close[1] > open[1] and math.abs(close[1] - open[1]) > avgBody[1] * dispBodyMult and volume[1] > volumeMA[1]) : false
+bearDisplacement = useDisplacement ? (close[1] < open[1] and math.abs(close[1] - open[1]) > avgBody[1] * dispBodyMult and volume[1] > volumeMA[1]) : false
+
+// ==================================================================================
+// 6-PILLAR CONFLUENCE SCORING SYSTEM
+// ==================================================================================
+
+// --- Trend Pillar (18 pts max) ---
+buyTrend = (trendUp ? 2 : 0) + (htfTrendUp ? 2 : 0) + (adxStrong ? 2 : 0) + (stBullish ? 2 : 0) + (sarBullish ? 2 : 0) + (ichBullish ? 2 : 0) + (aroonBullish ? 2 : 0) + (linRegBullish ? 2 : 0) + (vwmaBullish ? 2 : 0)
+sellTrend = (trendDown ? 2 : 0) + (not htfTrendUp ? 2 : 0) + (adxStrong ? 2 : 0) + (stBearish ? 2 : 0) + (sarBearish ? 2 : 0) + (ichBearish ? 2 : 0) + (aroonBearish ? 2 : 0) + (linRegBearish ? 2 : 0) + (vwmaBearish ? 2 : 0)
+
+// --- Momentum Pillar (18 pts max) ---
+buyMomentum = (rsiBullish ? 2 : 0) + (macdBullish ? 2 : 0) + (macdHistBullish ? 1 : 0) + (stochBullish ? 2 : 0) + (rocBullish ? 1 : 0) + (cciBullish ? 2 : 0) + (wrBullish ? 1 : 0) + (cmoBullish ? 1 : 0) + (fisherBullish ? 2 : 0) + (efiBullish ? 1 : 0) + (sineBullish ? 1 : 0) + (mfiBullish ? 2 : 0)
+sellMomentum = (rsiBearish ? 2 : 0) + (macdBearish ? 2 : 0) + (macdHistBearish ? 1 : 0) + (stochBearish ? 2 : 0) + (rocBearish ? 1 : 0) + (cciBearish ? 2 : 0) + (wrBearish ? 1 : 0) + (cmoBearish ? 1 : 0) + (fisherBearish ? 2 : 0) + (efiBearish ? 1 : 0) + (sineBearish ? 1 : 0) + (mfiBearish ? 2 : 0)
+
+// --- Volume Pillar (18 pts max) ---
+buyVolume = (volumeConfirm ? 3 : 0) + (volumeRising ? 2 : 0) + (obvBullish ? 2 : 0) + (vwapBullish ? 3 : 0) + (cmfBullish ? 2 : 0) + (adLineBullish ? 2 : 0) + (pvtBullish ? 2 : 0) + (pressureBullish ? 2 : 0)
+sellVolume = (volumeConfirm ? 3 : 0) + (volumeRising ? 2 : 0) + (obvBearish ? 2 : 0) + (vwapBearish ? 3 : 0) + (cmfBearish ? 2 : 0) + (adLineBearish ? 2 : 0) + (pvtBearish ? 2 : 0) + (pressureBearish ? 2 : 0)
+
+// --- Structure Pillar (18 pts max) ---
+buyStructure = (maStackUp ? 2 : 0) + (structureBull ? 3 : 0) + (not chochBlockBuy ? 2 : 0) + (nearBullOB ? 3 : 0) + (bullEngulfing ? 2 : 0) + (hammerBull ? 1 : 0) + (morningStar ? 2 : 0) + (bullDisplacement ? 1 : 0) + (bullishDivergence ? 2 : 0) + (bullHarami ? 1 : 0) + (threeWhiteSoldiers ? 1 : 0) + (tweezerBottom ? 1 : 0) + (piercingLine ? 1 : 0)
+sellStructure = (maStackDown ? 2 : 0) + (structureBear ? 3 : 0) + (not chochBlockSell ? 2 : 0) + (nearBearOB ? 3 : 0) + (bearEngulfing ? 2 : 0) + (shootingStar ? 1 : 0) + (eveningStar ? 2 : 0) + (bearDisplacement ? 1 : 0) + (bearishDivergence ? 2 : 0) + (bearHarami ? 1 : 0) + (threeBlackCrows ? 1 : 0) + (tweezerTop ? 1 : 0) + (darkCloudCover ? 1 : 0)
+
+// --- Volatility Pillar (14 pts max) ---
+buyVolatility = (bbNotExtremes ? 2 : 0) + (noSqueeze or ttmFirBull ? 3 : 0) + (ttmFirBull ? 3 : 0) + (kcBullish ? 2 : 0) + (chandBullish ? 2 : 0) + (atrInRange ? 2 : 0)
+sellVolatility = (bbNotExtremes ? 2 : 0) + (noSqueeze or ttmFirBear ? 3 : 0) + (ttmFirBear ? 3 : 0) + (kcBearish ? 2 : 0) + (chandBearish ? 2 : 0) + (atrInRange ? 2 : 0)
+
+// --- Regime Pillar (14 pts max) ---
+buyRegime = (premiumDiscountOkBuy ? 3 : 0) + (htfRsiOkBuy ? 3 : 0) + (rsBullish ? 2 : 0) + (corrBullish ? 2 : 0) + (not hvHigh ? 2 : 0) + (wyckSpring ? 2 : 0)
+sellRegime = (premiumDiscountOkSell ? 3 : 0) + (htfRsiOkSell ? 3 : 0) + (rsBearish ? 2 : 0) + (corrBearish ? 2 : 0) + (not hvHigh ? 2 : 0) + (wyckUpthrust ? 2 : 0)
+
+// --- Raw Pillar Scores (capped) ---
+buyTrendCapped = math.min(buyTrend, 18)
+buyMomentumCapped = math.min(buyMomentum, 18)
+buyVolumeCapped = math.min(buyVolume, 18)
+buyStructureCapped = math.min(buyStructure, 18)
+buyVolatilityCapped = math.min(buyVolatility, 14)
+buyRegimeCapped = math.min(buyRegime, 14)
+
+sellTrendCapped = math.min(sellTrend, 18)
+sellMomentumCapped = math.min(sellMomentum, 18)
+sellVolumeCapped = math.min(sellVolume, 18)
+sellStructureCapped = math.min(sellStructure, 18)
+sellVolatilityCapped = math.min(sellVolatility, 14)
+sellRegimeCapped = math.min(sellRegime, 14)
+
+// --- Meta-Modifiers ---
+// R-Squared: boosts/reduces trend pillar
+rSqTrendMult = useRSquared ? (rSqValue > 0.5 ? 1.1 : rSqValue < 0.2 ? 0.8 : 1.0) : 1.0
+
+// Z-Score: reduce score when overextended
+zScorePenaltyBuy = useZScore and zScoreOverextBull ? 0.85 : 1.0
+zScorePenaltySell = useZScore and zScoreOverextBear ? 0.85 : 1.0
+
+// Apply meta-modifiers
+buyTrendFinal = math.round(buyTrendCapped * rSqTrendMult)
+sellTrendFinal = math.round(sellTrendCapped * rSqTrendMult)
+
+// --- Total Confluence Score ---
+buyConfluenceScore = math.min(100, math.round((buyTrendFinal + buyMomentumCapped + buyVolumeCapped + buyStructureCapped + buyVolatilityCapped + buyRegimeCapped) * zScorePenaltyBuy))
+sellConfluenceScore = math.min(100, math.round((sellTrendFinal + sellMomentumCapped + sellVolumeCapped + sellStructureCapped + sellVolatilityCapped + sellRegimeCapped) * zScorePenaltySell))
+
+buyConditions = array.new_bool(21)
+array.set(buyConditions, 0, trendUp)
+array.set(buyConditions, 1, adxStrong)
+array.set(buyConditions, 2, rsiBullish)
+array.set(buyConditions, 3, macdBullish)
+array.set(buyConditions, 4, volumeConfirm)
+array.set(buyConditions, 5, useHTF ? htfTrendUp : true)
+array.set(buyConditions, 6, diBullish)
+array.set(buyConditions, 7, bbNotExtremes)
+array.set(buyConditions, 8, noSqueeze)
+array.set(buyConditions, 9, volumeRising)
+array.set(buyConditions, 10, obvBullish)
+array.set(buyConditions, 11, maStackUp)
+array.set(buyConditions, 12, structureBull)
+array.set(buyConditions, 13, stochBullish)
+array.set(buyConditions, 14, rocBullish)
+array.set(buyConditions, 15, macdHistBullish)
+array.set(buyConditions, 16, bullishCandle)
+array.set(buyConditions, 17, inSession)
+array.set(buyConditions, 18, htfRsiOkBuy)
+array.set(buyConditions, 19, atrInRange)
+array.set(buyConditions, 20, bullishDivergence or true)
+
+buyScore = 0.0
+for i = 0 to 19
+    if array.get(buyConditions, i)
+        buyScore += 5.0
+if bullishDivergence
+    buyScore := math.min(buyScore + 10, 100)
+else
+    buyScore := math.min(buyScore, 100)
+
+sellConditions = array.new_bool(21)
+array.set(sellConditions, 0, trendDown)
+array.set(sellConditions, 1, adxStrong)
+array.set(sellConditions, 2, rsiBearish)
+array.set(sellConditions, 3, macdBearish)
+array.set(sellConditions, 4, volumeConfirm)
+array.set(sellConditions, 5, useHTF ? not htfTrendUp : true)
+array.set(sellConditions, 6, diBearish)
+array.set(sellConditions, 7, bbNotExtremes)
+array.set(sellConditions, 8, noSqueeze)
+array.set(sellConditions, 9, volumeRising)
+array.set(sellConditions, 10, obvBearish)
+array.set(sellConditions, 11, maStackDown)
+array.set(sellConditions, 12, structureBear)
+array.set(sellConditions, 13, stochBearish)
+array.set(sellConditions, 14, rocBearish)
+array.set(sellConditions, 15, macdHistBearish)
+array.set(sellConditions, 16, bearishCandle)
+array.set(sellConditions, 17, inSession)
+array.set(sellConditions, 18, htfRsiOkSell)
+array.set(sellConditions, 19, atrInRange)
+array.set(sellConditions, 20, bearishDivergence or true)
+
+sellScore = 0.0
+for i = 0 to 19
+    if array.get(sellConditions, i)
+        sellScore += 5.0
+if bearishDivergence
+    sellScore := math.min(sellScore + 10, 100)
+else
+    sellScore := math.min(sellScore, 100)
+
+// ==================================================================================
+// SCORE THRESHOLD
+// ==================================================================================
+bool buyConditionMet = useConfluenceScore ? (buyConfluenceScore >= confluenceMinScore and not chochBlockBuy) : (buyScore >= minSignalScore)
+bool sellConditionMet = useConfluenceScore ? (sellConfluenceScore >= confluenceMinScore and not chochBlockSell) : (sellScore >= minSignalScore)
+
+regime = adxStrong ? (trendUp ? "STRONG UPTREND" : trendDown ? "STRONG DOWNTREND" : "STRONG TREND") : "RANGING/WEAK"
+regimeShort = adxStrong ? (trendUp ? "Uptrend" : trendDown ? "Downtrend" : "Trend") : "Ranging"
+
+// ==================================================================================
+// VISUALIZATION
+// ==================================================================================
+
+// --- Layer 1: Background (transparency 92-97) ---
+// Trend background
+bgColor = showBackground ? (trendUp and adxStrong ? color.new(bullPrimary, 96) : trendDown and adxStrong ? color.new(bearPrimary, 96) : na) : na
+bgcolor(bgColor, title="Trend Background")
+
+// TTM Squeeze active background
+bgcolor(useTTMSqueeze and ttmSqueezeOn ? color.new(warningColor, 95) : na, title="Squeeze Active")
+
+// --- Layer 2: Zones (transparency 80-90) ---
+// Ichimoku Cloud
+ichSpanAPlot = plot(showIchimokuCloud and useIchimoku ? ichSpanA : na, "Ichimoku Span A", color=color.new(bullSecondary, 85), offset=ichBase, display=display.all)
+ichSpanBPlot = plot(showIchimokuCloud and useIchimoku ? ichSpanB : na, "Ichimoku Span B", color=color.new(bearSecondary, 85), offset=ichBase, display=display.all)
+fill(ichSpanAPlot, ichSpanBPlot, color=ichGreenCloud ? color.new(bullPrimary, 90) : color.new(bearPrimary, 90), title="Ichimoku Cloud")
+
+// Bollinger Bands
+bbRelevant = showBB and (bbSqueeze or bbPercent < 0.1 or bbPercent > 0.9 or true)
+bbUpperPlot = plot(bbRelevant ? bbUpper : na, "BB Upper", color=color.new(volumeClr, 85), linewidth=1)
+bbLowerPlot = plot(bbRelevant ? bbLower : na, "BB Lower", color=color.new(volumeClr, 85), linewidth=1)
+plot(bbRelevant ? bbBasis : na, "BB Basis", color=color.new(neutralColor, 60), linewidth=1)
+bbFillIntensity = bbSqueeze ? color.new(warningColor, 88) : color.new(volumeClr, 95)
+fill(bbUpperPlot, bbLowerPlot, color=bbFillIntensity, title="BB Fill")
+
+// Keltner Channels (only when relevant)
+kcVisible = showKeltner and useKeltner
+plot(kcVisible ? kcUpper : na, "KC Upper", color=color.new(warningColor, 88), linewidth=1, style=plot.style_circles)
+plot(kcVisible ? kcLower : na, "KC Lower", color=color.new(warningColor, 88), linewidth=1, style=plot.style_circles)
+
+// FVG boxes
+var box lastBullFvg = na
+var box lastBearFvg = na
+if useFVG and bullFVG
+    if not na(lastBullFvg)
+        box.delete(lastBullFvg)
+    lastBullFvg := box.new(bar_index - 2, low[2], bar_index + 6, high[0], border_color=color.new(bullPrimary, 50), bgcolor=color.new(bullPrimary, 85), border_width=1)
+if useFVG and bearFVG
+    if not na(lastBearFvg)
+        box.delete(lastBearFvg)
+    lastBearFvg := box.new(bar_index - 2, low[0], bar_index + 6, high[2], border_color=color.new(bearPrimary, 50), bgcolor=color.new(bearPrimary, 85), border_width=1)
+
+// --- Layer 3: Moving Averages (transparency 40-70) ---
+// EMA Stack
+plot(useMAStack ? emaFast : na, "EMA Fast", color=color.new(warningColor, 40), linewidth=1)
+plot(useMAStack ? emaSlow : na, "EMA Slow", color=color.new(warningColor, 55), linewidth=1)
+plot(useMAStack ? emaSlower : na, "EMA Slower", color=color.new(warningColor, 70), linewidth=1)
+
+// VWAP
+plot(showVWAPLine and useVWAP ? vwapValue : na, "VWAP", color=color.new(volumeClr, 30), linewidth=1, style=plot.style_circles)
+
+// Hull MA with ADX-based gradient intensity
+hmaGradientBull = color.from_gradient(adxValue, 15, 50, color.new(bullPrimary, 60), color.new(bullPrimary, 0))
+hmaGradientBear = color.from_gradient(adxValue, 15, 50, color.new(bearPrimary, 60), color.new(bearPrimary, 0))
+hmaColor = hullTrend ? hmaGradientBull : hmaGradientBear
+plot(showHullMA ? hullMA : na, "Hull MA", color=hmaColor, linewidth=2)
+
+// --- Layer 4: Signals & Levels ---
+// SuperTrend line
+stColor = stDir < 0 ? bullPrimary : bearPrimary
+plot(showSuperTrendLine and useSuperTrend ? stValue : na, "SuperTrend", color=color.new(stColor, 20), linewidth=2, style=plot.style_line)
+
+// Parabolic SAR dots
+plotshape(showSARDots and useSAR ? sarValue : na, "SAR", shape.cross, location.absolute, color=color.new(neutralColor, 40), size=size.tiny)
+
+// Barcolor: confluence gradient on every candle
+candleScore = buyConfluenceScore > sellConfluenceScore ? buyConfluenceScore : -sellConfluenceScore
+barcolor(color.from_gradient(candleScore, -80, 80, bearPrimary, bullPrimary), title="Confluence Candle Color")
+
+// Candlestick pattern markers
+if showPatternMarkers and bullEngulfing
+    label.new(bar_index, low - atr * 0.2, "E", style=label.style_label_up, color=color.new(structureClr, 30), textcolor=color.white, size=size.tiny, tooltip="Bullish Engulfing")
+if showPatternMarkers and bearEngulfing
+    label.new(bar_index, high + atr * 0.2, "E", style=label.style_label_down, color=color.new(structureClr, 30), textcolor=color.white, size=size.tiny, tooltip="Bearish Engulfing")
+if showPatternMarkers and hammerBull
+    label.new(bar_index, low - atr * 0.2, "H", style=label.style_label_up, color=color.new(bullSecondary, 30), textcolor=color.white, size=size.tiny, tooltip="Hammer")
+if showPatternMarkers and shootingStar
+    label.new(bar_index, high + atr * 0.2, "S", style=label.style_label_down, color=color.new(bearSecondary, 30), textcolor=color.white, size=size.tiny, tooltip="Shooting Star")
+if showPatternMarkers and morningStar
+    label.new(bar_index, low - atr * 0.2, "MoS", style=label.style_label_up, color=color.new(bullSecondary, 20), textcolor=color.white, size=size.tiny, tooltip="Morning Star")
+if showPatternMarkers and eveningStar
+    label.new(bar_index, high + atr * 0.2, "EvS", style=label.style_label_down, color=color.new(bearSecondary, 20), textcolor=color.white, size=size.tiny, tooltip="Evening Star")
+if showPatternMarkers and doji
+    label.new(bar_index, low - atr * 0.2, "Do", style=label.style_label_up, color=color.new(structureClr, 30), textcolor=color.white, size=size.tiny, tooltip="Doji")
+if showPatternMarkers and bullHarami
+    label.new(bar_index, low - atr * 0.2, "Ha", style=label.style_label_up, color=color.new(bullSecondary, 30), textcolor=color.white, size=size.tiny, tooltip="Bullish Harami")
+if showPatternMarkers and bearHarami
+    label.new(bar_index, high + atr * 0.2, "Ha", style=label.style_label_down, color=color.new(bearSecondary, 30), textcolor=color.white, size=size.tiny, tooltip="Bearish Harami")
+if showPatternMarkers and threeWhiteSoldiers
+    label.new(bar_index, low - atr * 0.2, "3WS", style=label.style_label_up, color=color.new(bullSecondary, 20), textcolor=color.white, size=size.tiny, tooltip="Three White Soldiers")
+if showPatternMarkers and threeBlackCrows
+    label.new(bar_index, high + atr * 0.2, "3BC", style=label.style_label_down, color=color.new(bearSecondary, 20), textcolor=color.white, size=size.tiny, tooltip="Three Black Crows")
+if showPatternMarkers and tweezerBottom
+    label.new(bar_index, low - atr * 0.2, "TB", style=label.style_label_up, color=color.new(bullSecondary, 30), textcolor=color.white, size=size.tiny, tooltip="Tweezer Bottoms")
+if showPatternMarkers and tweezerTop
+    label.new(bar_index, high + atr * 0.2, "TT", style=label.style_label_down, color=color.new(bearSecondary, 30), textcolor=color.white, size=size.tiny, tooltip="Tweezer Tops")
+if showPatternMarkers and piercingLine
+    label.new(bar_index, low - atr * 0.2, "PL", style=label.style_label_up, color=color.new(bullSecondary, 30), textcolor=color.white, size=size.tiny, tooltip="Piercing Line")
+if showPatternMarkers and darkCloudCover
+    label.new(bar_index, high + atr * 0.2, "DCC", style=label.style_label_down, color=color.new(bearSecondary, 30), textcolor=color.white, size=size.tiny, tooltip="Dark Cloud Cover")
+
+// ==================================================================================
+// DASHBOARD (5-column, categorized sections)
+// ==================================================================================
+
+f_condColor(met) =>
+    met ? color.new(color.rgb(0, 200, 83), 60) : color.new(color.rgb(255, 23, 68), 60)
+
+f_condColor3(bullish, bearish) =>
+    bullish ? color.new(color.rgb(0, 200, 83), 60) : bearish ? color.new(color.rgb(255, 23, 68), 60) : color.new(neutralColor, 50)
+
+f_condSym(met) =>
+    useAsciiSymbols ? (met ? "+" : "-") : (met ? "\u2713" : "\u2717")
+
+f_sparkline(series float src, lookback) =>
+    asciiLadder = " .:-=+#"
+    blocks = array.from("\u2581", "\u2582", "\u2583", "\u2584", "\u2585", "\u2586", "\u2587", "\u2588")
+    result = ""
+    maxVal = ta.highest(src, lookback)
+    minVal = ta.lowest(src, lookback)
+    rangeVal = math.max(maxVal - minVal, 1e-10)
+    for i = lookback - 1 to 0
+        idx = math.round((nz(src[i]) - minVal) / rangeVal * 7)
+        idx := math.max(0, math.min(7, idx))
+        result += useAsciiSymbols ? str.substring(asciiLadder, idx, idx + 1) : array.get(blocks, idx)
+    result
+
+rsiSparkline = f_sparkline(rsiValue, 8)
+if showDashboard and barstate.islast
+    var table dash = table.new(position.top_right, 5, 46, border_width=0, frame_width=0)
+
+    headerBg = color.rgb(30, 30, 46)
+    sectionTrend = color.new(structureClr, 60)
+    sectionMomentum = color.new(volumeClr, 60)
+    sectionVolume = color.new(color.rgb(0, 200, 83), 60)
+    sectionStructure = color.new(warningColor, 60)
+    sectionVolatility = color.new(bearSecondary, 60)
+    sectionRegime = color.new(warningColor, 70)
+    sectionMeta = color.new(neutralColor, 60)
+    sectionRisk = color.new(color.rgb(255, 23, 68), 70)
+    rowBg = color.new(color.rgb(20, 20, 35), 10)
+    txtClr = color.rgb(220, 220, 230)
+    txtSm = size.tiny
+
+    // --- Row 0: Title ---
+    table.cell(dash, 0, 0, "Technical Indicators", bgcolor=headerBg, text_color=bullPrimary, text_size=size.small, text_font_family=font.family_monospace)
+    table.cell(dash, 1, 0, "", bgcolor=headerBg)
+    table.cell(dash, 2, 0, "", bgcolor=headerBg)
+    table.cell(dash, 3, 0, "", bgcolor=headerBg)
+    table.cell(dash, 4, 0, "", bgcolor=headerBg)
+    table.merge_cells(dash, 0, 0, 4, 0)
+
+    // --- Row 1: Score ---
+    dScore = buyConfluenceScore > sellConfluenceScore ? buyConfluenceScore : sellConfluenceScore
+    dDir = buyConfluenceScore > sellConfluenceScore ? "BUY" : "SELL"
+    scoreBg = buyConfluenceScore > sellConfluenceScore ? (buyConditionMet ? color.new(bullPrimary, 40) : color.new(warningColor, 50)) : (sellConditionMet ? color.new(bearPrimary, 40) : color.new(warningColor, 50))
+    table.cell(dash, 0, 1, str.tostring(dScore) + "/100", bgcolor=scoreBg, text_color=color.white, text_size=size.small, text_font_family=font.family_monospace)
+    table.cell(dash, 1, 1, "", bgcolor=scoreBg)
+    table.cell(dash, 2, 1, "", bgcolor=scoreBg)
+    table.cell(dash, 3, 1, dDir + (chochBlockBuy or chochBlockSell ? (useAsciiSymbols ? "" : " \U0001F512") : "") + (not (buyConditionMet or sellConditionMet) and not useAsciiSymbols ? " (no trig)" : ""), bgcolor=scoreBg, text_color=color.white, text_size=size.small)
+    table.cell(dash, 4, 1, buyConditionMet or sellConditionMet ? (useAsciiSymbols ? "OK" : "\u2705") : (useAsciiSymbols ? "X" : "\u274C"), bgcolor=scoreBg, text_size=txtSm)
+    table.merge_cells(dash, 0, 1, 2, 1)
+
+    // --- Row 2: TREND Header ---
+    table.cell(dash, 0, 2, "  TREND " + str.tostring(buyConfluenceScore > sellConfluenceScore ? buyTrendFinal : sellTrendFinal) + "/18", bgcolor=sectionTrend, text_color=color.white, text_size=txtSm, text_font_family=font.family_monospace)
+    table.cell(dash, 1, 2, "", bgcolor=sectionTrend)
+    table.cell(dash, 2, 2, "", bgcolor=sectionTrend)
+    table.cell(dash, 3, 2, "", bgcolor=sectionTrend)
+    table.cell(dash, 4, 2, "", bgcolor=sectionTrend)
+    table.merge_cells(dash, 0, 2, 4, 2)
+
+    // Row 3
+    table.cell(dash, 0, 3, "Hull MA", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 3, hullTrend ? "Rising" : "Falling", bgcolor=f_condColor(hullTrend), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 3, "SuperTrnd", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 3, stBullish ? "Above" : "Below", bgcolor=f_condColor(stBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 3, f_condSym(hullTrend and stBullish), bgcolor=f_condColor(hullTrend and stBullish), text_color=color.white, text_size=txtSm)
+
+    // Row 4
+    table.cell(dash, 0, 4, "ADX", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 4, str.tostring(adxValue[1], "#.#") + ">" + str.tostring(adxThreshold, "#"), bgcolor=f_condColor(adxStrong), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 4, "SAR", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 4, sarBullish ? "Below" : "Above", bgcolor=f_condColor(sarBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 4, f_condSym(adxStrong and sarBullish), bgcolor=f_condColor(adxStrong and sarBullish), text_color=color.white, text_size=txtSm)
+
+    // Row 5
+    table.cell(dash, 0, 5, "Ichimoku", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 5, ichBullish ? "Aligned" : ichBearish ? "Bear" : "Mixed", bgcolor=f_condColor(ichBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 5, "Aroon", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 5, "U" + str.tostring(math.round(math.max(0, math.min(100, aroonUp[1]))), "#") + "/D" + str.tostring(math.round(math.max(0, math.min(100, aroonDown[1]))), "#"), bgcolor=f_condColor(aroonBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 5, f_condSym(ichBullish and aroonBullish), bgcolor=f_condColor(ichBullish and aroonBullish), text_color=color.white, text_size=txtSm)
+
+    // Row 6
+    table.cell(dash, 0, 6, "LinReg", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 6, linRegSlope[1] > 0 ? "+slope" : "-slope", bgcolor=f_condColor(linRegBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 6, "VWMA", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 6, vwmaBullish ? ">SMA" : "<SMA", bgcolor=f_condColor(vwmaBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 6, f_condSym(linRegBullish and vwmaBullish), bgcolor=f_condColor(linRegBullish and vwmaBullish), text_color=color.white, text_size=txtSm)
+
+    // Row 7
+    table.cell(dash, 0, 7, "HTF EMA", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 7, htfTrendUp ? "Above" : "Below", bgcolor=f_condColor(htfTrendUp), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 7, "MA Stack", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 7, maStackUp ? "9>21>50" : maStackDown ? "9<21<50" : "Mixed", bgcolor=f_condColor(maStackUp), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 7, f_condSym(htfTrendUp and maStackUp), bgcolor=f_condColor(htfTrendUp and maStackUp), text_color=color.white, text_size=txtSm)
+
+    // --- Row 8: MOMENTUM Header ---
+    table.cell(dash, 0, 8, "  MOMENTUM " + str.tostring(buyConfluenceScore > sellConfluenceScore ? buyMomentumCapped : sellMomentumCapped) + "/18", bgcolor=sectionMomentum, text_color=color.white, text_size=txtSm, text_font_family=font.family_monospace)
+    table.cell(dash, 1, 8, "", bgcolor=sectionMomentum)
+    table.cell(dash, 2, 8, "", bgcolor=sectionMomentum)
+    table.cell(dash, 3, 8, "", bgcolor=sectionMomentum)
+    table.cell(dash, 4, 8, "", bgcolor=sectionMomentum)
+    table.merge_cells(dash, 0, 8, 4, 8)
+
+    // Row 9
+    table.cell(dash, 0, 9, "RSI", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 9, str.tostring(rsiPrev, "#.#") + " " + rsiSparkline, bgcolor=f_condColor(rsiBullish), text_color=color.white, text_size=txtSm, text_font_family=font.family_monospace)
+    table.cell(dash, 2, 9, "Stoch", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 9, str.tostring(stochKVal[1], "#") + "/" + str.tostring(stochDVal[1], "#"), bgcolor=f_condColor(stochBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 9, f_condSym(rsiBullish and stochBullish), bgcolor=f_condColor(rsiBullish and stochBullish), text_color=color.white, text_size=txtSm)
+
+    // Row 10
+    table.cell(dash, 0, 10, "MACD", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 10, macdBullish ? ">Sig" : "<Sig", bgcolor=f_condColor(macdBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 10, "Hist", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 10, str.tostring(macdHist[1], "#.###"), bgcolor=f_condColor(macdHistBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 10, f_condSym(macdBullish and macdHistBullish), bgcolor=f_condColor(macdBullish and macdHistBullish), text_color=color.white, text_size=txtSm)
+
+    // Row 11
+    table.cell(dash, 0, 11, "CCI", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 11, str.tostring(cciValue[1], "#"), bgcolor=f_condColor(cciBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 11, "W%R", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 11, str.tostring(wrValue[1], "#"), bgcolor=f_condColor(wrBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 11, f_condSym(cciBullish and wrBullish), bgcolor=f_condColor(cciBullish and wrBullish), text_color=color.white, text_size=txtSm)
+
+    // Row 12
+    table.cell(dash, 0, 12, "CMO", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 12, str.tostring(cmoValue[1], "#"), bgcolor=f_condColor(cmoBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 12, "Fisher", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 12, fisherBullish ? (useAsciiSymbols ? "Cross^" : "Cross\u2191") : (useAsciiSymbols ? "Crossv" : "Cross\u2193"), bgcolor=f_condColor(fisherBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 12, f_condSym(cmoBullish and fisherBullish), bgcolor=f_condColor(cmoBullish and fisherBullish), text_color=color.white, text_size=txtSm)
+
+    // Row 13
+    table.cell(dash, 0, 13, "EFI", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 13, efiBullish ? ">0" : "<0", bgcolor=f_condColor(efiBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 13, "ROC", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 13, str.tostring(roc[1], "#.##") + "%", bgcolor=f_condColor(rocBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 13, f_condSym(efiBullish and rocBullish), bgcolor=f_condColor(efiBullish and rocBullish), text_color=color.white, text_size=txtSm)
+
+    // Row 14
+    table.cell(dash, 0, 14, "MFI", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 14, str.tostring(mfiValue[1], "#"), bgcolor=f_condColor(mfiBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 14, "Sine", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 14, sineBullish ? "Bull" : "Bear", bgcolor=f_condColor(sineBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 14, f_condSym(mfiBullish and sineBullish), bgcolor=f_condColor(mfiBullish and sineBullish), text_color=color.white, text_size=txtSm)
+
+    // --- Row 15: VOLUME Header ---
+    table.cell(dash, 0, 15, "  VOLUME " + str.tostring(buyConfluenceScore > sellConfluenceScore ? buyVolumeCapped : sellVolumeCapped) + "/18", bgcolor=sectionVolume, text_color=color.white, text_size=txtSm, text_font_family=font.family_monospace)
+    table.cell(dash, 1, 15, "", bgcolor=sectionVolume)
+    table.cell(dash, 2, 15, "", bgcolor=sectionVolume)
+    table.cell(dash, 3, 15, "", bgcolor=sectionVolume)
+    table.cell(dash, 4, 15, "", bgcolor=sectionVolume)
+    table.merge_cells(dash, 0, 15, 4, 15)
+
+    // Row 16
+    table.cell(dash, 0, 16, "Vol/MA", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 16, str.tostring(volume[1] / math.max(volumeMA[1], 1), "#.#") + "x", bgcolor=f_condColor(volumeConfirm), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 16, "VWAP", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 16, vwapBullish ? "Above" : "Below", bgcolor=f_condColor(vwapBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 16, f_condSym(volumeConfirm and vwapBullish), bgcolor=f_condColor(volumeConfirm and vwapBullish), text_color=color.white, text_size=txtSm)
+
+    // Row 17
+    table.cell(dash, 0, 17, "OBV", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 17, obvBullish ? ">MA" : "<MA", bgcolor=f_condColor(obvBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 17, "CMF", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 17, str.tostring(cmfValue[1], "#.##"), bgcolor=f_condColor(cmfBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 17, f_condSym(obvBullish and cmfBullish), bgcolor=f_condColor(obvBullish and cmfBullish), text_color=color.white, text_size=txtSm)
+
+    // Row 18
+    table.cell(dash, 0, 18, "A/D", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 18, adLineBullish ? ">MA" : "<MA", bgcolor=f_condColor(adLineBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 18, "PVT", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 18, pvtBullish ? ">MA" : "<MA", bgcolor=f_condColor(pvtBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 18, f_condSym(adLineBullish and pvtBullish), bgcolor=f_condColor(adLineBullish and pvtBullish), text_color=color.white, text_size=txtSm)
+
+    // Row 19
+    table.cell(dash, 0, 19, "VolTrend", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 19, volumeRising ? "Rising" : "Flat", bgcolor=f_condColor(volumeRising), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 19, "B/S Pres", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 19, str.tostring(pressureRatio[1] * 100, "#") + "%", bgcolor=f_condColor3(pressureRatio[1] > 0.55, pressureRatio[1] < 0.45), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 19, f_condSym(volumeRising and pressureBullish), bgcolor=f_condColor(volumeRising and pressureBullish), text_color=color.white, text_size=txtSm)
+
+    // --- Row 20: STRUCTURE Header ---
+    table.cell(dash, 0, 20, "  STRUCTURE " + str.tostring(buyConfluenceScore > sellConfluenceScore ? buyStructureCapped : sellStructureCapped) + "/18", bgcolor=sectionStructure, text_color=color.white, text_size=txtSm, text_font_family=font.family_monospace)
+    table.cell(dash, 1, 20, "", bgcolor=sectionStructure)
+    table.cell(dash, 2, 20, "", bgcolor=sectionStructure)
+    table.cell(dash, 3, 20, "", bgcolor=sectionStructure)
+    table.cell(dash, 4, 20, "", bgcolor=sectionStructure)
+    table.merge_cells(dash, 0, 20, 4, 20)
+
+    // Row 21
+    table.cell(dash, 0, 21, "BOS", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 21, bosBull ? "Bull" : bosBear ? "Bear" : "None", bgcolor=f_condColor(bosBull), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 21, "OrderBlk", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 21, nearBullOB ? (useAsciiSymbols ? "Near^" : "Near\u2191") : nearBearOB ? (useAsciiSymbols ? "Nearv" : "Near\u2193") : (useAsciiSymbols ? "-" : "\u2014"), bgcolor=f_condColor(nearBullOB), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 21, f_condSym(structureBull), bgcolor=f_condColor(structureBull), text_color=color.white, text_size=txtSm)
+
+    // Row 22
+    table.cell(dash, 0, 22, "CHoCH", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 22, chochBlockBuy ? (useAsciiSymbols ? "Block^" : "Block\u2191") : chochBlockSell ? (useAsciiSymbols ? "Blockv" : "Block\u2193") : "None", bgcolor=f_condColor(not chochBlockBuy and not chochBlockSell), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 22, "Diverg", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 22, bullishDivergence ? "Bull" : bearishDivergence ? "Bear" : "None", bgcolor=f_condColor3(bullishDivergence, bearishDivergence), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 22, f_condSym(not chochBlockBuy), bgcolor=f_condColor(not chochBlockBuy), text_color=color.white, text_size=txtSm)
+
+    // Row 23
+    table.cell(dash, 0, 23, "Engulf", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 23, bullEngulfing ? "Bull" : bearEngulfing ? "Bear" : (useAsciiSymbols ? "-" : "\u2014"), bgcolor=f_condColor(bullEngulfing), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 23, "PinBar", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 23, hammerBull ? "Ham" : shootingStar ? "Star" : (useAsciiSymbols ? "-" : "\u2014"), bgcolor=f_condColor(hammerBull), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 23, f_condSym(bullEngulfing or hammerBull), bgcolor=f_condColor(bullEngulfing or hammerBull), text_color=color.white, text_size=txtSm)
+
+    // Row 24
+    table.cell(dash, 0, 24, "Star", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 24, morningStar ? "Morn" : eveningStar ? "Eve" : (useAsciiSymbols ? "-" : "\u2014"), bgcolor=f_condColor(morningStar), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 24, "Displace", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 24, bullDisplacement ? "Bull" : bearDisplacement ? "Bear" : (useAsciiSymbols ? "-" : "\u2014"), bgcolor=f_condColor(bullDisplacement), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 24, f_condSym(morningStar or bullDisplacement), bgcolor=f_condColor(morningStar or bullDisplacement), text_color=color.white, text_size=txtSm)
+
+    // Row 25: Other candlestick patterns
+    otherBull = bullHarami or threeWhiteSoldiers or tweezerBottom or piercingLine
+    otherBear = bearHarami or threeBlackCrows or tweezerTop or darkCloudCover
+    table.cell(dash, 0, 25, "Other", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 25, doji ? "Doji" : bullHarami ? "Ha" : threeWhiteSoldiers ? "3WS" : tweezerBottom ? "TB" : piercingLine ? "PL" : (useAsciiSymbols ? "-" : "\u2014"), bgcolor=f_condColor(otherBull), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 25, "Pat", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 25, bearHarami ? "Ha" : threeBlackCrows ? "3BC" : tweezerTop ? "TT" : darkCloudCover ? "DCC" : (useAsciiSymbols ? "-" : "\u2014"), bgcolor=f_condColor(otherBear), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 25, f_condSym(otherBull or otherBear), bgcolor=f_condColor(otherBull or otherBear), text_color=color.white, text_size=txtSm)
+
+    // --- Row 26: VOLATILITY Header ---
+    table.cell(dash, 0, 26, "  VOLATILITY " + str.tostring(buyConfluenceScore > sellConfluenceScore ? buyVolatilityCapped : sellVolatilityCapped) + "/14", bgcolor=sectionVolatility, text_color=color.white, text_size=txtSm, text_font_family=font.family_monospace)
+    table.cell(dash, 1, 26, "", bgcolor=sectionVolatility)
+    table.cell(dash, 2, 26, "", bgcolor=sectionVolatility)
+    table.cell(dash, 3, 26, "", bgcolor=sectionVolatility)
+    table.cell(dash, 4, 26, "", bgcolor=sectionVolatility)
+    table.merge_cells(dash, 0, 26, 4, 26)
+
+    // Row 27
+    table.cell(dash, 0, 27, "BB Pos", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 27, str.tostring(bbPercent[1] * 100, "#") + "%", bgcolor=f_condColor(bbNotExtremes), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 27, "Squeeze", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 27, ttmSqueezeOn ? "ON" : "Off", bgcolor=ttmSqueezeOn ? color.new(warningColor, 40) : f_condColor(true), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 27, f_condSym(bbNotExtremes and not ttmSqueezeOn), bgcolor=f_condColor(bbNotExtremes and not ttmSqueezeOn), text_color=color.white, text_size=txtSm)
+
+    // Row 28
+    table.cell(dash, 0, 28, "TTM", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 28, ttmFirBull ? (useAsciiSymbols ? "Fire^" : "Fire\u2191") : ttmFirBear ? (useAsciiSymbols ? "Firev" : "Fire\u2193") : (useAsciiSymbols ? "-" : "\u2014"), bgcolor=f_condColor(ttmFirBull), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 28, "Keltner", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 28, kcBullish ? ">Mid" : "<Mid", bgcolor=f_condColor(kcBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 28, f_condSym(kcBullish), bgcolor=f_condColor(kcBullish), text_color=color.white, text_size=txtSm)
+
+    // Row 29
+    table.cell(dash, 0, 29, "Chandlr", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 29, chandBullish ? "Above" : "Below", bgcolor=f_condColor(chandBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 29, "ATR Rng", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 29, atrInRange ? "OK" : "Out", bgcolor=f_condColor(atrInRange), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 29, f_condSym(chandBullish and atrInRange), bgcolor=f_condColor(chandBullish and atrInRange), text_color=color.white, text_size=txtSm)
+
+    // --- Row 30: REGIME Header ---
+    table.cell(dash, 0, 30, "  REGIME " + str.tostring(buyConfluenceScore > sellConfluenceScore ? buyRegimeCapped : sellRegimeCapped) + "/14", bgcolor=sectionRegime, text_color=color.white, text_size=txtSm, text_font_family=font.family_monospace)
+    table.cell(dash, 1, 30, "", bgcolor=sectionRegime)
+    table.cell(dash, 2, 30, "", bgcolor=sectionRegime)
+    table.cell(dash, 3, 30, "", bgcolor=sectionRegime)
+    table.cell(dash, 4, 30, "", bgcolor=sectionRegime)
+    table.merge_cells(dash, 0, 30, 4, 30)
+
+    // Row 31
+    table.cell(dash, 0, 31, "P/D Zone", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 31, inDiscount ? "Discount" : "Premium", bgcolor=f_condColor(premiumDiscountOkBuy), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 31, "HTF RSI", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 31, str.tostring(htfRsiPrev, "#.#"), bgcolor=f_condColor3(htfRsiPrev >= 40 and htfRsiPrev <= 70, false), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 31, f_condSym(premiumDiscountOkBuy and htfRsiOkBuy), bgcolor=f_condColor(premiumDiscountOkBuy and htfRsiOkBuy), text_color=color.white, text_size=txtSm)
+
+    // Row 32
+    table.cell(dash, 0, 32, "RelStr", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 32, rsBullish ? ">Bench" : "<Bench", bgcolor=f_condColor(rsBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 32, "Corr", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 32, str.tostring(corrValue[1], "#.##"), bgcolor=f_condColor3(corrBullish, corrBearish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 32, f_condSym(rsBullish and corrBullish), bgcolor=f_condColor(rsBullish and corrBullish), text_color=color.white, text_size=txtSm)
+
+    // Row 33
+    table.cell(dash, 0, 33, "HV Rank", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 33, str.tostring(hvRank[1], "#") + "%", bgcolor=hvLow ? color.new(bullSecondary, 50) : hvHigh ? color.new(warningColor, 50) : f_condColor(true), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 33, "Wyckoff", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 33, wyckSpring ? "Spring" : wyckUpthrust ? "Upthr" : (useAsciiSymbols ? "-" : "\u2014"), bgcolor=f_condColor(wyckSpring), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 33, f_condSym(not hvHigh), bgcolor=f_condColor(not hvHigh), text_color=color.white, text_size=txtSm)
+
+    // --- Row 34: META Header ---
+    table.cell(dash, 0, 34, "  META-MODIFIERS", bgcolor=sectionMeta, text_color=color.white, text_size=txtSm, text_font_family=font.family_monospace)
+    table.cell(dash, 1, 34, "", bgcolor=sectionMeta)
+    table.cell(dash, 2, 34, "", bgcolor=sectionMeta)
+    table.cell(dash, 3, 34, "", bgcolor=sectionMeta)
+    table.cell(dash, 4, 34, "", bgcolor=sectionMeta)
+    table.merge_cells(dash, 0, 34, 4, 34)
+
+    // Row 35
+    table.cell(dash, 0, 35, "R²", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 35, str.tostring(rSqValue, "#.##") + (rSqValue > 0.5 ? " Trend" : " Chop"), bgcolor=rSqValue > 0.5 ? color.new(bullSecondary, 50) : color.new(warningColor, 50), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 35, "Z-Score", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 35, str.tostring(zScore[1], "#.#"), bgcolor=math.abs(zScore[1]) > 2 ? color.new(warningColor, 40) : f_condColor(true), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 35, "", bgcolor=rowBg)
+
+    // Row 36
+    table.cell(dash, 0, 36, "Cycle", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 36, str.tostring(dominantPeriod, "#") + " bars", bgcolor=color.new(neutralColor, 50), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 36, "Regime", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 36, regimeShort, bgcolor=trendUp and adxStrong ? color.new(bullPrimary, 50) : trendDown and adxStrong ? color.new(bearPrimary, 50) : color.new(warningColor, 50), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 36, "", bgcolor=rowBg)
+
+    // --- Row 37: RISK Header ---
+    table.cell(dash, 0, 37, "  RISK MANAGEMENT", bgcolor=sectionRisk, text_color=color.white, text_size=txtSm, text_font_family=font.family_monospace)
+    table.cell(dash, 1, 37, "", bgcolor=sectionRisk)
+    table.cell(dash, 2, 37, "", bgcolor=sectionRisk)
+    table.cell(dash, 3, 37, "", bgcolor=sectionRisk)
+    table.cell(dash, 4, 37, "", bgcolor=sectionRisk)
+    table.merge_cells(dash, 0, 37, 4, 37)
+
+    // Row 38
+    table.cell(dash, 0, 38, "ATR", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 38, str.tostring(atrPrev, "#.##"), bgcolor=color.new(neutralColor, 50), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 38, "SL Dist", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 38, str.tostring(atrPrev * atrMultiplierSL, "#.##") + " (" + str.tostring(atrMultiplierSL, "#.#") + "x)", bgcolor=color.new(bearSecondary, 50), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 38, "", bgcolor=rowBg)
+
+    // Row 39
+    table.cell(dash, 0, 39, "TP Dist", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 39, str.tostring(atrPrev * atrMultiplierTP, "#.##") + " (" + str.tostring(atrMultiplierTP, "#.#") + "x)", bgcolor=color.new(bullSecondary, 50), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 39, "R:R", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 39, "1:" + str.tostring(atrMultiplierTP / atrMultiplierSL, "#.#"), bgcolor=color.new(neutralColor, 50), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 39, "", bgcolor=rowBg)
+
+    // --- Row 40: MTF HEATMAP ---
+    if showMTFHeatmap
+        table.cell(dash, 0, 40, "  MTF HEATMAP", bgcolor=color.new(neutralColor, 70), text_color=color.white, text_size=txtSm, text_font_family=font.family_monospace)
+        table.cell(dash, 1, 40, "", bgcolor=color.new(neutralColor, 70))
+        table.cell(dash, 2, 40, "", bgcolor=color.new(neutralColor, 70))
+        table.cell(dash, 3, 40, "", bgcolor=color.new(neutralColor, 70))
+        table.cell(dash, 4, 40, "", bgcolor=color.new(neutralColor, 70))
+        table.merge_cells(dash, 0, 40, 4, 40)
+
+        table.cell(dash, 0, 41, "M5", bgcolor=mtf5 ? color.new(bullPrimary, 40) : color.new(bearPrimary, 40), text_color=color.white, text_size=txtSm)
+        table.cell(dash, 1, 41, "M15", bgcolor=mtf15 ? color.new(bullPrimary, 40) : color.new(bearPrimary, 40), text_color=color.white, text_size=txtSm)
+        table.cell(dash, 2, 41, "H1", bgcolor=mtf60 ? color.new(bullPrimary, 40) : color.new(bearPrimary, 40), text_color=color.white, text_size=txtSm)
+        table.cell(dash, 3, 41, "H4", bgcolor=mtf240 ? color.new(bullPrimary, 40) : color.new(bearPrimary, 40), text_color=color.white, text_size=txtSm)
+        table.cell(dash, 4, 41, "D", bgcolor=mtfD ? color.new(bullPrimary, 40) : color.new(bearPrimary, 40), text_color=color.white, text_size=txtSm)
+
+// ==================================================================================
+// DATA WINDOW OUTPUTS (hidden from chart, visible in Data Window)
+// ==================================================================================
+
+plot(buyConfluenceScore, "Buy Confluence", display=display.data_window)
+plot(sellConfluenceScore, "Sell Confluence", display=display.data_window)
+plot(rsiValue, "RSI", display=display.data_window)
+plot(cciValue, "CCI", display=display.data_window)
+plot(mfiValue, "MFI", display=display.data_window)
+plot(adxValue, "ADX", display=display.data_window)
+plot(stochKVal, "Stoch %K", display=display.data_window)
+plot(macdLine, "MACD Line", display=display.data_window)
+plot(macdHist, "MACD Histogram", display=display.data_window)
+plot(cmfValue, "CMF", display=display.data_window)
+plot(atr, "ATR", display=display.data_window)
+plot(bbPercent, "BB %", display=display.data_window)
+plot(hvRank, "HV Percentile", display=display.data_window)
+plot(pressureRatio, "Buy/Sell Pressure", display=display.data_window)
+
+// ==================================================================================
+// ALERTS
+// ==================================================================================
+
+alertcondition(useTTMSqueeze and not ttmSqueezeOn and ttmSqueezeOn[1], "TTM Squeeze Fire", "TTM Squeeze has fired!")
+alertcondition(bullEngulfing or bearEngulfing, "Engulfing Pattern", "Engulfing candle detected")
+alertcondition(morningStar or eveningStar, "Star Pattern", "Morning/Evening Star detected")
+alertcondition(hammerBull or shootingStar, "Pin Bar", "Pin Bar/Hammer detected")
+alertcondition(doji, "Doji", "Doji candle detected")
+alertcondition(bullHarami or bearHarami, "Harami Pattern", "Harami pattern detected")
+alertcondition(threeWhiteSoldiers or threeBlackCrows, "Three Soldiers/Crows", "Three White Soldiers or Three Black Crows detected")
+alertcondition(tweezerBottom or tweezerTop, "Tweezer", "Tweezer Tops/Bottoms detected")
+alertcondition(piercingLine or darkCloudCover, "Piercing Line / Dark Cloud Cover", "Piercing Line or Dark Cloud Cover detected")
+alertcondition(wyckSpring, "Wyckoff Spring", "Wyckoff Spring detected - potential accumulation")
+alertcondition(wyckUpthrust, "Wyckoff Upthrust", "Wyckoff Upthrust detected - potential distribution")
+alertcondition(chochBearish or chochBullish, "CHoCH Alert", "Change of Character detected")
+alertcondition(bosBull or bosBear, "BOS Alert", "Break of Structure detected")
