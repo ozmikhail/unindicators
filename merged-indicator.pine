@@ -1,0 +1,774 @@
+//@version=6
+indicator("Maximum Accuracy Multi-Layer Indicator", overlay=true, max_bars_back=500, max_lines_count=50, max_labels_count=50, max_boxes_count=30)
+
+// ==================================================================================
+// INPUT PARAMETERS
+// ==================================================================================
+
+// === Trend Filter Settings ===
+var g1 = "Trend Filter"
+hullLength = input.int(20, "Hull MA Length", minval=1, group=g1)
+useHTF = input.bool(true, "Use Higher Timeframe Filter", group=g1)
+htfTimeframe = input.timeframe("D", "Higher Timeframe", group=g1)
+htfEmaLength = input.int(50, "HTF EMA Length", group=g1)
+adxLength = input.int(14, "ADX Length", group=g1)
+adxThreshold = input.float(25, "ADX Threshold", minval=0, group=g1)
+
+// === Momentum Settings ===
+var g2 = "Momentum"
+rsiLength = input.int(14, "RSI Length", minval=1, group=g2)
+rsiOverbought = input.float(70, "RSI Overbought", minval=50, maxval=100, group=g2)
+rsiOversold = input.float(30, "RSI Oversold", minval=0, maxval=50, group=g2)
+macdFast = input.int(12, "MACD Fast", minval=1, group=g2)
+macdSlow = input.int(26, "MACD Slow", minval=1, group=g2)
+macdSignal = input.int(9, "MACD Signal", minval=1, group=g2)
+
+// === Volatility Settings ===
+var g3 = "Volatility"
+atrLength = input.int(14, "ATR Length", minval=1, group=g3)
+atrMultiplierSL = input.float(2.0, "ATR Stop Loss Multiplier", minval=0.5, step=0.1, group=g3)
+atrMultiplierTP = input.float(3.0, "ATR Take Profit Multiplier", minval=0.5, step=0.1, group=g3)
+bbLength = input.int(20, "Bollinger Bands Length", minval=1, group=g3)
+bbMultiplier = input.float(2.0, "Bollinger Bands StdDev", minval=0.5, step=0.1, group=g3)
+squeezeLength = input.int(20, "BB Squeeze Length", minval=1, group=g3)
+
+// === Volume Settings ===
+var g4 = "Volume"
+volumeLength = input.int(20, "Volume MA Length", minval=1, group=g4)
+volumeMultiplier = input.float(1.0, "Volume Multiplier", minval=0.1, step=0.1, group=g4)
+
+// === Signal Settings ===
+var g5 = "Signal Quality"
+minSignalScore = input.float(70, "Minimum Signal Score (0-100)", minval=0, maxval=100, group=g5)
+useDivergence = input.bool(true, "Enable Divergence Detection", group=g5)
+divergenceLookback = input.int(5, "Divergence Lookback", minval=2, group=g5)
+
+// === Structure (Support/Resistance) ===
+var g7 = "Structure"
+useStructure = input.bool(true, "Use Structure Filter", group=g7)
+swingLookback = input.int(5, "Swing Lookback", minval=2, group=g7)
+useBreakout = input.bool(true, "Require Breakout (price above/below swing)", group=g7)
+
+// === MA Alignment ===
+var g8 = "MA Alignment"
+useMAStack = input.bool(true, "Use MA Stack Filter", group=g8)
+maFastLen = input.int(9, "Fast MA Length", minval=1, group=g8)
+maSlowLen = input.int(21, "Slow MA Length", minval=1, group=g8)
+maSlowerLen = input.int(50, "Slower MA Length", minval=1, group=g8)
+
+// === Volatility (extended) ===
+useBBNotExtremes = input.bool(true, "BB: Not at Band Extremes", group=g3)
+useNoSqueeze = input.bool(false, "Avoid BB Squeeze (no signal in squeeze)", group=g3)
+useATRExpanding = input.bool(false, "Require ATR Expanding", group=g3)
+
+// === Volume (extended) ===
+useVolumeTrend = input.bool(true, "Volume Trend Up", group=g4)
+volumeTrendBars = input.int(3, "Volume Trend Bars", minval=2, group=g4)
+useOBV = input.bool(true, "Use OBV Alignment", group=g4)
+obvLength = input.int(5, "OBV MA Length", minval=1, group=g4)
+
+// === Extra Momentum ===
+var g9 = "Extra Momentum"
+useStoch = input.bool(true, "Use Stochastic", group=g9)
+stochK = input.int(14, "Stochastic %K", minval=1, group=g9)
+stochD = input.int(3, "Stochastic %D", minval=1, group=g9)
+stochOverbought = input.int(80, "Stochastic Overbought", minval=50, group=g9)
+stochOversold = input.int(20, "Stochastic Oversold", maxval=50, group=g9)
+useROC = input.bool(true, "Use ROC (Rate of Change)", group=g9)
+rocLength = input.int(10, "ROC Length", minval=1, group=g9)
+useMacdHist = input.bool(true, "Use MACD Histogram", group=g9)
+
+// === Price Action ===
+var g10 = "Price Action"
+useCandleFilter = input.bool(true, "Candle Direction (bullish/bearish bar)", group=g10)
+
+// === Session / Time ===
+var g11 = "Session"
+useSessionFilter = input.bool(false, "Use Session Filter", group=g11)
+sessionInput = input.string("0800-1700", "Session (HHMM-HHMM)", group=g11)
+
+// === HTF Momentum ===
+var g12 = "HTF Momentum"
+useHTFRSI = input.bool(true, "Use HTF RSI Filter", group=g12)
+htfRsiLength = input.int(14, "HTF RSI Length", minval=1, group=g12)
+htfRsiNotOverbought = input.float(70, "HTF RSI Max (buy when below)", minval=50, group=g12)
+htfRsiNotOversold = input.float(30, "HTF RSI Min (sell when above)", maxval=50, group=g12)
+
+// === Risk / ATR Filter ===
+var g13 = "Risk Filter"
+useATRFilter = input.bool(false, "Use ATR Range Filter", group=g13)
+atrMinPct = input.float(0, "ATR Min (% of avg, 0=off)", minval=0, step=0.1, group=g13)
+atrMaxPct = input.float(0, "ATR Max (% of avg, 0=off)", minval=0, step=0.1, group=g13)
+
+// === Confluence Protocol (4-Pillar Score) ===
+var gConfluence = "Confluence Protocol"
+useConfluenceScore = input.bool(true, "Use 4-Pillar Confluence Score (0-100)", group=gConfluence, tooltip="Trend + Momentum + Volume + Structure, 25 pts each. Replaces raw condition count when enabled.")
+confluenceMinScore = input.int(70, "Min Confluence Score to Signal", minval=0, maxval=100, group=gConfluence, tooltip="Minimum total confluence (0-100) to allow a signal.")
+
+// === Structure (Advanced: BOS/CHoCH/SFP) ===
+swingDisplacementATR = input.float(1.0, "Swing Displacement (ATR mult)", minval=0, step=0.1, group=g7, tooltip="Valid swing: price must move > this × ATR away from pivot. Filters micro-consolidations.")
+swingMinBars = input.int(5, "Min Bars Left/Right of Pivot", minval=2, group=g7, tooltip="Time-based confirmation: pivot must have at least this many bars on each side.")
+useBOSBody = input.bool(true, "BOS: Require Close Beyond Swing (not wick)", group=g7, tooltip="Break of Structure valid only when candle body closes beyond swing; wick breach = SFP.")
+useCHoCHFilter = input.bool(true, "Disable Trend Entries on CHoCH", group=g7, tooltip="When Change of Character detected, suppress trend-following signals (early reversal warning).")
+
+// === RSI Regime (Trend-Adjusted) ===
+useRSIRegime = input.bool(false, "Use Trend-Adjusted RSI Levels", group=g2, tooltip="Bull regime: oversold 40, overbought 80. Bear regime: 20/60. Captures pullbacks in trends.")
+rsiBullOversold = input.float(40, "RSI Bull Oversold", minval=20, maxval=50, group=g2)
+rsiBullOverbought = input.float(80, "RSI Bull Overbought", minval=50, maxval=100, group=g2)
+rsiBearOversold = input.float(20, "RSI Bear Oversold", minval=0, maxval=40, group=g2)
+rsiBearOverbought = input.float(60, "RSI Bear Overbought", minval=40, maxval=80, group=g2)
+
+// === Premium/Discount (Range Filter) ===
+var gPD = "Premium / Discount"
+usePremiumDiscount = input.bool(false, "Filter by Premium/Discount", group=gPD, tooltip="Suppress buys in Premium (upper 50%), sells in Discount (lower 50%) of swing range.")
+pdLookback = input.int(50, "Range Lookback Bars", minval=10, group=gPD)
+
+// === FVG (Fair Value Gap) ===
+var gFVG = "Fair Value Gaps"
+useFVG = input.bool(false, "Show Fair Value Gaps", group=gFVG, tooltip="Gap between wicks of candle 1 and 3. Magnet for price; broken FVG = inversion zone.")
+fvgMinBodyPct = input.float(0.5, "Min Candle Body % of Range", minval=0.1, step=0.1, group=gFVG)
+
+// === Display Settings ===
+var g6 = "Display"
+showSignals = input.bool(true, "Show Buy/Sell Signals", group=g6)
+showHullMA = input.bool(true, "Show Hull MA", group=g6)
+showBB = input.bool(true, "Show Bollinger Bands", group=g6)
+showStopLoss = input.bool(true, "Show Stop Loss/Take Profit", group=g6)
+showDashboard = input.bool(true, "Show Dashboard", group=g6)
+dashboardStyle = input.string("Compact", "Dashboard style", options=["Compact", "Full"], group=g6)
+showBackground = input.bool(true, "Show Trend Background", group=g6)
+useProfessionalPalette = input.bool(false, "Teal/Pink Palette (Dark Mode)", group=g6, tooltip="Bullish=Teal, Bearish=Hot Pink; better contrast on dark charts.")
+showMTFHeatmap = input.bool(true, "Show MTF Trend Heatmap", group=g6, tooltip="M5/M15/H1/H4/D trend alignment grid.")
+
+// ==================================================================================
+// FUNCTIONS
+// ==================================================================================
+
+// Hull Moving Average
+f_hma(src, length) =>
+    wma1 = ta.wma(src, length / 2)
+    wma2 = ta.wma(src, length)
+    wma3 = ta.wma(2 * wma1 - wma2, math.round(math.sqrt(length)))
+    wma3
+
+// ADX Calculation
+f_adx(len) =>
+    up = ta.change(high)
+    down = -ta.change(low)
+    plusDM = na(up) ? na : (up > down and up > 0 ? up : 0)
+    minusDM = na(down) ? na : (down > up and down > 0 ? down : 0)
+    trur = ta.rma(ta.tr, len)
+    plus = fixnan(100 * ta.rma(plusDM, len) / trur)
+    minus = fixnan(100 * ta.rma(minusDM, len) / trur)
+    sum = plus + minus
+    adx = 100 * ta.rma(math.abs(plus - minus) / (sum == 0 ? 1 : sum), len)
+    [adx, plus, minus]
+
+// Divergence Detection (Regular + Hidden)
+// Regular = reversal; Hidden = continuation (price HH + osc HL = bullish hidden, etc.)
+f_divergence(src, oscType) =>
+    osc = float(na)
+    if oscType == "RSI"
+        osc := ta.rsi(src, rsiLength)
+    else
+        [macdLine, _, _] = ta.macd(src, macdFast, macdSlow, macdSignal)
+        osc := macdLine
+    
+    pivotHigh = ta.pivothigh(src, divergenceLookback, divergenceLookback)
+    pivotLow = ta.pivotlow(src, divergenceLookback, divergenceLookback)
+    oscPivotHigh = ta.pivothigh(osc, divergenceLookback, divergenceLookback)
+    oscPivotLow = ta.pivotlow(osc, divergenceLookback, divergenceLookback)
+    
+    // Regular: reversal
+    bullDiv = not na(pivotLow) and not na(oscPivotLow) and pivotLow < pivotLow[divergenceLookback] and oscPivotLow > oscPivotLow[divergenceLookback]
+    bearDiv = not na(pivotHigh) and not na(oscPivotHigh) and pivotHigh > pivotHigh[divergenceLookback] and oscPivotHigh < oscPivotHigh[divergenceLookback]
+    
+    // Hidden: continuation (price HL + osc LL = bullish hidden; price LH + osc LH = bearish hidden)
+    bullHidden = not na(pivotLow) and not na(oscPivotLow) and pivotLow > pivotLow[divergenceLookback] and oscPivotLow < oscPivotLow[divergenceLookback]
+    bearHidden = not na(pivotHigh) and not na(oscPivotHigh) and pivotHigh < pivotHigh[divergenceLookback] and oscPivotHigh > oscPivotHigh[divergenceLookback]
+    
+    [bullDiv, bearDiv, bullHidden, bearHidden]
+
+// ==================================================================================
+// CALCULATIONS
+// ==================================================================================
+
+// === Trend Indicators ===
+hullMA = f_hma(close, hullLength)
+hullTrend = hullMA > hullMA[1]
+
+// Higher Timeframe EMA (non-repainting)
+htfEma = request.security(syminfo.tickerid, htfTimeframe, ta.ema(close, htfEmaLength), lookahead=barmerge.lookahead_off)
+htfEmaPrev = htfEma[1]  // Use previous bar to avoid repainting
+htfTrendUp = close[1] > htfEmaPrev
+
+// ADX
+[adxValue, plusDI, minusDI] = f_adx(adxLength)
+adxStrong = adxValue[1] > adxThreshold  // Use [1] for confirmed value
+
+// Trend direction (defined early for CHoCH / confluence / structure)
+trendUp = close[1] > hullMA[1] and hullMA[1] > hullMA[2]
+trendDown = close[1] < hullMA[1] and hullMA[1] < hullMA[2]
+
+// === Momentum Indicators ===
+rsiValue = ta.rsi(close, rsiLength)
+rsiPrev = rsiValue[1]
+// Trend-adjusted RSI levels (Bull regime: oversold 40/80; Bear: 20/60)
+rsiRegimeBull = close[1] > hullMA[1]
+rsiOS = useRSIRegime ? (rsiRegimeBull ? rsiBullOversold : rsiBearOversold) : rsiOversold
+rsiOB = useRSIRegime ? (rsiRegimeBull ? rsiBullOverbought : rsiBearOverbought) : rsiOverbought
+rsiOversoldCross = ta.crossover(rsiValue, rsiOS)
+rsiOverboughtCross = ta.crossunder(rsiValue, rsiOB)
+rsiBullish = rsiPrev > 50 or rsiOversoldCross[1]
+rsiBearish = rsiPrev < 50 or rsiOverboughtCross[1]
+
+[macdLine, macdSignalLine, macdHist] = ta.macd(close, macdFast, macdSlow, macdSignal)
+macdLinePrev = macdLine[1]
+macdSignalPrev = macdSignalLine[1]
+macdCrossUp = ta.crossover(macdLine, macdSignalLine)
+macdCrossDown = ta.crossunder(macdLine, macdSignalLine)
+macdBullish = macdLinePrev > macdSignalPrev or macdCrossUp[1]
+macdBearish = macdLinePrev < macdSignalPrev or macdCrossDown[1]
+
+// === Volatility Indicators ===
+atr = ta.atr(atrLength)
+atrPrev = atr[1]
+
+bbBasis = ta.sma(close, bbLength)
+bbDev = bbMultiplier * ta.stdev(close, bbLength)
+bbUpper = bbBasis + bbDev
+bbLower = bbBasis - bbDev
+
+// Bollinger Band Squeeze Detection
+bbWidth = bbUpper - bbLower
+bbWidthSma = ta.sma(bbWidth, squeezeLength)
+bbSqueeze = bbWidth < bbWidthSma * 0.7  // Squeeze when width is 70% of average
+
+// Price position in BB
+bbPercent = (close - bbLower) / (bbUpper - bbLower)
+notAtExtremes = bbPercent > 0.2 and bbPercent < 0.8  // Not at band extremes
+
+// === Volume ===
+volumeMA = ta.sma(volume, volumeLength)
+volumeConfirm = volume[1] > volumeMA[1] * volumeMultiplier
+
+// === Divergence (Regular = reversal, Hidden = continuation) ===
+[rsiBullDiv, rsiBearDiv, rsiBullHidden, rsiBearHidden] = f_divergence(close, "RSI")
+[macdBullDiv, macdBearDiv, macdBullHidden, macdBearHidden] = f_divergence(close, "MACD")
+
+bullDivAny = rsiBullDiv or macdBullDiv
+bearDivAny = rsiBearDiv or macdBearDiv
+bullHiddenAny = rsiBullHidden or macdBullHidden
+bearHiddenAny = rsiBearHidden or macdBearHidden
+
+// Signal: regular divergence (reversal) or hidden (continuation in trend)
+bullishDivergence = useDivergence and (bullDivAny or bullHiddenAny)
+bearishDivergence = useDivergence and (bearDivAny or bearHiddenAny)
+
+// === DI Direction (+DI / -DI) ===
+plusDIPrev = plusDI[1]
+minusDIPrev = minusDI[1]
+diBullish = plusDIPrev > minusDIPrev
+diBearish = minusDIPrev > plusDIPrev
+
+// === Premium / Discount (upper/lower 50% of range) - before Structure ===
+rangeHigh = ta.highest(high, pdLookback)
+rangeLow = ta.lowest(low, pdLookback)
+equilibrium = (rangeHigh + rangeLow) / 2
+inPremium = close[1] >= equilibrium
+inDiscount = close[1] <= equilibrium
+premiumDiscountOkBuy = not usePremiumDiscount or inDiscount
+premiumDiscountOkSell = not usePremiumDiscount or inPremium
+
+// === Structure (swing high/low, breakout) ===
+swingHigh = ta.pivothigh(high, swingLookback, swingLookback)
+swingLow = ta.pivotlow(low, swingLookback, swingLookback)
+lastSwingHigh = ta.valuewhen(not na(swingHigh), swingHigh, 0)
+lastSwingLow = ta.valuewhen(not na(swingLow), swingLow, 0)
+breakoutUp = useBreakout ? (na(lastSwingHigh) or close[1] > lastSwingHigh) : true
+breakoutDown = useBreakout ? (na(lastSwingLow) or close[1] < lastSwingLow) : true
+nearSupport = not na(lastSwingLow) and lastSwingLow > 0 and low[1] <= lastSwingLow * 1.002
+nearResistance = not na(lastSwingHigh) and lastSwingHigh > 0 and high[1] >= lastSwingHigh * 0.998
+structureBull = (not useStructure or (breakoutUp or nearSupport)) and premiumDiscountOkBuy
+structureBear = (not useStructure or (breakoutDown or nearResistance)) and premiumDiscountOkSell
+
+// --- Valid Swing (displacement + min bars) ---
+displacementThreshold = atr * swingDisplacementATR
+validSwingHigh = not na(swingHigh)
+validSwingLow = not na(swingLow)
+// Displacement: after pivot, price moved away by at least threshold (simplified: use close vs pivot)
+lastValidSwingHigh = ta.valuewhen(validSwingHigh, swingHigh, 0)
+lastValidSwingLow = ta.valuewhen(validSwingLow, swingLow, 0)
+
+// --- BOS: body close beyond swing (not wick); CHoCH: break of counter-trend swing ---
+prevSwingHigh = ta.valuewhen(not na(swingHigh), high[swingLookback], 0)
+prevSwingLow = ta.valuewhen(not na(swingLow), low[swingLookback], 0)
+// BOS bullish: close above previous swing high (body break)
+bosBull = useBOSBody ? (close[1] > lastSwingHigh and lastSwingHigh > 0) : (high[1] > lastSwingHigh and lastSwingHigh > 0)
+bosBear = useBOSBody ? (close[1] < lastSwingLow and lastSwingLow > 0) : (low[1] < lastSwingLow and lastSwingLow > 0)
+// SFP: wick broke but body didn't (reversal signal)
+sfpBear = lastSwingHigh > 0 and high[1] > lastSwingHigh and close[1] <= lastSwingHigh  // sweep then reject
+sfpBull = lastSwingLow > 0 and low[1] < lastSwingLow and close[1] >= lastSwingLow
+// CHoCH: in uptrend, break of recent HL; in downtrend, break of recent LH
+chochBearish = trendUp and not na(lastSwingLow) and lastSwingLow > 0 and close[1] < lastSwingLow
+chochBullish = trendDown and not na(lastSwingHigh) and lastSwingHigh > 0 and close[1] > lastSwingHigh
+// When CHoCH filter on: disable trend-follow buy when chochBearish, disable trend-follow sell when chochBullish
+chochBlockBuy = useCHoCHFilter and chochBearish
+chochBlockSell = useCHoCHFilter and chochBullish
+
+// === MA Stack ===
+emaFast = ta.ema(close, maFastLen)
+emaSlow = ta.ema(close, maSlowLen)
+emaSlower = ta.ema(close, maSlowerLen)
+maStackUp = useMAStack ? (emaFast[1] > emaSlow[1] and emaSlow[1] > emaSlower[1]) : true
+maStackDown = useMAStack ? (emaFast[1] < emaSlow[1] and emaSlow[1] < emaSlower[1]) : true
+
+// === Volatility (BB not extremes, no squeeze, ATR expanding) ===
+bbNotExtremes = useBBNotExtremes ? notAtExtremes[1] : true
+noSqueeze = useNoSqueeze ? not bbSqueeze[1] : true
+atrMA = ta.sma(atr, atrLength)
+atrExpanding = useATRExpanding ? atr[1] >= atrMA[1] : true
+
+// === Volume trend & OBV ===
+volumeRising = useVolumeTrend ? (volume[1] >= volume[2] and volume[2] >= volume[volumeTrendBars]) : true
+obv = ta.cum(close > close[1] ? volume : close < close[1] ? -volume : 0)
+obvMA = ta.sma(obv, obvLength)
+obvBullish = useOBV ? obv[1] > obvMA[1] : true
+obvBearish = useOBV ? obv[1] < obvMA[1] : true
+
+// === Stochastic ===
+stochKVal = ta.stoch(close, high, low, stochK)
+stochDVal = ta.sma(stochKVal, stochD)
+stochBullish = useStoch ? (stochKVal[1] > stochDVal[1] or stochKVal[1] < stochOversold) : true
+stochBearish = useStoch ? (stochKVal[1] < stochDVal[1] or stochKVal[1] > stochOverbought) : true
+
+// === ROC ===
+roc = ta.roc(close, rocLength)
+rocBullish = useROC ? roc[1] > 0 : true
+rocBearish = useROC ? roc[1] < 0 : true
+
+// === MACD Histogram ===
+macdHistBullish = useMacdHist ? macdHist[1] > 0 : true
+macdHistBearish = useMacdHist ? macdHist[1] < 0 : true
+
+// === Candle direction ===
+bullishCandle = useCandleFilter ? close[1] > open[1] : true
+bearishCandle = useCandleFilter ? close[1] < open[1] : true
+
+// === Session filter ===
+inSession = useSessionFilter ? not na(time(timeframe.period, sessionInput)) : true
+
+// === HTF RSI ===
+htfRsi = request.security(syminfo.tickerid, htfTimeframe, ta.rsi(close, htfRsiLength), lookahead=barmerge.lookahead_off)
+htfRsiPrev = htfRsi[1]
+htfRsiOkBuy = useHTFRSI ? htfRsiPrev < htfRsiNotOverbought : true
+htfRsiOkSell = useHTFRSI ? htfRsiPrev > htfRsiNotOversold : true
+
+// MTF trend (for heatmap): single tuple per TF to reduce calls
+mtfEmaLen = 20
+mtf5  = request.security(syminfo.tickerid, "5",  close > ta.ema(close, mtfEmaLen), lookahead=barmerge.lookahead_off)
+mtf15 = request.security(syminfo.tickerid, "15", close > ta.ema(close, mtfEmaLen), lookahead=barmerge.lookahead_off)
+mtf60 = request.security(syminfo.tickerid, "60", close > ta.ema(close, mtfEmaLen), lookahead=barmerge.lookahead_off)
+mtf240 = request.security(syminfo.tickerid, "240", close > ta.ema(close, mtfEmaLen), lookahead=barmerge.lookahead_off)
+mtfD  = request.security(syminfo.tickerid, "D",  close > ta.ema(close, mtfEmaLen), lookahead=barmerge.lookahead_off)
+
+// === ATR range filter ===
+atrAvg = ta.sma(atr, atrLength * 2)
+atrInRange = useATRFilter ? (atrMinPct <= 0 or atr[1] >= atrAvg[1] * (atrMinPct / 100.0)) and (atrMaxPct <= 0 or atr[1] <= atrAvg[1] * (1 + atrMaxPct / 100.0)) : true
+
+// === Fair Value Gaps (FVG): gap between candle 1 low and candle 3 high (bull) or 1 high and 3 low (bear) ===
+bodyPctBull = (close[2] - open[2]) / (high[2] - low[2] + 1e-10)
+bodyPctBear = (open[2] - close[2]) / (high[2] - low[2] + 1e-10)
+bullFVG = low[2] > high[0] and bodyPctBull >= fvgMinBodyPct
+bearFVG = high[2] < low[0] and bodyPctBear >= fvgMinBodyPct
+
+// ==================================================================================
+// SIGNAL LOGIC (Using confirmed bars [1] to avoid repainting)
+// ==================================================================================
+
+// === Condition Checks (all using confirmed data) ===
+htfAlignedUp = useHTF ? htfTrendUp : true
+htfAlignedDown = useHTF ? not htfTrendUp : true
+
+// === 4-Pillar Confluence Score (0-100): Trend + Momentum + Volume + Structure ===
+buyConfluenceTrend = (trendUp ? 8 : 0) + (htfAlignedUp ? 8 : 0) + (adxStrong ? 9 : 0)
+buyConfluenceMomentum = (rsiBullish ? 5 : 0) + (macdBullish ? 5 : 0) + (stochBullish ? 5 : 0) + (rocBullish ? 5 : 0) + (macdHistBullish ? 5 : 0)
+buyConfluenceVolume = (volumeConfirm ? 8 : 0) + (volumeRising ? 8 : 0) + (obvBullish ? 9 : 0)
+buyConfluenceStructure = (maStackUp ? 8 : 0) + (structureBull ? 8 : 0) + (not chochBlockBuy ? 9 : 0)
+buyConfluenceScore = math.min(100, buyConfluenceTrend + buyConfluenceMomentum + buyConfluenceVolume + buyConfluenceStructure)
+
+sellConfluenceTrend = (trendDown ? 8 : 0) + (htfAlignedDown ? 8 : 0) + (adxStrong ? 9 : 0)
+sellConfluenceMomentum = (rsiBearish ? 5 : 0) + (macdBearish ? 5 : 0) + (stochBearish ? 5 : 0) + (rocBearish ? 5 : 0) + (macdHistBearish ? 5 : 0)
+sellConfluenceVolume = (volumeConfirm ? 8 : 0) + (volumeRising ? 8 : 0) + (obvBearish ? 9 : 0)
+sellConfluenceStructure = (maStackDown ? 8 : 0) + (structureBear ? 8 : 0) + (not chochBlockSell ? 9 : 0)
+sellConfluenceScore = math.min(100, sellConfluenceTrend + sellConfluenceMomentum + sellConfluenceVolume + sellConfluenceStructure)
+
+// === Buy Conditions (20 core + 1 divergence bonus) ===
+buyConditions = array.new_bool(21)
+array.set(buyConditions, 0, trendUp)
+array.set(buyConditions, 1, adxStrong)
+array.set(buyConditions, 2, rsiBullish)
+array.set(buyConditions, 3, macdBullish)
+array.set(buyConditions, 4, volumeConfirm)
+array.set(buyConditions, 5, htfAlignedUp)
+array.set(buyConditions, 6, diBullish)
+array.set(buyConditions, 7, bbNotExtremes)
+array.set(buyConditions, 8, noSqueeze)
+array.set(buyConditions, 9, volumeRising)
+array.set(buyConditions, 10, obvBullish)
+array.set(buyConditions, 11, maStackUp)
+array.set(buyConditions, 12, structureBull)
+array.set(buyConditions, 13, stochBullish)
+array.set(buyConditions, 14, rocBullish)
+array.set(buyConditions, 15, macdHistBullish)
+array.set(buyConditions, 16, bullishCandle)
+array.set(buyConditions, 17, inSession)
+array.set(buyConditions, 18, htfRsiOkBuy)
+array.set(buyConditions, 19, atrInRange)
+array.set(buyConditions, 20, bullishDivergence or true)
+
+buyScore = 0.0
+for i = 0 to 19
+    if array.get(buyConditions, i)
+        buyScore += 5.0
+if array.get(buyConditions, 20) and bullishDivergence
+    buyScore := math.min(buyScore + 10, 100)
+else
+    buyScore := math.min(buyScore, 100)
+
+// === Sell Conditions ===
+sellConditions = array.new_bool(21)
+array.set(sellConditions, 0, trendDown)
+array.set(sellConditions, 1, adxStrong)
+array.set(sellConditions, 2, rsiBearish)
+array.set(sellConditions, 3, macdBearish)
+array.set(sellConditions, 4, volumeConfirm)
+array.set(sellConditions, 5, htfAlignedDown)
+array.set(sellConditions, 6, diBearish)
+array.set(sellConditions, 7, bbNotExtremes)
+array.set(sellConditions, 8, noSqueeze)
+array.set(sellConditions, 9, volumeRising)
+array.set(sellConditions, 10, obvBearish)
+array.set(sellConditions, 11, maStackDown)
+array.set(sellConditions, 12, structureBear)
+array.set(sellConditions, 13, stochBearish)
+array.set(sellConditions, 14, rocBearish)
+array.set(sellConditions, 15, macdHistBearish)
+array.set(sellConditions, 16, bearishCandle)
+array.set(sellConditions, 17, inSession)
+array.set(sellConditions, 18, htfRsiOkSell)
+array.set(sellConditions, 19, atrInRange)
+array.set(sellConditions, 20, bearishDivergence or true)
+
+sellScore = 0.0
+for i = 0 to 19
+    if array.get(sellConditions, i)
+        sellScore += 5.0
+if array.get(sellConditions, 20) and bearishDivergence
+    sellScore := math.min(sellScore + 10, 100)
+else
+    sellScore := math.min(sellScore, 100)
+
+// === Final Signals ===
+var bool buySignal = false
+var bool sellSignal = false
+
+// Use 4-Pillar Confluence Score when enabled, else legacy score
+bool buyConditionMet = useConfluenceScore ? (buyConfluenceScore >= confluenceMinScore and not chochBlockBuy) : (buyScore >= minSignalScore)
+bool sellConditionMet = useConfluenceScore ? (sellConfluenceScore >= confluenceMinScore and not chochBlockSell) : (sellScore >= minSignalScore)
+
+// Update signals - prevent both being true at same time
+if buyConditionMet and not sellSignal[1]
+    buySignal := true
+    sellSignal := false
+else if sellConditionMet and not buySignal[1]
+    sellSignal := true
+    buySignal := false
+else
+    buySignal := false
+    sellSignal := false
+
+// Market Regime
+regime = adxStrong ? (trendUp ? "STRONG UPTREND" : trendDown ? "STRONG DOWNTREND" : "STRONG TREND") : "RANGING/WEAK"
+regimeShort = adxStrong ? (trendUp ? "Uptrend" : trendDown ? "Downtrend" : "Trend") : "Ranging"
+
+// ==================================================================================
+// RISK MANAGEMENT LEVELS
+// ==================================================================================
+
+var float entryPrice = na
+var float stopLoss = na
+var float takeProfit = na
+var string positionType = "NONE"
+var int entryBar = na
+
+// Track position entry
+if buySignal and positionType == "NONE"
+    entryPrice := close
+    stopLoss := entryPrice - atrPrev * atrMultiplierSL
+    takeProfit := entryPrice + atrPrev * atrMultiplierTP
+    positionType := "LONG"
+    entryBar := bar_index
+
+if sellSignal and positionType == "NONE"
+    entryPrice := close
+    stopLoss := entryPrice + atrPrev * atrMultiplierSL
+    takeProfit := entryPrice - atrPrev * atrMultiplierTP
+    positionType := "SHORT"
+    entryBar := bar_index
+
+// Exit on opposite signal
+if (sellSignal and positionType == "LONG") or (buySignal and positionType == "SHORT")
+    positionType := "NONE"
+    entryPrice := na
+    stopLoss := na
+    takeProfit := na
+    entryBar := na
+
+// ==================================================================================
+// PLOTTING
+// ==================================================================================
+
+// === Hull MA (Teal/Pink when professional palette) ===
+hmaColor = hullTrend ? (useProfessionalPalette ? color.new(#00E5FF, 20) : color.new(color.green, 20)) : (useProfessionalPalette ? color.new(#FF4081, 20) : color.new(color.red, 20))
+plot(showHullMA ? hullMA : na, "Hull MA", color=hmaColor, linewidth=1, offset=0)
+
+// === Bollinger Bands ===
+bbUpperPlot = plot(showBB ? bbUpper : na, "BB Upper", color=color.new(color.blue, 85), linewidth=1, offset=0)
+bbLowerPlot = plot(showBB ? bbLower : na, "BB Lower", color=color.new(color.blue, 85), linewidth=1, offset=0)
+bbBasisPlot = plot(showBB ? bbBasis : na, "BB Basis", color=color.new(color.gray, 60), linewidth=1, offset=0)
+fill(bbUpperPlot, bbLowerPlot, color=color.new(color.blue, 97))
+
+// === Fair Value Gaps (boxes: last of each type) ===
+var box lastBullFvg = na
+var box lastBearFvg = na
+if useFVG and bullFVG
+    if not na(lastBullFvg)
+        box.delete(lastBullFvg)
+    lastBullFvg := box.new(bar_index - 2, low[2], bar_index + 6, high[0], border_color=color.new(#00E5FF, 50), bgcolor=color.new(#00E5FF, 85), border_width=1)
+if useFVG and bearFVG
+    if not na(lastBearFvg)
+        box.delete(lastBearFvg)
+    lastBearFvg := box.new(bar_index - 2, low[0], bar_index + 6, high[2], border_color=color.new(#FF4081, 50), bgcolor=color.new(#FF4081, 85), border_width=1)
+
+// === Signals (Teal/Pink palette when enabled) ===
+colorBull = useProfessionalPalette ? color.new(#00E5FF, 0) : color.new(color.green, 0)
+colorBear = useProfessionalPalette ? color.new(#FF4081, 0) : color.new(color.red, 0)
+plotshape(showSignals and buySignal, "Buy Signal", shape.triangleup, location.belowbar, colorBull, size=size.small, offset=0)
+plotshape(showSignals and sellSignal, "Sell Signal", shape.triangledown, location.abovebar, colorBear, size=size.small, offset=0)
+
+// === Stop Loss & Take Profit Lines (attached to bars) ===
+var line slLine = na
+var line tpLine = na
+var line entryLine = na
+var label slLabel = na
+var label tpLabel = na
+var label entryLabel = na
+
+// Draw lines from entry bar to current bar
+if showStopLoss and not na(entryBar)
+    // Delete old lines and labels
+    if not na(slLine)
+        line.delete(slLine)
+    if not na(tpLine)
+        line.delete(tpLine)
+    if not na(entryLine)
+        line.delete(entryLine)
+    if not na(slLabel)
+        label.delete(slLabel)
+    if not na(tpLabel)
+        label.delete(tpLabel)
+    if not na(entryLabel)
+        label.delete(entryLabel)
+    
+    // Draw new lines from entry bar to current bar
+    if not na(stopLoss)
+        slLine := line.new(entryBar, stopLoss, bar_index, stopLoss,
+                          color=color.new(color.red, 30), width=1, style=line.style_solid)
+        slLabel := label.new(entryBar, stopLoss, "SL " + str.tostring(stopLoss, "#.##"),
+                            style=label.style_label_right, color=color.red, textcolor=color.white, size=size.tiny)
+    
+    if not na(takeProfit)
+        tpLine := line.new(entryBar, takeProfit, bar_index, takeProfit,
+                          color=color.new(color.green, 30), width=1, style=line.style_solid)
+        tpLabel := label.new(entryBar, takeProfit, "TP " + str.tostring(takeProfit, "#.##"),
+                            style=label.style_label_right, color=color.green, textcolor=color.white, size=size.tiny)
+    
+    if not na(entryPrice)
+        entryLine := line.new(entryBar, entryPrice, bar_index, entryPrice,
+                             color=color.new(color.gray, 50), width=1, style=line.style_dashed)
+        entryLabel := label.new(entryBar, entryPrice, "Entry " + str.tostring(entryPrice, "#.##"),
+                               style=label.style_label_right, color=color.gray, textcolor=color.white, size=size.tiny)
+
+// === Background (Teal/Pink when professional palette) ===
+bgColor = showBackground ? (trendUp and adxStrong ? (useProfessionalPalette ? color.new(#00E5FF, 96) : color.new(color.green, 96)) : trendDown and adxStrong ? (useProfessionalPalette ? color.new(#FF4081, 96) : color.new(color.red, 96)) : na) : na
+bgcolor(bgColor, title="Trend Background")
+
+// ==================================================================================
+// DASHBOARD
+// ==================================================================================
+
+if showDashboard
+    var table dashboard = table.new(position.top_right, 3, 30,
+                                     border_width=1,
+                                     border_color=color.new(color.gray, 70),
+                                     frame_width=1,
+                                     frame_color=color.new(color.gray, 70))
+    
+    conditions = buyScore > sellScore ? buyConditions : sellConditions
+    conditionNames = array.from("Trend", "ADX", "RSI", "MACD", "Volume", "HTF Align", "DI +/-", "BB Mid", "No Squeeze", "Vol Trend", "OBV", "MA Stack", "Structure", "Stoch", "ROC", "MACD Hist", "Candle", "Session", "HTF RSI", "ATR Ok", "Divergence")
+    
+    // Palette: Teal #00E5FF / Pink #FF4081 when useProfessionalPalette
+    colorBullCell = useProfessionalPalette ? color.new(#00E5FF, 60) : color.new(color.green, 60)
+    colorBearCell = useProfessionalPalette ? color.new(#FF4081, 60) : color.new(color.red, 60)
+    displayBuyScore = useConfluenceScore ? buyConfluenceScore : buyScore
+    displaySellScore = useConfluenceScore ? sellConfluenceScore : sellScore
+    displayMinScore = useConfluenceScore ? confluenceMinScore : minSignalScore
+    signalMetBuy = useConfluenceScore ? (buyConfluenceScore >= confluenceMinScore and not chochBlockBuy) : (buyScore >= minSignalScore)
+    signalMetSell = useConfluenceScore ? (sellConfluenceScore >= confluenceMinScore and not chochBlockSell) : (sellScore >= minSignalScore)
+    
+    if dashboardStyle == "Compact"
+        scoreColor = buyScore > sellScore ? (signalMetBuy ? colorBullCell : color.new(color.orange, 70)) : (signalMetSell ? colorBearCell : color.new(color.orange, 70))
+        scoreLabel = buyScore > sellScore ? (useConfluenceScore ? "Confluence Buy " + str.tostring(displayBuyScore, "#.#") : "Buy " + str.tostring(buyScore, "#.#")) : (useConfluenceScore ? "Confluence Sell " + str.tostring(displaySellScore, "#.#") : "Sell " + str.tostring(sellScore, "#.#"))
+        summaryText = scoreLabel + " · " + regimeShort + (chochBlockBuy or chochBlockSell ? " 🔒" : "")
+        table.cell(dashboard, 0, 0, "MAI", bgcolor=color.new(color.gray, 85), text_color=color.white, text_size=size.small)
+        table.cell(dashboard, 1, 0, summaryText, bgcolor=scoreColor, text_color=color.white, text_size=size.small)
+        table.cell(dashboard, 2, 0, signalMetBuy or signalMetSell ? "✅" : "❌", bgcolor=scoreColor, text_size=size.tiny, text_color=color.white)
+        
+        condMetCount = 0
+        condLine = ""
+        for i = 0 to 20
+            if i < 20 and array.get(conditions, i)
+                condMetCount := condMetCount + 1
+            condLine := condLine + (array.get(conditions, i) ? "✓" : "✗")
+        table.cell(dashboard, 0, 1, "Conditions", bgcolor=color.new(color.gray, 90), text_size=size.tiny)
+        table.cell(dashboard, 1, 1, str.tostring(condMetCount) + "/20 " + condLine, bgcolor=color.new(color.gray, 90), text_size=size.tiny)
+        table.cell(dashboard, 2, 1, "", bgcolor=color.new(color.gray, 90))
+        
+        keyVals = "ADX " + str.tostring(adxValue[1], "#.#") + " · RSI " + str.tostring(rsiPrev, "#.#") + " · Stoch " + str.tostring(stochKVal[1], "#.#") + " · HTF RSI " + str.tostring(htfRsiPrev, "#.#")
+        table.cell(dashboard, 0, 2, "Key values", bgcolor=color.new(color.gray, 90), text_size=size.tiny)
+        table.cell(dashboard, 1, 2, keyVals, bgcolor=color.new(color.gray, 90), text_size=size.tiny)
+        table.cell(dashboard, 2, 2, "", bgcolor=color.new(color.gray, 90))
+        
+        riskText = str.tostring(atrPrev, "#.##") + " · SL " + str.tostring(atrPrev * atrMultiplierSL, "#.##") + " / TP " + str.tostring(atrPrev * atrMultiplierTP, "#.##")
+        table.cell(dashboard, 0, 3, "Risk", bgcolor=color.new(color.gray, 90), text_size=size.tiny)
+        table.cell(dashboard, 1, 3, riskText, bgcolor=color.new(color.gray, 90), text_size=size.tiny)
+        table.cell(dashboard, 2, 3, "", bgcolor=color.new(color.gray, 90))
+        
+        if showMTFHeatmap
+            table.cell(dashboard, 0, 4, "MTF", bgcolor=color.new(color.gray, 90), text_size=size.tiny)
+            table.cell(dashboard, 1, 4, "M5  M15 H1  H4  D", bgcolor=color.new(color.gray, 90), text_size=size.tiny)
+            m5c = mtf5 ? colorBullCell : colorBearCell
+            m15c = mtf15 ? colorBullCell : colorBearCell
+            h1c = mtf60 ? colorBullCell : colorBearCell
+            h4c = mtf240 ? colorBullCell : colorBearCell
+            dc = mtfD ? colorBullCell : colorBearCell
+            table.cell(dashboard, 2, 4, (mtf5 ? "▲" : "▼") + " " + (mtf15 ? "▲" : "▼") + " " + (mtf60 ? "▲" : "▼") + " " + (mtf240 ? "▲" : "▼") + " " + (mtfD ? "▲" : "▼"), bgcolor=color.new(color.gray, 90), text_size=size.tiny)
+        
+        for r = showMTFHeatmap ? 5 : 4 to 27
+            table.cell(dashboard, 0, r, "", bgcolor=color.new(color.white, 100))
+            table.cell(dashboard, 1, r, "", bgcolor=color.new(color.white, 100))
+            table.cell(dashboard, 2, r, "", bgcolor=color.new(color.white, 100))
+    else
+        table.cell(dashboard, 0, 0, "MAI", bgcolor=color.new(color.gray, 70), text_color=color.white, text_size=size.small)
+        table.cell(dashboard, 1, 0, "Status", bgcolor=color.new(color.gray, 70), text_color=color.white, text_size=size.small)
+        table.cell(dashboard, 2, 0, "✅/❌", bgcolor=color.new(color.gray, 70), text_color=color.white, text_size=size.small)
+        
+        scoreColor = buyScore > sellScore ? (signalMetBuy ? colorBullCell : color.new(color.orange, 70)) : (signalMetSell ? colorBearCell : color.new(color.orange, 70))
+        scoreText = buyScore > sellScore ? (useConfluenceScore ? "Confluence " : "") + "Buy " + str.tostring(displayBuyScore, "#.#") : (useConfluenceScore ? "Confluence " : "") + "Sell " + str.tostring(displaySellScore, "#.#")
+        table.cell(dashboard, 0, 1, useConfluenceScore ? "Confluence" : "Score", bgcolor=color.new(color.gray, 90), text_size=size.tiny)
+        table.cell(dashboard, 1, 1, scoreText + " (need ≥" + str.tostring(displayMinScore, "#.#") + ")" + (chochBlockBuy or chochBlockSell ? " 🔒" : ""), bgcolor=scoreColor, text_size=size.small, text_color=color.white)
+        table.cell(dashboard, 2, 1, signalMetBuy or signalMetSell ? "✅" : "❌", bgcolor=scoreColor, text_size=size.tiny, text_color=color.white)
+        
+        regimeColor = regime == "STRONG UPTREND" ? (useProfessionalPalette ? color.new(#00E5FF, 70) : color.new(color.green, 70)) : regime == "STRONG DOWNTREND" ? (useProfessionalPalette ? color.new(#FF4081, 70) : color.new(color.red, 70)) : color.new(color.orange, 70)
+        regimeReason = "ADX " + str.tostring(adxValue[1], "#.#") + (adxStrong ? ">25" : "<25") + " · " + (trendUp ? "Hull↑" : trendDown ? "Hull↓" : "Hull flat")
+        table.cell(dashboard, 0, 2, "Regime", bgcolor=color.new(color.gray, 90), text_size=size.tiny)
+        table.cell(dashboard, 1, 2, regimeShort + " · " + regimeReason, bgcolor=regimeColor, text_size=size.tiny, text_color=color.white)
+        table.cell(dashboard, 2, 2, "", bgcolor=regimeColor)
+        
+        table.cell(dashboard, 0, 3, "Condition", bgcolor=color.new(color.gray, 85), text_size=size.tiny)
+        table.cell(dashboard, 1, 3, "Reason / Value", bgcolor=color.new(color.gray, 85), text_size=size.tiny)
+        table.cell(dashboard, 2, 3, "Ok", bgcolor=color.new(color.gray, 85), text_size=size.tiny)
+        
+        for i = 0 to 20
+            condMet = array.get(conditions, i)
+            condName = array.get(conditionNames, i)
+            condColor = condMet ? color.new(color.green, 80) : color.new(color.red, 80)
+            condSymbol = condMet ? "✓" : "✗"
+            reasonStr = ""
+            if i == 0
+                reasonStr := (buyScore > sellScore) ? (trendUp ? "Close>Hull, Hull rising" : "Close<Hull or Hull falling") : (trendDown ? "Close<Hull, Hull falling" : "Close>Hull or Hull rising")
+            else if i == 1
+                reasonStr := "ADX " + str.tostring(adxValue[1], "#.#") + " (need >" + str.tostring(adxThreshold, "#.#") + ")"
+            else if i == 2
+                reasonStr := "RSI " + str.tostring(rsiPrev, "#.#") + " (bull: >50 or oversold cross)"
+            else if i == 3
+                reasonStr := "MACD " + str.tostring(macdLinePrev, "#.###") + " vs Sig " + str.tostring(macdSignalPrev, "#.###")
+            else if i == 4
+                reasonStr := "Vol " + str.tostring(volume[1] / math.max(volumeMA[1], 0.0001), "#.##") + "x MA"
+            else if i == 5
+                reasonStr := (buyScore > sellScore) ? "Price " + (htfTrendUp ? ">" : "<") + " HTF EMA" : "Price " + (htfTrendUp ? ">" : "<") + " HTF EMA"
+            else if i == 6
+                reasonStr := "+DI " + str.tostring(plusDIPrev, "#.#") + " / -DI " + str.tostring(minusDIPrev, "#.#")
+            else if i == 7
+                reasonStr := "BB% " + str.tostring(bbPercent[1] * 100, "#.#") + "% (20–80% = mid)"
+            else if i == 8
+                reasonStr := "Width " + str.tostring(bbWidth[1] / math.max(bbWidthSma[1], 0.0001), "#.##") + "x avg (<0.7=squeeze)"
+            else if i == 9
+                reasonStr := "Vol " + (volumeRising ? "rising" : "flat/falling") + " last " + str.tostring(volumeTrendBars) + " bars"
+            else if i == 10
+                reasonStr := "OBV " + (buyScore > sellScore ? (obvBullish ? ">" : "<") : (obvBearish ? "<" : ">")) + " OBV MA"
+            else if i == 11
+                reasonStr := (buyScore > sellScore) ? (maStackUp ? "EMA9>21>50" : "EMAs not stacked up") : (maStackDown ? "EMA9<21<50" : "EMAs not stacked down")
+            else if i == 12
+                reasonStr := (buyScore > sellScore) ? (structureBull ? "Breakout or near support" : "No breakout/support") : (structureBear ? "Breakout or near resistance" : "No breakout/resistance")
+            else if i == 13
+                reasonStr := "K " + str.tostring(stochKVal[1], "#.#") + " D " + str.tostring(stochDVal[1], "#.#")
+            else if i == 14
+                reasonStr := "ROC(" + str.tostring(rocLength) + ") " + str.tostring(roc[1], "#.##") + "%"
+            else if i == 15
+                reasonStr := "Hist " + str.tostring(macdHist[1], "#.###")
+            else if i == 16
+                reasonStr := (buyScore > sellScore) ? (bullishCandle ? "Close>Open" : "Close<Open") : (bearishCandle ? "Close<Open" : "Close>Open")
+            else if i == 17
+                reasonStr := useSessionFilter ? (inSession ? "In " + sessionInput : "Outside " + sessionInput) : "Filter off"
+            else if i == 18
+                reasonStr := "HTF RSI " + str.tostring(htfRsiPrev, "#.#") + (buyScore > sellScore ? " <" + str.tostring(htfRsiNotOverbought) : " >" + str.tostring(htfRsiNotOversold))
+            else if i == 19
+                reasonStr := "ATR " + str.tostring(atr[1], "#.##") + " (" + str.tostring(atr[1] / math.max(atrAvg[1], 0.0001) * 100, "#.#") + "% of avg)"
+            else
+                reasonStr := (buyScore > sellScore) ? (bullishDivergence ? "Bull div (RSI/MACD)" : "No div") : (bearishDivergence ? "Bear div (RSI/MACD)" : "No div")
+            table.cell(dashboard, 0, i + 4, condName, bgcolor=color.new(color.gray, 92), text_size=size.tiny)
+            table.cell(dashboard, 1, i + 4, reasonStr, bgcolor=color.new(color.gray, 92), text_size=size.tiny)
+            table.cell(dashboard, 2, i + 4, condSymbol, bgcolor=condColor, text_size=size.tiny, text_color=color.white)
+        
+        rowRisk = 25
+        if showMTFHeatmap
+            table.cell(dashboard, 0, 25, "MTF", bgcolor=color.new(color.gray, 85), text_size=size.tiny)
+            table.cell(dashboard, 1, 25, "M5  M15 H1  H4  D", bgcolor=color.new(color.gray, 85), text_size=size.tiny)
+            table.cell(dashboard, 2, 25, (mtf5 ? "▲" : "▼") + " " + (mtf15 ? "▲" : "▼") + " " + (mtf60 ? "▲" : "▼") + " " + (mtf240 ? "▲" : "▼") + " " + (mtfD ? "▲" : "▼"), bgcolor=color.new(color.gray, 85), text_size=size.tiny)
+            rowRisk := 26
+        
+        table.cell(dashboard, 0, rowRisk, "Risk", bgcolor=color.new(color.gray, 85), text_size=size.tiny)
+        table.cell(dashboard, 1, rowRisk, "", bgcolor=color.new(color.gray, 85))
+        table.cell(dashboard, 2, rowRisk, "", bgcolor=color.new(color.gray, 85))
+        
+        table.cell(dashboard, 0, rowRisk + 1, "ATR", bgcolor=color.new(color.gray, 92), text_size=size.tiny)
+        table.cell(dashboard, 1, rowRisk + 1, str.tostring(atrPrev, "#.##") + " → SL dist " + str.tostring(atrPrev * atrMultiplierSL, "#.##") + " TP " + str.tostring(atrPrev * atrMultiplierTP, "#.##"), bgcolor=color.new(color.blue, 85), text_size=size.tiny)
+        table.cell(dashboard, 2, rowRisk + 1, "", bgcolor=color.new(color.blue, 85))
+        
+        table.cell(dashboard, 0, rowRisk + 2, "SL / TP", bgcolor=color.new(color.gray, 92), text_size=size.tiny)
+        table.cell(dashboard, 1, rowRisk + 2, str.tostring(atrPrev * atrMultiplierSL, "#.##") + " / " + str.tostring(atrPrev * atrMultiplierTP, "#.##") + " (ATR " + str.tostring(atrMultiplierSL, "#.#") + "x / " + str.tostring(atrMultiplierTP, "#.#") + "x)", bgcolor=color.new(color.gray, 92), text_size=size.tiny)
+        table.cell(dashboard, 2, rowRisk + 2, "", bgcolor=color.new(color.gray, 92))
+
+// ==================================================================================
+// ALERTS
+// ==================================================================================
+
+alertcondition(buySignal, "Buy Signal Alert", "BUY Signal - Score: {{plot_0}}")
+alertcondition(sellSignal, "Sell Signal Alert", "SELL Signal - Score: {{plot_0}}")
+alertcondition(buySignal or sellSignal, "Any Signal Alert", "Trading Signal Detected")
+
+// Plot scores for alert messages (hidden)
+plot(buyScore, "Buy Score", display=display.none)
+plot(sellScore, "Sell Score", display=display.none)
