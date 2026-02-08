@@ -34,7 +34,7 @@ useBuySellSignal = input.bool(true, "Display Buy/Sell Signal", group=gBuySell, t
 buySellThreshold = input.float(55, "Signal Threshold (0-100)", minval=30, maxval=95, step=5, group=gBuySell, tooltip="Minimum composite score to generate a signal. Higher = fewer but more confident signals.")
 buySellCooldown = input.int(5, "Signal Cooldown (bars)", minval=1, maxval=50, group=gBuySell, tooltip="Minimum bars between signals to prevent spam.")
 useBuySellSLTP = input.bool(true, "Display SL/TP Levels", group=gBuySell)
-slTpDisplayMode = input.string("Lines", "SL/TP Display", options=["Lines", "Zones"], group=gBuySell, tooltip="Lines: Entry, SL and TP as lines only. Zones: Colored background ranges between the levels.")
+slTpDisplayMode = input.string("Zones", "SL/TP Display", options=["Lines", "Zones"], group=gBuySell, tooltip="Lines: Entry, SL and TP as lines only. Zones: Colored background ranges between the levels.")
 buySellRR = input.float(2.0, "Risk:Reward Ratio", minval=1.0, maxval=5.0, step=0.5, group=gBuySell, tooltip="Target R:R ratio for TP calculation. SL is ATR-based + structure.")
 useSignalZone = input.bool(false, "Display signal zone", group=gBuySell, tooltip="Display the BUY/SELL score box on the signal candle.")
 usePrevSignals = input.bool(false, "Display Previous Signals", group=gBuySell, tooltip="Display grayed-out previous signal zones and levels. Disable for a cleaner chart.")
@@ -148,6 +148,7 @@ maSlowerLen = input.int(50, "Slower MA Length", minval=1, group=gMAAlign)
 useCandleFilter = input.bool(true, "Candle Direction Filter", group=gFilters)
 useSessionFilter = input.bool(false, "Use Session Filter", group=gFilters)
 sessionInput = input.string("0800-1700", "Session (HHMM-HHMM)", group=gFilters)
+todTimezone = input.string("America/New_York", "Session Timezone", group=gFilters)
 useHTFRSI = input.bool(true, "Use HTF RSI Filter", group=gFilters)
 htfRsiLength = input.int(14, "HTF RSI Length", minval=1, group=gFilters)
 htfRsiNotOverbought = input.float(70, "HTF RSI Max (buy when below)", minval=50, group=gFilters)
@@ -491,6 +492,10 @@ notAtExtremes = bbPercent > 0.2 and bbPercent < 0.8
 // === Volume ===
 volumeMA = ta.sma(volume, volumeLength)
 volumeConfirm = volume[1] > volumeMA[1] * volumeMultiplier
+volZScore = (volume - ta.sma(volume, 50)) / math.max(ta.stdev(volume, 50), 1)
+volClimax = volZScore > 2.5
+volClimaxBuy = volClimax and close[1] < open[1]
+volClimaxSell = volClimax and close[1] > open[1]
 
 // === Divergence ===
 [rsiBullDiv, rsiBearDiv, rsiBullHidden, rsiBearHidden] = f_divergence(close, "RSI")
@@ -522,6 +527,10 @@ swingHigh = ta.pivothigh(high, swingLookback, swingLookback)
 swingLow = ta.pivotlow(low, swingLookback, swingLookback)
 lastSwingHigh = ta.valuewhen(not na(swingHigh), swingHigh, 0)
 lastSwingLow = ta.valuewhen(not na(swingLow), swingLow, 0)
+barsSinceSwingLow = bar_index - ta.valuewhen(not na(swingLow), bar_index, 0)
+barsSinceSwingHigh = bar_index - ta.valuewhen(not na(swingHigh), bar_index, 0)
+extendedBearRun = barsSinceSwingLow > 30
+extendedBullRun = barsSinceSwingHigh > 30
 breakoutUp = useBreakout ? (na(lastSwingHigh) or close[1] > lastSwingHigh) : true
 breakoutDown = useBreakout ? (na(lastSwingLow) or close[1] < lastSwingLow) : true
 nearSupport = not na(lastSwingLow) and lastSwingLow > 0 and low[1] <= lastSwingLow * 1.002
@@ -539,6 +548,8 @@ bosBull = useBOSBody ? (close[1] > lastSwingHigh and lastSwingHigh > 0) : (high[
 bosBear = useBOSBody ? (close[1] < lastSwingLow and lastSwingLow > 0) : (low[1] < lastSwingLow and lastSwingLow > 0)
 sfpBear = lastSwingHigh > 0 and high[1] > lastSwingHigh and close[1] <= lastSwingHigh
 sfpBull = lastSwingLow > 0 and low[1] < lastSwingLow and close[1] >= lastSwingLow
+liqSweepBuy = low < lastSwingLow and close > lastSwingLow and close > open
+liqSweepSell = high > lastSwingHigh and close < lastSwingHigh and close < open
 chochBearish = trendUp and not na(lastSwingLow) and lastSwingLow > 0 and close[1] < lastSwingLow
 chochBullish = trendDown and not na(lastSwingHigh) and lastSwingHigh > 0 and close[1] > lastSwingHigh
 chochBlockBuy = useCHoCHFilter and chochBearish
@@ -591,6 +602,7 @@ htfRsi = request.security(syminfo.tickerid, htfTimeframe, ta.rsi(close, htfRsiLe
 htfRsiPrev = htfRsi[1]
 htfRsiOkBuy = useHTFRSI ? htfRsiPrev < htfRsiNotOverbought : true
 htfRsiOkSell = useHTFRSI ? htfRsiPrev > htfRsiNotOversold : true
+[htfRsiForDiv, htfRsiForDivPrev] = request.security(syminfo.tickerid, htfTimeframe, [ta.rsi(close, rsiLength)[1], ta.rsi(close, rsiLength)[2]], lookahead=barmerge.lookahead_off)
 
 // === MTF Heatmap ===
 mtfEmaLen = 20
@@ -769,6 +781,8 @@ upperWick = high[1] - math.max(close[1], open[1])
 lowerWick = math.min(close[1], open[1]) - low[1]
 hammerBull = (lowerWick >= bodySize * pinBarWickRatio and upperWick < bodySize and close[1] > open[1])
 shootingStar = (upperWick >= bodySize * pinBarWickRatio and lowerWick < bodySize and close[1] < open[1])
+wickRejectionBuy = (low[1] < low[2]) and (close[1] > (high[1] + low[1]) / 2) and (close[2] > (high[2] + low[2]) / 2)
+wickRejectionSell = (high[1] > high[2]) and (close[1] < (high[1] + low[1]) / 2) and (close[2] < (high[2] + low[2]) / 2)
 
 // === 23. Morning Star / Evening Star ===
 bar3Bearish = close[3] < open[3] and math.abs(close[3] - open[3]) > atr[3] * 0.5
@@ -1069,107 +1083,210 @@ rsiCrossUpFresh = rsiOversoldCross[1] ? 2.0 : rsiOversoldCross[2] ? 1.2 : rsiOve
 rsiCrossDownFresh = rsiOverboughtCross[1] ? 2.0 : rsiOverboughtCross[2] ? 1.2 : rsiOverboughtCross[3] ? 0.5 : 0.0
 stochCrossUpFresh = stochCrossUp[1] ? 1.5 : stochCrossUp[2] ? 0.9 : stochCrossUp[3] ? 0.4 : 0.0
 stochCrossDownFresh = stochCrossDown[1] ? 1.5 : stochCrossDown[2] ? 0.9 : stochCrossDown[3] ? 0.4 : 0.0
+rsiVelocity = rsiValue - rsiValue[3]
+rsiAccelBuy = rsiPrev < 40 and rsiVelocity > 8
+rsiAccelSell = rsiPrev > 60 and rsiVelocity < -8
 
 // Lagging indicator count — when too many align, that's exhaustion not confirmation
 lagBuyCount = (trendUp ? 1 : 0) + (maStackUp ? 1 : 0) + (stBullish ? 1 : 0) + (sarBullish ? 1 : 0) + (ichBullish ? 1 : 0) + (aroonBullish ? 1 : 0) + (linRegBullish ? 1 : 0) + (donchianBullish ? 1 : 0) + (mcginleyBullish ? 1 : 0) + (alligatorBullish ? 1 : 0) + (vortexBullish ? 1 : 0) + (demaBullish ? 1 : 0) + (temaBullish ? 1 : 0) + (gmmaBullish ? 1 : 0) + (macdBullish ? 1 : 0) + (rsiBullish ? 1 : 0) + (rocBullish ? 1 : 0)
 lagSellCount = (trendDown ? 1 : 0) + (maStackDown ? 1 : 0) + (stBearish ? 1 : 0) + (sarBearish ? 1 : 0) + (ichBearish ? 1 : 0) + (aroonBearish ? 1 : 0) + (linRegBearish ? 1 : 0) + (donchianBearish ? 1 : 0) + (mcginleyBearish ? 1 : 0) + (alligatorBearish ? 1 : 0) + (vortexBearish ? 1 : 0) + (demaBearish ? 1 : 0) + (temaBearish ? 1 : 0) + (gmmaBearish ? 1 : 0) + (macdBearish ? 1 : 0) + (rsiBearish ? 1 : 0) + (rocBearish ? 1 : 0)
 
-// --- 1. EXHAUSTION category (weight 0.30) ---
-// For BUY: detect bearish exhaustion (oversold conditions)
-// For SELL: detect bullish exhaustion (overbought conditions)
-exhWtTotal = 5.0
-exhBuyRaw = (rsiPrev < 35 ? 2.0 : rsiPrev < 45 ? 1.0 : 0.0) + (stochKVal[1] < 25 ? 1.5 : 0.0) + (mfiValue[1] < 30 ? 1.0 : 0.0) + (wrValue[1] < -75 ? 1.0 : 0.0) + (bbPercent < 0.15 ? 1.5 : 0.0) + (zScore[1] < -1.5 ? 2.0 : 0.0) + (cciValue[1] < -100 ? 1.0 : 0.0) + (schaffVal[1] < 20 ? 0.8 : 0.0) + (uoValue[1] < 30 ? 0.8 : 0.0)
-exhSellRaw = (rsiPrev > 65 ? 2.0 : rsiPrev > 55 ? 1.0 : 0.0) + (stochKVal[1] > 75 ? 1.5 : 0.0) + (mfiValue[1] > 70 ? 1.0 : 0.0) + (wrValue[1] > -25 ? 1.0 : 0.0) + (bbPercent > 0.85 ? 1.5 : 0.0) + (zScore[1] > 1.5 ? 2.0 : 0.0) + (cciValue[1] > 100 ? 1.0 : 0.0) + (schaffVal[1] > 80 ? 0.8 : 0.0) + (uoValue[1] > 70 ? 0.8 : 0.0)
-exhBuyScore = math.min(exhBuyRaw / exhWtTotal, 1.0)
-exhSellScore = math.min(exhSellRaw / exhWtTotal, 1.0)
+// ==================================================================================
+// SCORING FUNCTIONS
+// ==================================================================================
 
-// --- 2. REVERSAL TRIGGERS category (weight 0.25) ---
-// Fresh momentum shifts — events that JUST happened (crossovers within 3 bars)
-revWtTotal = 5.0
-revBuyRaw = macdCrossUpFresh + rsiCrossUpFresh + stochCrossUpFresh + (macdHistTurningUp ? 1.5 : 0.0) + (fisherBullish ? 1.0 : 0.0) + (trixBullish ? 1.0 : 0.0) + (kstBullish ? 1.0 : 0.0) + (sineBullish ? 0.8 : 0.0) + (coppockBullish ? 0.8 : 0.0) + (rviBullish ? 0.7 : 0.0) + (elderImpulseBull ? 0.8 : 0.0) + (dpoBullish ? 0.6 : 0.0)
-revSellRaw = macdCrossDownFresh + rsiCrossDownFresh + stochCrossDownFresh + (macdHistTurningDown ? 1.5 : 0.0) + (fisherBearish ? 1.0 : 0.0) + (trixBearish ? 1.0 : 0.0) + (kstBearish ? 1.0 : 0.0) + (sineBearish ? 0.8 : 0.0) + (coppockBearish ? 0.8 : 0.0) + (rviBearish ? 0.7 : 0.0) + (elderImpulseBear ? 0.8 : 0.0) + (dpoBearish ? 0.6 : 0.0)
-revBuyScore = math.min(revBuyRaw / revWtTotal, 1.0)
-revSellScore = math.min(revSellRaw / revWtTotal, 1.0)
+f_exhaustionScore() =>
+    c = 5.0
+    bRaw = (rsiPrev < 35 ? 2.0 : rsiPrev < 45 ? 1.0 : 0.0)
+         + (stochKVal[1] < 25 ? 1.5 : 0.0)
+         + (mfiValue[1] < 30 ? 1.0 : 0.0)
+         + (wrValue[1] < -75 ? 1.0 : 0.0)
+         + (bbPercent < 0.15 ? 1.5 : 0.0)
+         + (zScore[1] < -1.5 ? 2.0 : 0.0)
+         + (cciValue[1] < -100 ? 1.0 : 0.0)
+         + (schaffVal[1] < 20 ? 0.8 : 0.0)
+         + (uoValue[1] < 30 ? 0.8 : 0.0)
+         + (volClimaxBuy ? 2.5 : 0.0)
+         + (extendedBearRun ? 1.5 : 0.0)
+    sRaw = (rsiPrev > 65 ? 2.0 : rsiPrev > 55 ? 1.0 : 0.0)
+         + (stochKVal[1] > 75 ? 1.5 : 0.0)
+         + (mfiValue[1] > 70 ? 1.0 : 0.0)
+         + (wrValue[1] > -25 ? 1.0 : 0.0)
+         + (bbPercent > 0.85 ? 1.5 : 0.0)
+         + (zScore[1] > 1.5 ? 2.0 : 0.0)
+         + (cciValue[1] > 100 ? 1.0 : 0.0)
+         + (schaffVal[1] > 80 ? 0.8 : 0.0)
+         + (uoValue[1] > 70 ? 0.8 : 0.0)
+         + (volClimaxSell ? 2.5 : 0.0)
+         + (extendedBullRun ? 1.5 : 0.0)
+    [math.min(bRaw / c, 1.0), math.min(sRaw / c, 1.0)]
 
-// --- 3. STRUCTURE category (weight 0.20) ---
-// Price at meaningful reversal levels + pattern confirmation
-structWtTotal = 5.5
-structBuyRaw = (nearSupport ? 2.0 : 0.0) + (wyckSpring ? 2.5 : 0.0) + (bullishDivergence ? 2.5 : 0.0) + (bosBull ? 1.5 : 0.0) + (chochBullish ? 2.0 : 0.0) + (sfpBull ? 1.5 : 0.0) + (bullFVG ? 1.0 : 0.0) + (bullEngulfing ? 1.5 : 0.0) + (hammerBull ? 1.5 : 0.0) + (morningStar ? 1.5 : 0.0) + (piercingLine ? 1.0 : 0.0) + (tweezerBottom ? 1.0 : 0.0) + (threeWhiteSoldiers ? 1.0 : 0.0) + (doji and rsiPrev < 40 ? 0.5 : 0.0)
-structSellRaw = (nearResistance ? 2.0 : 0.0) + (wyckUpthrust ? 2.5 : 0.0) + (bearishDivergence ? 2.5 : 0.0) + (bosBear ? 1.5 : 0.0) + (chochBearish ? 2.0 : 0.0) + (sfpBear ? 1.5 : 0.0) + (bearFVG ? 1.0 : 0.0) + (bearEngulfing ? 1.5 : 0.0) + (shootingStar ? 1.5 : 0.0) + (eveningStar ? 1.5 : 0.0) + (darkCloudCover ? 1.0 : 0.0) + (tweezerTop ? 1.0 : 0.0) + (threeBlackCrows ? 1.0 : 0.0) + (doji and rsiPrev > 60 ? 0.5 : 0.0)
-structBuyScore = math.min(structBuyRaw / structWtTotal, 1.0)
-structSellScore = math.min(structSellRaw / structWtTotal, 1.0)
+f_reversalScore() =>
+    c = 5.0
+    bRaw = macdCrossUpFresh + rsiCrossUpFresh + stochCrossUpFresh
+         + (macdHistTurningUp ? 1.5 : 0.0)
+         + (fisherBullish ? 1.0 : 0.0)
+         + (trixBullish ? 1.0 : 0.0)
+         + (kstBullish ? 1.0 : 0.0)
+         + (sineBullish ? 0.8 : 0.0)
+         + (coppockBullish ? 0.8 : 0.0)
+         + (rviBullish ? 0.7 : 0.0)
+         + (elderImpulseBull ? 0.8 : 0.0)
+         + (dpoBullish ? 0.6 : 0.0)
+         + (rsiAccelBuy ? 1.2 : 0.0)
+    sRaw = macdCrossDownFresh + rsiCrossDownFresh + stochCrossDownFresh
+         + (macdHistTurningDown ? 1.5 : 0.0)
+         + (fisherBearish ? 1.0 : 0.0)
+         + (trixBearish ? 1.0 : 0.0)
+         + (kstBearish ? 1.0 : 0.0)
+         + (sineBearish ? 0.8 : 0.0)
+         + (coppockBearish ? 0.8 : 0.0)
+         + (rviBearish ? 0.7 : 0.0)
+         + (elderImpulseBear ? 0.8 : 0.0)
+         + (dpoBearish ? 0.6 : 0.0)
+         + (rsiAccelSell ? 1.2 : 0.0)
+    [math.min(bRaw / c, 1.0), math.min(sRaw / c, 1.0)]
 
-// --- 4. VOLUME CONFIRMATION category (weight 0.15) ---
-// Smart money supporting the reversal
-volWtTotal = 4.0
-// Directional volume — only credit volume when it supports the signal direction
-volConfirmBuy = volumeConfirm and close[1] > open[1]
-volConfirmSell = volumeConfirm and close[1] < open[1]
-volRisingBuy = volumeRising and pressureRatio[1] > 0.55
-volRisingSell = volumeRising and pressureRatio[1] < 0.45
-volBuyRaw = (volConfirmBuy ? 1.2 : 0.0) + (volRisingBuy ? 1.0 : 0.0) + (obvBullish ? 1.0 : 0.0) + (cmfBullish ? 1.0 : 0.0) + (pressureBullish ? 1.2 : 0.0) + (klingerBullish ? 0.8 : 0.0) + (twiggsBullish ? 0.7 : 0.0) + (iiiBullish ? 0.5 : 0.0) + (eomBullish ? 0.5 : 0.0)
-volSellRaw = (volConfirmSell ? 1.2 : 0.0) + (volRisingSell ? 1.0 : 0.0) + (obvBearish ? 1.0 : 0.0) + (cmfBearish ? 1.0 : 0.0) + (pressureBearish ? 1.2 : 0.0) + (klingerBearish ? 0.8 : 0.0) + (twiggsBearish ? 0.7 : 0.0) + (iiiBearish ? 0.5 : 0.0) + (eomBearish ? 0.5 : 0.0)
-volBuyScore = math.min(volBuyRaw / volWtTotal, 1.0)
-volSellScore = math.min(volSellRaw / volWtTotal, 1.0)
+f_structureScore() =>
+    c = 5.5
+    bRaw = (nearSupport ? 2.0 : 0.0)
+         + (wyckSpring ? 2.5 : 0.0)
+         + (bullishDivergence ? 2.5 : 0.0)
+         + (bosBull ? 1.5 : 0.0)
+         + (chochBullish ? 2.0 : 0.0)
+         + (sfpBull ? 1.5 : 0.0)
+         + (bullFVG ? 1.0 : 0.0)
+         + (bullEngulfing ? 1.5 : 0.0)
+         + (hammerBull ? 1.5 : 0.0)
+         + (morningStar ? 1.5 : 0.0)
+         + (piercingLine ? 1.0 : 0.0)
+         + (tweezerBottom ? 1.0 : 0.0)
+         + (threeWhiteSoldiers ? 1.0 : 0.0)
+         + (doji and rsiPrev < 40 ? 0.5 : 0.0)
+         + (nearBullOB ? 1.5 : 0.0)
+         + (wickRejectionBuy ? 1.0 : 0.0)
+         + (liqSweepBuy ? 2.0 : 0.0)
+    sRaw = (nearResistance ? 2.0 : 0.0)
+         + (wyckUpthrust ? 2.5 : 0.0)
+         + (bearishDivergence ? 2.5 : 0.0)
+         + (bosBear ? 1.5 : 0.0)
+         + (chochBearish ? 2.0 : 0.0)
+         + (sfpBear ? 1.5 : 0.0)
+         + (bearFVG ? 1.0 : 0.0)
+         + (bearEngulfing ? 1.5 : 0.0)
+         + (shootingStar ? 1.5 : 0.0)
+         + (eveningStar ? 1.5 : 0.0)
+         + (darkCloudCover ? 1.0 : 0.0)
+         + (tweezerTop ? 1.0 : 0.0)
+         + (threeBlackCrows ? 1.0 : 0.0)
+         + (doji and rsiPrev > 60 ? 0.5 : 0.0)
+         + (nearBearOB ? 1.5 : 0.0)
+         + (wickRejectionSell ? 1.0 : 0.0)
+         + (liqSweepSell ? 2.0 : 0.0)
+    [math.min(bRaw / c, 1.0), math.min(sRaw / c, 1.0)]
 
-// --- 5. TREND ALIGNMENT category (weight 0.10) ---
-// Trade reversals WITH the higher timeframe direction
-trendAlignWtTotal = 5.0
-trendAlignBuyRaw = (mtfD ? 2.5 : 0.0) + (mtf240 ? 2.0 : 0.0) + (htfTrendUp ? 2.0 : 0.0) + (mtf60 ? 1.0 : 0.0) + (adxStrong ? 0.5 : 0.0)
-trendAlignSellRaw = (not mtfD ? 2.5 : 0.0) + (not mtf240 ? 2.0 : 0.0) + (not htfTrendUp ? 2.0 : 0.0) + (not mtf60 ? 1.0 : 0.0) + (adxStrong ? 0.5 : 0.0)
-trendAlignBuyScore = math.min(trendAlignBuyRaw / trendAlignWtTotal, 1.0)
-trendAlignSellScore = math.min(trendAlignSellRaw / trendAlignWtTotal, 1.0)
+f_volumeScore() =>
+    c = 4.0
+    confBuy = volumeConfirm and close[1] > open[1]
+    confSell = volumeConfirm and close[1] < open[1]
+    risBuy = volumeRising and pressureRatio[1] > 0.55
+    risSell = volumeRising and pressureRatio[1] < 0.45
+    bRaw = (confBuy ? 1.2 : 0.0)
+         + (risBuy ? 1.0 : 0.0)
+         + (obvBullish ? 1.0 : 0.0)
+         + (cmfBullish ? 1.0 : 0.0)
+         + (pressureBullish ? 1.2 : 0.0)
+         + (klingerBullish ? 0.8 : 0.0)
+         + (twiggsBullish ? 0.7 : 0.0)
+         + (iiiBullish ? 0.5 : 0.0)
+         + (eomBullish ? 0.5 : 0.0)
+    sRaw = (confSell ? 1.2 : 0.0)
+         + (risSell ? 1.0 : 0.0)
+         + (obvBearish ? 1.0 : 0.0)
+         + (cmfBearish ? 1.0 : 0.0)
+         + (pressureBearish ? 1.2 : 0.0)
+         + (klingerBearish ? 0.8 : 0.0)
+         + (twiggsBearish ? 0.7 : 0.0)
+         + (iiiBearish ? 0.5 : 0.0)
+         + (eomBearish ? 0.5 : 0.0)
+    [math.min(bRaw / c, 1.0), math.min(sRaw / c, 1.0)]
 
-// --- COMPOSITE SCORE ---
+f_trendAlignScore() =>
+    c = 5.0
+    bRaw = (mtfD ? 2.5 : 0.0) + (mtf240 ? 2.0 : 0.0) + (htfTrendUp ? 2.0 : 0.0) + (mtf60 ? 1.0 : 0.0) + (adxStrong ? 0.5 : 0.0)
+    sRaw = (not mtfD ? 2.5 : 0.0) + (not mtf240 ? 2.0 : 0.0) + (not htfTrendUp ? 2.0 : 0.0) + (not mtf60 ? 1.0 : 0.0) + (adxStrong ? 0.5 : 0.0)
+    [math.min(bRaw / c, 1.0), math.min(sRaw / c, 1.0)]
+
+f_metaMultipliers(exhB, exhS, revB, revS, strB, strS, volB, volS, trdB, trdS) =>
+    zBuyM = zScore[1] < -2.0 ? 1.15 : zScore[1] > 2.0 ? 0.50 : 1.0
+    zSellM = zScore[1] > 2.0 ? 1.15 : zScore[1] < -2.0 ? 0.50 : 1.0 
+    r2M = rSqValue > 0.7 ? 1.08 : rSqValue > 0.5 ? 1.0 : rSqValue > 0.3 ? 0.80 : rSqValue > 0.15 ? 0.60 : 0.45
+    vsM = hvRank[1] > 95 ? 0.40 : hvRank[1] > 90 ? 0.55 : hvRank[1] > 80 ? 0.80 : 1.0
+    adxFall = adxValue[1] < adxValue[4]
+    adxRise = adxValue[1] > adxValue[4] and adxStrong
+    adxM = adxFall ? 1.06 : adxRise ? 0.85 : 1.0    
+    exBoostB = lagSellCount >= 14 ? 1.15 : lagSellCount >= 11 ? 1.08 : 1.0
+    exPenB = lagBuyCount >= 14 ? 0.55 : lagBuyCount >= 11 ? 0.75 : 1.0
+    exBoostS = lagBuyCount >= 14 ? 1.15 : lagBuyCount >= 11 ? 1.08 : 1.0
+    exPenS = lagSellCount >= 14 ? 0.55 : lagSellCount >= 11 ? 0.75 : 1.0
+    bAgreeStrong = (exhB > 0.55 ? 1 : 0) + (revB > 0.45 ? 1 : 0) + (strB > 0.35 ? 1 : 0) + (volB > 0.50 ? 1 : 0) + (trdB > 0.55 ? 1 : 0)
+    bAgree = (exhB > 0.25 ? 1 : 0) + (revB > 0.15 ? 1 : 0) + (strB > 0.10 ? 1 : 0) + (volB > 0.20 ? 1 : 0) + (trdB > 0.25 ? 1 : 0)
+    sAgreeStrong = (exhS > 0.55 ? 1 : 0) + (revS > 0.45 ? 1 : 0) + (strS > 0.35 ? 1 : 0) + (volS > 0.50 ? 1 : 0) + (trdS > 0.55 ? 1 : 0)
+    sAgree = (exhS > 0.25 ? 1 : 0) + (revS > 0.15 ? 1 : 0) + (strS > 0.10 ? 1 : 0) + (volS > 0.20 ? 1 : 0) + (trdS > 0.25 ? 1 : 0)
+    agreeB = bAgreeStrong >= 3 ? 1.15 : (bAgreeStrong >= 2 and bAgree >= 4) ? 1.10 : bAgree >= 4 ? 1.06 : bAgree >= 3 ? 1.03 : 1.0
+    agreeS = sAgreeStrong >= 3 ? 1.15 : (sAgreeStrong >= 2 and sAgree >= 4) ? 1.10 : sAgree >= 4 ? 1.06 : sAgree >= 3 ? 1.03 : 1.0
+    hod = hour(time, todTimezone)
+    midSess = hod >= 10 and hod <= 14
+    sessM = inSession ? (useSessionFilter and midSess ? 1.05 : 1.0) : 0.90
+    [r2M, zBuyM, zSellM, vsM, adxM, exBoostB, exPenB, exBoostS, exPenS, agreeB, agreeS, sessM, bAgreeStrong, bAgree, sAgreeStrong, sAgree]
+
+// ==================================================================================
+// SCORE COMPUTATION
+// ==================================================================================
+
+// --- CATEGORY SCORES ---
+[exhBuyScore, exhSellScore] = f_exhaustionScore()
+[revBuyScore, revSellScore] = f_reversalScore()
+[structBuyScore, structSellScore] = f_structureScore()
+[volBuyScore, volSellScore] = f_volumeScore()
+[trendAlignBuyScore, trendAlignSellScore] = f_trendAlignScore()
+
+// --- COMPOSITE ---
 rawBuyScore = (exhBuyScore * 0.30 + revBuyScore * 0.25 + structBuyScore * 0.20 + volBuyScore * 0.15 + trendAlignBuyScore * 0.10) * 100.0
 rawSellScore = (exhSellScore * 0.30 + revSellScore * 0.25 + structSellScore * 0.20 + volSellScore * 0.15 + trendAlignSellScore * 0.10) * 100.0
 
-// --- META-MODIFIER MULTIPLIERS ---
-// Z-Score: BOOST signals when price is overextended in the right direction
-zScoreBuyMult = zScore[1] < -2.0 ? 1.15 : zScore[1] > 2.0 ? 0.50 : 1.0
-zScoreSellMult = zScore[1] > 2.0 ? 1.15 : zScore[1] < -2.0 ? 0.50 : 1.0
+// --- META-MODIFIERS ---
+[rSqMult, zScoreBuyMult, zScoreSellMult, volSpikeMult, adxReversalMult, exhaustionBoostBuy, exhaustionPenaltyBuy, exhaustionBoostSell, exhaustionPenaltySell, agreeMult, agreeMsell, sessionMult, buyCatAgreeStrong, buyCatAgree, sellCatAgreeStrong, sellCatAgree] = f_metaMultipliers(exhBuyScore, exhSellScore, revBuyScore, revSellScore, structBuyScore, structSellScore, volBuyScore, volSellScore, trendAlignBuyScore, trendAlignSellScore)
 
-// R² — much stronger gradient: choppy markets get heavy penalty
-rSqMult = rSqValue > 0.7 ? 1.08 : rSqValue > 0.5 ? 1.0 : rSqValue > 0.3 ? 0.80 : rSqValue > 0.15 ? 0.60 : 0.45
-
-// Volatility spike filter using existing hvRank — extreme volatility = unreliable signals
-volSpikeMult = hvRank[1] > 95 ? 0.40 : hvRank[1] > 90 ? 0.55 : hvRank[1] > 80 ? 0.80 : 1.0
-
-// Over-alignment penalty: too many lagging indicators aligned = exhaustion in THAT direction
-// For BUY: if too many lagging bearish signals → bears are exhausted → BOOST buy
-// For BUY: if too many lagging bullish signals → buying at top → PENALIZE buy
-exhaustionBoostBuy = lagSellCount >= 14 ? 1.15 : lagSellCount >= 11 ? 1.08 : 1.0
-exhaustionPenaltyBuy = lagBuyCount >= 14 ? 0.55 : lagBuyCount >= 11 ? 0.75 : 1.0
-exhaustionBoostSell = lagBuyCount >= 14 ? 1.15 : lagBuyCount >= 11 ? 1.08 : 1.0
-exhaustionPenaltySell = lagSellCount >= 14 ? 0.55 : lagSellCount >= 11 ? 0.75 : 1.0
-
-// Category agreement
-buyCatAgree = (exhBuyScore > 0.35 ? 1 : 0) + (revBuyScore > 0.25 ? 1 : 0) + (structBuyScore > 0.15 ? 1 : 0) + (volBuyScore > 0.3 ? 1 : 0) + (trendAlignBuyScore > 0.35 ? 1 : 0)
-sellCatAgree = (exhSellScore > 0.35 ? 1 : 0) + (revSellScore > 0.25 ? 1 : 0) + (structSellScore > 0.15 ? 1 : 0) + (volSellScore > 0.3 ? 1 : 0) + (trendAlignSellScore > 0.35 ? 1 : 0)
-agreeMult = buyCatAgree >= 4 ? 1.12 : buyCatAgree >= 3 ? 1.06 : 1.0
-agreeMsell = sellCatAgree >= 4 ? 1.12 : sellCatAgree >= 3 ? 1.06 : 1.0
-
-// Divergence mega-bonus (most reliable reversal signal)
+// --- BONUSES ---
 divBonusBuy = bullishDivergence ? 8.0 : 0.0
 divBonusSell = bearishDivergence ? 8.0 : 0.0
-
-// Wyckoff event bonus
 wyckBonusBuy = wyckSpring ? 8.0 : 0.0
 wyckBonusSell = wyckUpthrust ? 8.0 : 0.0
-
-// CHoCH confirmation bonus (change of character = confirmed reversal)
 chochBonusBuy = chochBullish ? 5.0 : 0.0
 chochBonusSell = chochBearish ? 5.0 : 0.0
 
-sessionMult = inSession ? 1.0 : 0.95
+// --- MTF DIVERGENCE ---
+mtfDivAlignedBuy = bullishDivergence and htfRsiForDiv > htfRsiForDivPrev
+mtfDivAlignedSell = bearishDivergence and htfRsiForDiv < htfRsiForDivPrev
+mtfDivMultBuy = mtfDivAlignedBuy ? 1.20 : 1.0
+mtfDivMultSell = mtfDivAlignedSell ? 1.20 : 1.0
 
-// Premium/Discount penalty — buying in premium or selling in discount is against reversal logic
+// --- PREMIUM/DISCOUNT ---
 pdPenaltyBuy = inPremium ? 0.82 : 1.0
 pdPenaltySell = inDiscount ? 0.82 : 1.0
 
-// Bonuses INSIDE the multiplier bracket — penalties apply to everything, no escape hatch
-finalBuyScore = math.min((rawBuyScore + divBonusBuy + wyckBonusBuy + chochBonusBuy) * rSqMult * zScoreBuyMult * exhaustionBoostBuy * exhaustionPenaltyBuy * agreeMult * sessionMult * volSpikeMult * pdPenaltyBuy, 100.0)
-finalSellScore = math.min((rawSellScore + divBonusSell + wyckBonusSell + chochBonusSell) * rSqMult * zScoreSellMult * exhaustionBoostSell * exhaustionPenaltySell * agreeMsell * sessionMult * volSpikeMult * pdPenaltySell, 100.0)
+// --- BODY QUALITY ---
+signalBodyPct = math.abs(close - open) / math.max(high - low, 1e-10)
+bodyMult = signalBodyPct > 0.6 ? 1.08 : signalBodyPct < 0.25 ? 0.85 : 1.0
+
+// ADX direction flags (for tooltip access)
+adxFalling = adxValue[1] < adxValue[4]
+adxRisingStrong = adxValue[1] > adxValue[4] and adxStrong
+
+// --- FINAL SCORE ---
+finalBuyScore = math.min((rawBuyScore + divBonusBuy + wyckBonusBuy + chochBonusBuy) * rSqMult * zScoreBuyMult * exhaustionBoostBuy * exhaustionPenaltyBuy * agreeMult * sessionMult * volSpikeMult * pdPenaltyBuy * mtfDivMultBuy * bodyMult * adxReversalMult, 100.0)
+finalSellScore = math.min((rawSellScore + divBonusSell + wyckBonusSell + chochBonusSell) * rSqMult * zScoreSellMult * exhaustionBoostSell * exhaustionPenaltySell * agreeMsell * sessionMult * volSpikeMult * pdPenaltySell * mtfDivMultSell * bodyMult * adxReversalMult, 100.0)
 
 // --- SIGNAL GENERATION ---
 var int barsSinceLastBuy = 999
@@ -1180,15 +1297,17 @@ barsSinceLastSell := barsSinceLastSell + 1
 buyConfidence = finalBuyScore >= 80 ? "High" : finalBuyScore >= 65 ? "Medium" : "Low"
 sellConfidence = finalSellScore >= 80 ? "High" : finalSellScore >= 65 ? "Medium" : "Low"
 
-// Opposing signal suppression — buy must dominate sell by ≥10 pts, and candle must confirm direction
+// Opposing signal suppression — ratio-based dominance + flat safety net
 buyDominance = finalBuyScore - finalSellScore
 sellDominance = finalSellScore - finalBuyScore
+dominanceRatioBuy = finalBuyScore / math.max(finalSellScore, 1.0)
+dominanceRatioSell = finalSellScore / math.max(finalBuyScore, 1.0)
 signalBarBullish = close > open
 signalBarBearish = close < open
 
 // Hard exhaustion gate — a reversal system MUST detect exhaustion first
-signalBuy = useBuySellSignal and barstate.isconfirmed and finalBuyScore >= buySellThreshold and barsSinceLastBuy >= buySellCooldown and buyDominance >= 10.0 and signalBarBullish and exhBuyScore > 0.15
-signalSell = useBuySellSignal and barstate.isconfirmed and finalSellScore >= buySellThreshold and barsSinceLastSell >= buySellCooldown and sellDominance >= 10.0 and signalBarBearish and exhSellScore > 0.15
+signalBuy = useBuySellSignal and barstate.isconfirmed and finalBuyScore >= buySellThreshold and barsSinceLastBuy >= buySellCooldown and dominanceRatioBuy >= 1.25 and buyDominance >= 5.0 and signalBarBullish and exhBuyScore > 0.15
+signalSell = useBuySellSignal and barstate.isconfirmed and finalSellScore >= buySellThreshold and barsSinceLastSell >= buySellCooldown and dominanceRatioSell >= 1.25 and sellDominance >= 5.0 and signalBarBearish and exhSellScore > 0.15
 
 if signalBuy
     barsSinceLastBuy := 0
@@ -1260,6 +1379,108 @@ if pivotS1 < close * 0.997 and (close - pivotS1) / sellRisk >= 1.5
         sellTPSource := "S1"
 sellTP = nearSellTarget
 sellActualRR = sellRisk > 0 ? (close - sellTP) / sellRisk : buySellRR
+
+// --- SIGNAL REASONS FUNCTION ---
+f_signalReasons(isBuy) =>
+    r = ""
+    _exhScore = isBuy ? exhBuyScore : exhSellScore
+    _revScore = isBuy ? revBuyScore : revSellScore
+    _strScore = isBuy ? structBuyScore : structSellScore
+    _volScore = isBuy ? volBuyScore : volSellScore
+    _trdScore = isBuy ? trendAlignBuyScore : trendAlignSellScore
+    if _exhScore > 0.4
+        r += (isBuy ? "Bearish" : "Bullish") + " exhaustion detected\n"
+    if _revScore > 0.3
+        r += "Reversal triggers firing\n"
+    if _strScore > 0.15
+        r += "Structure supports reversal\n"
+    if _volScore > 0.4
+        r += "Volume confirming\n"
+    if _trdScore > 0.5
+        r += "HTF trend aligned\n"
+    if isBuy ? bullishDivergence : bearishDivergence
+        r += (isBuy ? "Bullish" : "Bearish") + " divergence (+8)\n"
+    if isBuy ? wyckSpring : wyckUpthrust
+        r += (isBuy ? "Wyckoff Spring" : "Wyckoff Upthrust") + " (+8)\n"
+    if isBuy ? chochBullish : chochBearish
+        r += "CHoCH confirmed (+5)\n"
+    _lagCount = isBuy ? lagSellCount : lagBuyCount
+    if _lagCount >= 11
+        r += (isBuy ? "Bears" : "Bulls") + " overextended (" + str.tostring(_lagCount) + "/17 lag)\n"
+    if volSpikeMult < 1.0
+        r += "⚠ Vol spike penalty (" + str.tostring(volSpikeMult, "#.##") + "x)\n"
+    if isBuy ? inPremium : inDiscount
+        r += "⚠ " + (isBuy ? "Buying in Premium" : "Selling in Discount") + " zone (0.82x)\n"
+    if isBuy ? volClimaxBuy : volClimaxSell
+        r += "Volume climax (+2.5 exh)\n"
+    if isBuy ? extendedBearRun : extendedBullRun
+        r += (isBuy ? "Extended bear run" : "Extended bull run") + " (+1.5 exh)\n"
+    if isBuy ? rsiAccelBuy : rsiAccelSell
+        r += "RSI acceleration (+1.2 rev)\n"
+    if isBuy ? nearBullOB : nearBearOB
+        r += "OB retest (+1.5 struc)\n"
+    if isBuy ? wickRejectionBuy : wickRejectionSell
+        r += "Wick rejection (+1.0 struc)\n"
+    if isBuy ? liqSweepBuy : liqSweepSell
+        r += "Liquidity sweep (+2.0 struc)\n"
+    if isBuy ? mtfDivAlignedBuy : mtfDivAlignedSell
+        r += "MTF div aligned (×1.20)\n"
+    if adxFalling
+        r += "ADX falling (×1.06)\n"
+    if adxRisingStrong
+        r += "⚠ ADX rising strong (×0.85)\n"
+    _combinedM = rSqMult * volSpikeMult * (isBuy ? pdPenaltyBuy : pdPenaltySell) * (isBuy ? zScoreBuyMult : zScoreSellMult) * sessionMult * (isBuy ? mtfDivMultBuy : mtfDivMultSell) * bodyMult * adxReversalMult
+    r += "Combined mult: " + str.tostring(_combinedM, "#.##") + "x\n"
+    r
+
+// --- SIGNAL TOOLTIP FUNCTION ---
+f_signalTooltip(isBuy, reasons, slSource) =>
+    _score = isBuy ? finalBuyScore : finalSellScore
+    _conf = isBuy ? buyConfidence : sellConfidence
+    _dom = isBuy ? buyDominance : sellDominance
+    _domRatio = isBuy ? dominanceRatioBuy : dominanceRatioSell
+    _exh = isBuy ? exhBuyScore : exhSellScore
+    _rev = isBuy ? revBuyScore : revSellScore
+    _str = isBuy ? structBuyScore : structSellScore
+    _vol = isBuy ? volBuyScore : volSellScore
+    _trd = isBuy ? trendAlignBuyScore : trendAlignSellScore
+    _catStrong = isBuy ? buyCatAgreeStrong : sellCatAgreeStrong
+    _catAny = isBuy ? buyCatAgree : sellCatAgree
+    _sl = isBuy ? buySL : sellSL
+    _tp = isBuy ? buyTP : sellTP
+    _rr = isBuy ? buyActualRR : sellActualRR
+    _tpSrc = isBuy ? buyTPSource : sellTPSource
+    _isDivergent = isBuy ? bullishDivergence : bearishDivergence
+    _slPct = isBuy ? str.tostring((close - _sl) / close * 100, "#.#") : str.tostring((_sl - close) / close * 100, "#.#")
+    _tpPct = isBuy ? str.tostring((_tp - close) / close * 100, "#.#") : str.tostring((close - _tp) / close * 100, "#.#")
+    _slSign = isBuy ? "-" : "+"
+    _tpSign = isBuy ? "+" : "-"
+    _side = isBuy ? "Buy" : "Sell"
+    _pdLabel = isBuy ? (inPremium ? "Premium ⚠" : "Discount ✓") : (inDiscount ? "Discount ⚠" : "Premium ✓")
+    t = _side + " Signal\n"
+     + "Score: " + str.tostring(_score, "#.#") + "/100 (" + _conf + ")\n"
+     + "Dominance: +" + str.tostring(_dom, "#.#") + " (×" + str.tostring(_domRatio, "#.##") + ")\n"
+     + "━━━━━━━━━━━━━━━━━━━━\n"
+     + "Exhaustion:  " + str.tostring(_exh * 100, "#") + "% (wt 30%)\n"
+     + "Reversal:    " + str.tostring(_rev * 100, "#") + "% (wt 25%)\n"
+     + "Structure:   " + str.tostring(_str * 100, "#") + "% (wt 20%)\n"
+     + "Volume:      " + str.tostring(_vol * 100, "#") + "% (wt 15%)\n"
+     + "Trend Align: " + str.tostring(_trd * 100, "#") + "% (wt 10%)\n"
+     + "━━━━━━━━━━━━━━━━━━━━\n"
+     + "Cats agree: " + str.tostring(_catStrong) + " strong + " + str.tostring(_catAny) + "/5 any\n"
+     + "R²: " + str.tostring(rSqValue, "#.##") + " (×" + str.tostring(rSqMult, "#.##") + ")" + " | Z: " + str.tostring(zScore[1], "#.#") + "\n"
+     + "HV Rank: " + str.tostring(hvRank[1], "#") + "%" + (volSpikeMult < 1.0 ? " ⚠" : "") + "\n"
+     + "P/D Zone: " + _pdLabel + "\n"
+     + "Lagging bull/bear: " + str.tostring(lagBuyCount) + "/" + str.tostring(lagSellCount) + "\n"
+     + "Divergence: " + (_isDivergent ? "YES (+8)" : "No") + "\n"
+     + "━━━━━━━━━━━━━━━━━━━━\n"
+     + "KEY REASONS:\n" + reasons
+     + "━━━━━━━━━━━━━━━━━━━━\n"
+     + "Entry: " + str.tostring(close, "#.##") + "\n"
+     + "SL: " + str.tostring(_sl, "#.##") + " (" + _slSign + _slPct + "%) " + slSource + "\n"
+     + "TP: " + str.tostring(_tp, "#.##") + " (" + _tpSign + _tpPct + "%) at " + _tpSrc + "\n"
+     + "R:R = 1:" + str.tostring(_rr, "#.#")
+    t
 
 // ==================================================================================
 // VISUALIZATION
@@ -1461,35 +1682,9 @@ var line sellEntryLine = na
 var label sellEntryLabel = na
 
 if signalBuy
-    // Build key reasons
-    buyReasons = ""
-    if exhBuyScore > 0.4
-        buyReasons += "Bearish exhaustion detected\n"
-    if revBuyScore > 0.3
-        buyReasons += "Reversal triggers firing\n"
-    if structBuyScore > 0.15
-        buyReasons += "Structure supports reversal\n"
-    if volBuyScore > 0.4
-        buyReasons += "Volume confirming\n"
-    if trendAlignBuyScore > 0.5
-        buyReasons += "HTF trend aligned\n"
-    if bullishDivergence
-        buyReasons += "Bullish divergence (+8)\n"
-    if wyckSpring
-        buyReasons += "Wyckoff Spring (+8)\n"
-    if chochBullish
-        buyReasons += "CHoCH confirmed (+5)\n"
-    if lagSellCount >= 11
-        buyReasons += "Bears overextended (" + str.tostring(lagSellCount) + "/17 lag)\n"
-    if volSpikeMult < 1.0
-        buyReasons += "⚠ Vol spike penalty (" + str.tostring(volSpikeMult, "#.##") + "x)\n"
-    if inPremium
-        buyReasons += "⚠ Buying in Premium zone (0.82x)\n"
-    combinedMbuy = rSqMult * volSpikeMult * pdPenaltyBuy * zScoreBuyMult * sessionMult
-    buyReasons += "Combined mult: " + str.tostring(combinedMbuy, "#.##") + "x\n"
+    buyReasons = f_signalReasons(true)
     buySLSource = structSLBuyOk ? "[Swing]" : structSLBuyOk2 ? "[SwingMomentum]" : "[ATR]"
-
-    buyTooltip = "Buy Signal\n" + "Score: " + str.tostring(finalBuyScore, "#.#") + "/100 (" + buyConfidence + ")\n" + "Dominance: +" + str.tostring(buyDominance, "#.#") + " vs Sell\n" + "━━━━━━━━━━━━━━━━━━━━\n" + "Exhaustion:  " + str.tostring(exhBuyScore * 100, "#") + "% (wt 30%)\n" + "Reversal:    " + str.tostring(revBuyScore * 100, "#") + "% (wt 25%)\n" + "Structure:   " + str.tostring(structBuyScore * 100, "#") + "% (wt 20%)\n" + "Volume:      " + str.tostring(volBuyScore * 100, "#") + "% (wt 15%)\n" + "Trend Align: " + str.tostring(trendAlignBuyScore * 100, "#") + "% (wt 10%)\n" + "━━━━━━━━━━━━━━━━━━━━\n" + "Categories agree: " + str.tostring(buyCatAgree) + "/5\n" + "R²: " + str.tostring(rSqValue, "#.##") + " (×" + str.tostring(rSqMult, "#.##") + ")" + " | Z: " + str.tostring(zScore[1], "#.#") + "\n" + "HV Rank: " + str.tostring(hvRank[1], "#") + "%" + (volSpikeMult < 1.0 ? " ⚠" : "") + "\n" + "P/D Zone: " + (inPremium ? "Premium ⚠" : "Discount ✓") + "\n" + "Lagging bull/bear: " + str.tostring(lagBuyCount) + "/" + str.tostring(lagSellCount) + "\n" + "Divergence: " + (bullishDivergence ? "YES (+8)" : "No") + "\n" + "━━━━━━━━━━━━━━━━━━━━\n" + "KEY REASONS:\n" + buyReasons + "━━━━━━━━━━━━━━━━━━━━\n" + "Entry: " + str.tostring(close, "#.##") + "\n" + "SL: " + str.tostring(buySL, "#.##") + " (-" + str.tostring((close - buySL) / close * 100, "#.#") + "%) " + buySLSource + "\n" + "TP: " + str.tostring(buyTP, "#.##") + " (+" + str.tostring((buyTP - close) / close * 100, "#.#") + "%) at " + buyTPSource + "\n" + "R:R = 1:" + str.tostring(buyActualRR, "#.#")
+    buyTooltip = f_signalTooltip(true, buyReasons, buySLSource)
 
     // --- Handle previous buy signals ---
     if usePrevSignals
@@ -1633,34 +1828,9 @@ if signalBuy
     activeSL := buySL
 
 if signalSell
-    sellReasons = ""
-    if exhSellScore > 0.4
-        sellReasons += "Bullish exhaustion detected\n"
-    if revSellScore > 0.3
-        sellReasons += "Reversal triggers firing\n"
-    if structSellScore > 0.15
-        sellReasons += "Structure supports reversal\n"
-    if volSellScore > 0.4
-        sellReasons += "Volume confirming\n"
-    if trendAlignSellScore > 0.5
-        sellReasons += "HTF trend aligned\n"
-    if bearishDivergence
-        sellReasons += "Bearish divergence (+8)\n"
-    if wyckUpthrust
-        sellReasons += "Wyckoff Upthrust (+8)\n"
-    if chochBearish
-        sellReasons += "CHoCH confirmed (+5)\n"
-    if lagBuyCount >= 11
-        sellReasons += "Bulls overextended (" + str.tostring(lagBuyCount) + "/17 lag)\n"
-    if volSpikeMult < 1.0
-        sellReasons += "⚠ Vol spike penalty (" + str.tostring(volSpikeMult, "#.##") + "x)\n"
-    if inDiscount
-        sellReasons += "⚠ Selling in Discount zone (0.82x)\n"
-    combinedMsell = rSqMult * volSpikeMult * pdPenaltySell * zScoreSellMult * sessionMult
-    sellReasons += "Combined mult: " + str.tostring(combinedMsell, "#.##") + "x\n"
+    sellReasons = f_signalReasons(false)
     sellSLSource = structSLSellOk ? "[Swing]" : structSLSellOk2 ? "[SwingMomentum]" : "[ATR]"
-
-    sellTooltip = "Sell Signal\n" + "Score: " + str.tostring(finalSellScore, "#.#") + "/100 (" + sellConfidence + ")\n" + "Dominance: +" + str.tostring(sellDominance, "#.#") + " vs Buy\n" + "━━━━━━━━━━━━━━━━━━━━\n" + "Exhaustion:  " + str.tostring(exhSellScore * 100, "#") + "% (wt 30%)\n" + "Reversal:    " + str.tostring(revSellScore * 100, "#") + "% (wt 25%)\n" + "Structure:   " + str.tostring(structSellScore * 100, "#") + "% (wt 20%)\n" + "Volume:      " + str.tostring(volSellScore * 100, "#") + "% (wt 15%)\n" + "Trend Align: " + str.tostring(trendAlignSellScore * 100, "#") + "% (wt 10%)\n" + "━━━━━━━━━━━━━━━━━━━━\n" + "Categories agree: " + str.tostring(sellCatAgree) + "/5\n" + "R²: " + str.tostring(rSqValue, "#.##") + " (×" + str.tostring(rSqMult, "#.##") + ")" + " | Z: " + str.tostring(zScore[1], "#.#") + "\n" + "HV Rank: " + str.tostring(hvRank[1], "#") + "%" + (volSpikeMult < 1.0 ? " ⚠" : "") + "\n" + "P/D Zone: " + (inDiscount ? "Discount ⚠" : "Premium ✓") + "\n" + "Lagging bull/bear: " + str.tostring(lagBuyCount) + "/" + str.tostring(lagSellCount) + "\n" + "Divergence: " + (bearishDivergence ? "Yes (+8)" : "No") + "\n" + "━━━━━━━━━━━━━━━━━━━━\n" + "Key Reasons:\n" + sellReasons + "━━━━━━━━━━━━━━━━━━━━\n" + "Entry: " + str.tostring(close, "#.##") + "\n" + "SL: " + str.tostring(sellSL, "#.##") + " (+" + str.tostring((sellSL - close) / close * 100, "#.#") + "%) " + sellSLSource + "\n" + "TP: " + str.tostring(sellTP, "#.##") + " (-" + str.tostring((close - sellTP) / close * 100, "#.#") + "%) at " + sellTPSource + "\n" + "R:R = 1:" + str.tostring(sellActualRR, "#.#")
+    sellTooltip = f_signalTooltip(false, sellReasons, sellSLSource)
 
     // --- Handle previous sell signals ---
     if usePrevSignals
