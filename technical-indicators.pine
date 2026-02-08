@@ -285,6 +285,7 @@ useMcGinley = input.bool(true, "Enable McGinley Dynamic", group=gMcGinley)
 mcginleyLength = input.int(14, "McGinley Length", minval=1, group=gMcGinley)
 
 // === DEMA / TEMA ===
+var gDEMA = "DEMA / TEMA"
 useDEMA = input.bool(true, "Enable DEMA", group=gDEMA)
 demaLength = input.int(14, "DEMA Length", minval=1, group=gDEMA)
 useTEMA = input.bool(true, "Enable TEMA", group=gDEMA)
@@ -1373,10 +1374,10 @@ zScoreBuyMult = zScore[1] < -2.0 ? 1.15 : zScore[1] > 2.0 ? 0.50 : 1.0
 zScoreSellMult = zScore[1] > 2.0 ? 1.15 : zScore[1] < -2.0 ? 0.50 : 1.0
 
 // R² — much stronger gradient: choppy markets get heavy penalty
-rSqMult = rSqValue > 0.7 ? 1.08 : rSqValue > 0.5 ? 1.03 : rSqValue > 0.3 ? 0.90 : rSqValue > 0.15 ? 0.70 : 0.55
+rSqMult = rSqValue > 0.7 ? 1.08 : rSqValue > 0.5 ? 1.0 : rSqValue > 0.3 ? 0.80 : rSqValue > 0.15 ? 0.60 : 0.45
 
 // Volatility spike filter using existing hvRank — extreme volatility = unreliable signals
-volSpikeMult = hvRank[1] > 90 ? 0.65 : hvRank[1] > 80 ? 0.85 : 1.0
+volSpikeMult = hvRank[1] > 95 ? 0.40 : hvRank[1] > 90 ? 0.55 : hvRank[1] > 80 ? 0.80 : 1.0
 
 // Over-alignment penalty: too many lagging indicators aligned = exhaustion in THAT direction
 // For BUY: if too many lagging bearish signals → bears are exhausted → BOOST buy
@@ -1406,8 +1407,13 @@ chochBonusSell = chochBearish ? 5.0 : 0.0
 
 sessionMult = inSession ? 1.0 : 0.95
 
-finalBuyScore = math.min(rawBuyScore * rSqMult * zScoreBuyMult * exhaustionBoostBuy * exhaustionPenaltyBuy * agreeMult * sessionMult * volSpikeMult + divBonusBuy + wyckBonusBuy + chochBonusBuy, 100.0)
-finalSellScore = math.min(rawSellScore * rSqMult * zScoreSellMult * exhaustionBoostSell * exhaustionPenaltySell * agreeMultSell * sessionMult * volSpikeMult + divBonusSell + wyckBonusSell + chochBonusSell, 100.0)
+// Premium/Discount penalty — buying in premium or selling in discount is against reversal logic
+pdPenaltyBuy = inPremium ? 0.82 : 1.0
+pdPenaltySell = inDiscount ? 0.82 : 1.0
+
+// Bonuses INSIDE the multiplier bracket — penalties apply to everything, no escape hatch
+finalBuyScore = math.min((rawBuyScore + divBonusBuy + wyckBonusBuy + chochBonusBuy) * rSqMult * zScoreBuyMult * exhaustionBoostBuy * exhaustionPenaltyBuy * agreeMult * sessionMult * volSpikeMult * pdPenaltyBuy, 100.0)
+finalSellScore = math.min((rawSellScore + divBonusSell + wyckBonusSell + chochBonusSell) * rSqMult * zScoreSellMult * exhaustionBoostSell * exhaustionPenaltySell * agreeMultSell * sessionMult * volSpikeMult * pdPenaltySell, 100.0)
 
 // --- SIGNAL GENERATION ---
 var int barsSinceLastBuy = 999
@@ -1427,8 +1433,9 @@ sellDominance = finalSellScore - finalBuyScore
 signalBarBullish = close > open
 signalBarBearish = close < open
 
-signalBuy = showBuySellSignal and barstate.isconfirmed and finalBuyScore >= buySellThreshold and barsSinceLastBuy >= buySellCooldown and confFilterBuy and buyDominance >= 10.0 and signalBarBullish
-signalSell = showBuySellSignal and barstate.isconfirmed and finalSellScore >= buySellThreshold and barsSinceLastSell >= buySellCooldown and confFilterSell and sellDominance >= 10.0 and signalBarBearish
+// Hard exhaustion gate — a reversal system MUST detect exhaustion first
+signalBuy = showBuySellSignal and barstate.isconfirmed and finalBuyScore >= buySellThreshold and barsSinceLastBuy >= buySellCooldown and confFilterBuy and buyDominance >= 10.0 and signalBarBullish and exhBuyScore > 0.15
+signalSell = showBuySellSignal and barstate.isconfirmed and finalSellScore >= buySellThreshold and barsSinceLastSell >= buySellCooldown and confFilterSell and sellDominance >= 10.0 and signalBarBearish and exhSellScore > 0.15
 
 if signalBuy
     barsSinceLastBuy := 0
@@ -1438,21 +1445,32 @@ if signalSell
 // --- SL/TP CALCULATION (Structure-First with Recency Validation) ---
 atrSLDist = atrPrev * atrMultiplierSL
 
-// Only use swing point if recent (≤30 bars) and reasonable distance (0.8-3.5 ATR)
+// Primary swing: recent (≤30 bars), reasonable distance (0.5-4.5 ATR)
 swingAgeBuy = bar_index - ta.valuewhen(not na(swingLow), bar_index, 0)
 swingAgeSell = bar_index - ta.valuewhen(not na(swingHigh), bar_index, 0)
 
 structDistBuy = close - lastSwingLow
-structSLBuyOk = not na(lastSwingLow) and lastSwingLow > 0 and swingAgeBuy <= 30 and structDistBuy >= atrPrev * 0.8 and structDistBuy <= atrPrev * 3.5
+structSLBuyOk = not na(lastSwingLow) and lastSwingLow > 0 and swingAgeBuy <= 30 and structDistBuy >= atrPrev * 0.5 and structDistBuy <= atrPrev * 4.5
+
+// Secondary swing fallback: older occurrence (≤50 bars, same distance range)
+lastSwingLow2 = ta.valuewhen(not na(swingLow), swingLow, 1)
+swingAgeBuy2 = bar_index - ta.valuewhen(not na(swingLow), bar_index, 1)
+structDistBuy2 = close - lastSwingLow2
+structSLBuyOk2 = not na(lastSwingLow2) and lastSwingLow2 > 0 and swingAgeBuy2 <= 50 and structDistBuy2 >= atrPrev * 0.5 and structDistBuy2 <= atrPrev * 4.5
 
 structDistSell = lastSwingHigh - close
-structSLSellOk = not na(lastSwingHigh) and lastSwingHigh > 0 and swingAgeSell <= 30 and structDistSell >= atrPrev * 0.8 and structDistSell <= atrPrev * 3.5
+structSLSellOk = not na(lastSwingHigh) and lastSwingHigh > 0 and swingAgeSell <= 30 and structDistSell >= atrPrev * 0.5 and structDistSell <= atrPrev * 4.5
 
-// Use structure if valid, else ATR fallback
-buySL = structSLBuyOk ? (lastSwingLow - atrPrev * 0.15) : (close - atrSLDist)
-sellSL = structSLSellOk ? (lastSwingHigh + atrPrev * 0.15) : (close + atrSLDist)
+lastSwingHigh2 = ta.valuewhen(not na(swingHigh), swingHigh, 1)
+swingAgeSell2 = bar_index - ta.valuewhen(not na(swingHigh), bar_index, 1)
+structDistSell2 = lastSwingHigh2 - close
+structSLSellOk2 = not na(lastSwingHigh2) and lastSwingHigh2 > 0 and swingAgeSell2 <= 50 and structDistSell2 >= atrPrev * 0.5 and structDistSell2 <= atrPrev * 4.5
 
-// Floor: 1.0 ATR min (was 0.5 — too tight, noise eats it)
+// Three-tier fallback: primary swing → secondary swing → ATR
+buySL = structSLBuyOk ? (lastSwingLow - atrPrev * 0.15) : structSLBuyOk2 ? (lastSwingLow2 - atrPrev * 0.15) : (close - atrSLDist)
+sellSL = structSLSellOk ? (lastSwingHigh + atrPrev * 0.15) : structSLSellOk2 ? (lastSwingHigh2 + atrPrev * 0.15) : (close + atrSLDist)
+
+// Floor: 1.0 ATR min
 buySL := math.min(buySL, close - atrPrev * 1.0)
 sellSL := math.max(sellSL, close + atrPrev * 1.0)
 
@@ -1645,6 +1663,16 @@ elderBgColor = useElderImpulse ? (elderImpulseBull ? color.new(bullPrimary, 92) 
 bgcolor(showBackground and useElderImpulse ? elderBgColor : na, title="Elder Impulse")
 
 // --- Buy/Sell Signal: Labels, SL/TP lines, Tooltips ---
+// Timeframe-adaptive line length
+tfSeconds = timeframe.in_seconds(timeframe.period)
+lineLen = tfSeconds >= 86400 ? 8 : tfSeconds >= 14400 ? 10 : tfSeconds >= 3600 ? 12 : 15
+
+// Active signal tracking for dashboard
+var float activeRR = 0.0
+var string activeSLType = "-"
+var float activeTP = na
+var float activeSL = na
+
 var line ultBuySLLine = na
 var line ultBuyTPLine = na
 var label ultBuySLLabel = na
@@ -1683,8 +1711,13 @@ if signalBuy
         buyReasons += "Bears overextended (" + str.tostring(lagSellCount) + "/17 lag)\n"
     if volSpikeMult < 1.0
         buyReasons += "⚠ Vol spike penalty (" + str.tostring(volSpikeMult, "#.##") + "x)\n"
+    if inPremium
+        buyReasons += "⚠ Buying in Premium zone (0.82x)\n"
+    combinedMultBuy = rSqMult * volSpikeMult * pdPenaltyBuy * zScoreBuyMult * sessionMult
+    buyReasons += "Combined mult: " + str.tostring(combinedMultBuy, "#.##") + "x\n"
+    buySLSource = structSLBuyOk ? "[Swing]" : structSLBuyOk2 ? "[Swing2]" : "[ATR]"
 
-    buyTooltip = "BUY SIGNAL\n" + "Score: " + str.tostring(finalBuyScore, "#.#") + "/100 (" + buyConfidence + ")\n" + "Dominance: +" + str.tostring(buyDominance, "#.#") + " vs sell\n" + "━━━━━━━━━━━━━━━━━━━━\n" + "Exhaustion:  " + str.tostring(exhBuyScore * 100, "#") + "% (wt 30%)\n" + "Reversal:    " + str.tostring(revBuyScore * 100, "#") + "% (wt 25%)\n" + "Structure:   " + str.tostring(structBuyScore * 100, "#") + "% (wt 20%)\n" + "Volume:      " + str.tostring(volBuyScore * 100, "#") + "% (wt 15%)\n" + "Trend Align: " + str.tostring(trendAlignBuyScore * 100, "#") + "% (wt 10%)\n" + "━━━━━━━━━━━━━━━━━━━━\n" + "Categories agree: " + str.tostring(buyCatAgree) + "/5\n" + "R²: " + str.tostring(rSqValue, "#.##") + " (×" + str.tostring(rSqMult, "#.##") + ")" + " | Z: " + str.tostring(zScore[1], "#.#") + "\n" + "HV Rank: " + str.tostring(hvRank[1], "#") + "%" + (volSpikeMult < 1.0 ? " ⚠" : "") + "\n" + "Lagging bull/bear: " + str.tostring(lagBuyCount) + "/" + str.tostring(lagSellCount) + "\n" + "Divergence: " + (bullishDivergence ? "YES (+8)" : "No") + "\n" + "━━━━━━━━━━━━━━━━━━━━\n" + "KEY REASONS:\n" + buyReasons + "━━━━━━━━━━━━━━━━━━━━\n" + "Entry: " + str.tostring(close, "#.##") + "\n" + "SL: " + str.tostring(buySL, "#.##") + " (-" + str.tostring((close - buySL) / close * 100, "#.#") + "%) " + (structSLBuyOk ? "[Swing]" : "[ATR]") + "\n" + "TP: " + str.tostring(buyTP, "#.##") + " (+" + str.tostring((buyTP - close) / close * 100, "#.#") + "%) at " + buyTPSource + "\n" + "R:R = 1:" + str.tostring(buyActualRR, "#.#")
+    buyTooltip = "BUY SIGNAL\n" + "Score: " + str.tostring(finalBuyScore, "#.#") + "/100 (" + buyConfidence + ")\n" + "Dominance: +" + str.tostring(buyDominance, "#.#") + " vs sell\n" + "━━━━━━━━━━━━━━━━━━━━\n" + "Exhaustion:  " + str.tostring(exhBuyScore * 100, "#") + "% (wt 30%)\n" + "Reversal:    " + str.tostring(revBuyScore * 100, "#") + "% (wt 25%)\n" + "Structure:   " + str.tostring(structBuyScore * 100, "#") + "% (wt 20%)\n" + "Volume:      " + str.tostring(volBuyScore * 100, "#") + "% (wt 15%)\n" + "Trend Align: " + str.tostring(trendAlignBuyScore * 100, "#") + "% (wt 10%)\n" + "━━━━━━━━━━━━━━━━━━━━\n" + "Categories agree: " + str.tostring(buyCatAgree) + "/5\n" + "R²: " + str.tostring(rSqValue, "#.##") + " (×" + str.tostring(rSqMult, "#.##") + ")" + " | Z: " + str.tostring(zScore[1], "#.#") + "\n" + "HV Rank: " + str.tostring(hvRank[1], "#") + "%" + (volSpikeMult < 1.0 ? " ⚠" : "") + "\n" + "P/D Zone: " + (inPremium ? "Premium ⚠" : "Discount ✓") + "\n" + "Lagging bull/bear: " + str.tostring(lagBuyCount) + "/" + str.tostring(lagSellCount) + "\n" + "Divergence: " + (bullishDivergence ? "YES (+8)" : "No") + "\n" + "━━━━━━━━━━━━━━━━━━━━\n" + "KEY REASONS:\n" + buyReasons + "━━━━━━━━━━━━━━━━━━━━\n" + "Entry: " + str.tostring(close, "#.##") + "\n" + "SL: " + str.tostring(buySL, "#.##") + " (-" + str.tostring((close - buySL) / close * 100, "#.#") + "%) " + buySLSource + "\n" + "TP: " + str.tostring(buyTP, "#.##") + " (+" + str.tostring((buyTP - close) / close * 100, "#.#") + "%) at " + buyTPSource + "\n" + "R:R = 1:" + str.tostring(buyActualRR, "#.#")
 
     // --- Handle previous buy signals ---
     if showPrevSignals
@@ -1760,11 +1793,11 @@ if signalBuy
             ultSellSLLabel := na
             ultSellTPLabel := na
 
-    // --- New buy zone (ATR-adaptive) ---
-    zoneHalfH = atrPrev * 1.0
-    zoneMid = (open + close) / 2
-    buyZoneLow = zoneMid - zoneHalfH
-    buyZoneHigh = zoneMid + zoneHalfH * 0.5
+    // --- New buy zone (body-anchored, ATR-scaled) ---
+    zoneHalfH = atrPrev * 0.8
+    bodyLow = math.min(open, close)
+    buyZoneLow = bodyLow - zoneHalfH * 0.3
+    buyZoneHigh = bodyLow + zoneHalfH
     zoneForward = finalBuyScore >= 80 ? 5 : 3
     buyZoneBg = finalBuyScore >= 80 ? color.new(bullPrimary, 75) : color.new(bullSecondary, 80)
     buyZoneBorder = finalBuyScore >= 80 ? color.new(bullPrimary, 40) : color.new(bullSecondary, 50)
@@ -1773,15 +1806,21 @@ if signalBuy
     label.new(bar_index, buyZoneLow - atr * 0.3, "▲ " + str.tostring(finalBuyScore, "#"), style=label.style_label_up, color=buyZoneBorder, textcolor=color.white, size=size.small, tooltip=buyTooltip)
 
     // --- Blue entry line ---
-    ultBuyEntryLine := line.new(bar_index, close, bar_index + 20, close, color=color.new(color.blue, 20), style=line.style_solid, width=2)
-    ultBuyEntryLabel := label.new(bar_index + 20, close, "ENTRY " + str.tostring(close, "#.##"), style=label.style_label_left, color=color.new(color.blue, 40), textcolor=color.white, size=size.tiny)
+    ultBuyEntryLine := line.new(bar_index, close, bar_index + lineLen, close, color=color.new(color.blue, 20), style=line.style_solid, width=2)
+    ultBuyEntryLabel := label.new(bar_index + lineLen, close, "ENTRY " + str.tostring(close, "#.##"), style=label.style_label_left, color=color.new(color.blue, 40), textcolor=color.white, size=size.tiny)
 
     // --- SL/TP lines ---
     if showBuySellSLTP
-        ultBuySLLine := line.new(bar_index, buySL, bar_index + 20, buySL, color=color.new(bearPrimary, 30), style=line.style_dashed, width=1)
-        ultBuySLLabel := label.new(bar_index + 20, buySL, "SL " + str.tostring(buySL, "#.##"), style=label.style_label_left, color=color.new(bearPrimary, 50), textcolor=color.white, size=size.tiny)
-        ultBuyTPLine := line.new(bar_index, buyTP, bar_index + 20, buyTP, color=color.new(bullPrimary, 30), style=line.style_dashed, width=1)
-        ultBuyTPLabel := label.new(bar_index + 20, buyTP, "TP " + str.tostring(buyTP, "#.##") + " " + buyTPSource + " (1:" + str.tostring(buyActualRR, "#.#") + ")", style=label.style_label_left, color=color.new(bullPrimary, 50), textcolor=color.white, size=size.tiny)
+        ultBuySLLine := line.new(bar_index, buySL, bar_index + lineLen, buySL, color=color.new(bearPrimary, 30), style=line.style_dashed, width=1)
+        ultBuySLLabel := label.new(bar_index + lineLen, buySL, "SL " + str.tostring(buySL, "#.##"), style=label.style_label_left, color=color.new(bearPrimary, 50), textcolor=color.white, size=size.tiny)
+        ultBuyTPLine := line.new(bar_index, buyTP, bar_index + lineLen, buyTP, color=color.new(bullPrimary, 30), style=line.style_dashed, width=1)
+        ultBuyTPLabel := label.new(bar_index + lineLen, buyTP, "TP " + str.tostring(buyTP, "#.##") + " " + buyTPSource + " (1:" + str.tostring(buyActualRR, "#.#") + ")", style=label.style_label_left, color=color.new(bullPrimary, 50), textcolor=color.white, size=size.tiny)
+
+    // Track active signal for dashboard
+    activeRR := buyActualRR
+    activeSLType := structSLBuyOk ? "Swing" : structSLBuyOk2 ? "Swing2" : "ATR"
+    activeTP := buyTP
+    activeSL := buySL
 
 if signalSell
     sellReasons = ""
@@ -1805,8 +1844,13 @@ if signalSell
         sellReasons += "Bulls overextended (" + str.tostring(lagBuyCount) + "/17 lag)\n"
     if volSpikeMult < 1.0
         sellReasons += "⚠ Vol spike penalty (" + str.tostring(volSpikeMult, "#.##") + "x)\n"
+    if inDiscount
+        sellReasons += "⚠ Selling in Discount zone (0.82x)\n"
+    combinedMultSell = rSqMult * volSpikeMult * pdPenaltySell * zScoreSellMult * sessionMult
+    sellReasons += "Combined mult: " + str.tostring(combinedMultSell, "#.##") + "x\n"
+    sellSLSource = structSLSellOk ? "[Swing]" : structSLSellOk2 ? "[Swing2]" : "[ATR]"
 
-    sellTooltip = "SELL SIGNAL\n" + "Score: " + str.tostring(finalSellScore, "#.#") + "/100 (" + sellConfidence + ")\n" + "Dominance: +" + str.tostring(sellDominance, "#.#") + " vs buy\n" + "━━━━━━━━━━━━━━━━━━━━\n" + "Exhaustion:  " + str.tostring(exhSellScore * 100, "#") + "% (wt 30%)\n" + "Reversal:    " + str.tostring(revSellScore * 100, "#") + "% (wt 25%)\n" + "Structure:   " + str.tostring(structSellScore * 100, "#") + "% (wt 20%)\n" + "Volume:      " + str.tostring(volSellScore * 100, "#") + "% (wt 15%)\n" + "Trend Align: " + str.tostring(trendAlignSellScore * 100, "#") + "% (wt 10%)\n" + "━━━━━━━━━━━━━━━━━━━━\n" + "Categories agree: " + str.tostring(sellCatAgree) + "/5\n" + "R²: " + str.tostring(rSqValue, "#.##") + " (×" + str.tostring(rSqMult, "#.##") + ")" + " | Z: " + str.tostring(zScore[1], "#.#") + "\n" + "HV Rank: " + str.tostring(hvRank[1], "#") + "%" + (volSpikeMult < 1.0 ? " ⚠" : "") + "\n" + "Lagging bull/bear: " + str.tostring(lagBuyCount) + "/" + str.tostring(lagSellCount) + "\n" + "Divergence: " + (bearishDivergence ? "YES (+8)" : "No") + "\n" + "━━━━━━━━━━━━━━━━━━━━\n" + "KEY REASONS:\n" + sellReasons + "━━━━━━━━━━━━━━━━━━━━\n" + "Entry: " + str.tostring(close, "#.##") + "\n" + "SL: " + str.tostring(sellSL, "#.##") + " (+" + str.tostring((sellSL - close) / close * 100, "#.#") + "%) " + (structSLSellOk ? "[Swing]" : "[ATR]") + "\n" + "TP: " + str.tostring(sellTP, "#.##") + " (-" + str.tostring((close - sellTP) / close * 100, "#.#") + "%) at " + sellTPSource + "\n" + "R:R = 1:" + str.tostring(sellActualRR, "#.#")
+    sellTooltip = "SELL SIGNAL\n" + "Score: " + str.tostring(finalSellScore, "#.#") + "/100 (" + sellConfidence + ")\n" + "Dominance: +" + str.tostring(sellDominance, "#.#") + " vs buy\n" + "━━━━━━━━━━━━━━━━━━━━\n" + "Exhaustion:  " + str.tostring(exhSellScore * 100, "#") + "% (wt 30%)\n" + "Reversal:    " + str.tostring(revSellScore * 100, "#") + "% (wt 25%)\n" + "Structure:   " + str.tostring(structSellScore * 100, "#") + "% (wt 20%)\n" + "Volume:      " + str.tostring(volSellScore * 100, "#") + "% (wt 15%)\n" + "Trend Align: " + str.tostring(trendAlignSellScore * 100, "#") + "% (wt 10%)\n" + "━━━━━━━━━━━━━━━━━━━━\n" + "Categories agree: " + str.tostring(sellCatAgree) + "/5\n" + "R²: " + str.tostring(rSqValue, "#.##") + " (×" + str.tostring(rSqMult, "#.##") + ")" + " | Z: " + str.tostring(zScore[1], "#.#") + "\n" + "HV Rank: " + str.tostring(hvRank[1], "#") + "%" + (volSpikeMult < 1.0 ? " ⚠" : "") + "\n" + "P/D Zone: " + (inDiscount ? "Discount ⚠" : "Premium ✓") + "\n" + "Lagging bull/bear: " + str.tostring(lagBuyCount) + "/" + str.tostring(lagSellCount) + "\n" + "Divergence: " + (bearishDivergence ? "YES (+8)" : "No") + "\n" + "━━━━━━━━━━━━━━━━━━━━\n" + "KEY REASONS:\n" + sellReasons + "━━━━━━━━━━━━━━━━━━━━\n" + "Entry: " + str.tostring(close, "#.##") + "\n" + "SL: " + str.tostring(sellSL, "#.##") + " (+" + str.tostring((sellSL - close) / close * 100, "#.#") + "%) " + sellSLSource + "\n" + "TP: " + str.tostring(sellTP, "#.##") + " (-" + str.tostring((close - sellTP) / close * 100, "#.#") + "%) at " + sellTPSource + "\n" + "R:R = 1:" + str.tostring(sellActualRR, "#.#")
 
     // --- Handle previous sell signals ---
     if showPrevSignals
@@ -1882,11 +1926,11 @@ if signalSell
             ultBuySLLabel := na
             ultBuyTPLabel := na
 
-    // --- New sell zone (ATR-adaptive) ---
-    sellZoneHalfH = atrPrev * 1.0
-    sellZoneMid = (open + close) / 2
-    sellZoneHigh = sellZoneMid + sellZoneHalfH * 0.5
-    sellZoneLow = sellZoneMid - sellZoneHalfH
+    // --- New sell zone (body-anchored, ATR-scaled) ---
+    sellZoneHalfH = atrPrev * 0.8
+    bodyHigh = math.max(open, close)
+    sellZoneHigh = bodyHigh + sellZoneHalfH * 0.3
+    sellZoneLow = bodyHigh - sellZoneHalfH
     sellZoneForward = finalSellScore >= 80 ? 5 : 3
     sellZoneBg = finalSellScore >= 80 ? color.new(bearPrimary, 75) : color.new(bearSecondary, 80)
     sellZoneBorder = finalSellScore >= 80 ? color.new(bearPrimary, 40) : color.new(bearSecondary, 50)
@@ -1895,15 +1939,21 @@ if signalSell
     label.new(bar_index, sellZoneHigh + atr * 0.3, "▼ " + str.tostring(finalSellScore, "#"), style=label.style_label_down, color=sellZoneBorder, textcolor=color.white, size=size.small, tooltip=sellTooltip)
 
     // --- Blue entry line ---
-    ultSellEntryLine := line.new(bar_index, close, bar_index + 20, close, color=color.new(color.blue, 20), style=line.style_solid, width=2)
-    ultSellEntryLabel := label.new(bar_index + 20, close, "ENTRY " + str.tostring(close, "#.##"), style=label.style_label_left, color=color.new(color.blue, 40), textcolor=color.white, size=size.tiny)
+    ultSellEntryLine := line.new(bar_index, close, bar_index + lineLen, close, color=color.new(color.blue, 20), style=line.style_solid, width=2)
+    ultSellEntryLabel := label.new(bar_index + lineLen, close, "ENTRY " + str.tostring(close, "#.##"), style=label.style_label_left, color=color.new(color.blue, 40), textcolor=color.white, size=size.tiny)
 
     // --- SL/TP lines ---
     if showBuySellSLTP
-        ultSellSLLine := line.new(bar_index, sellSL, bar_index + 20, sellSL, color=color.new(bearPrimary, 30), style=line.style_dashed, width=1)
-        ultSellSLLabel := label.new(bar_index + 20, sellSL, "SL " + str.tostring(sellSL, "#.##"), style=label.style_label_left, color=color.new(bearPrimary, 50), textcolor=color.white, size=size.tiny)
-        ultSellTPLine := line.new(bar_index, sellTP, bar_index + 20, sellTP, color=color.new(bullPrimary, 30), style=line.style_dashed, width=1)
-        ultSellTPLabel := label.new(bar_index + 20, sellTP, "TP " + str.tostring(sellTP, "#.##") + " " + sellTPSource + " (1:" + str.tostring(sellActualRR, "#.#") + ")", style=label.style_label_left, color=color.new(bullPrimary, 50), textcolor=color.white, size=size.tiny)
+        ultSellSLLine := line.new(bar_index, sellSL, bar_index + lineLen, sellSL, color=color.new(bearPrimary, 30), style=line.style_dashed, width=1)
+        ultSellSLLabel := label.new(bar_index + lineLen, sellSL, "SL " + str.tostring(sellSL, "#.##"), style=label.style_label_left, color=color.new(bearPrimary, 50), textcolor=color.white, size=size.tiny)
+        ultSellTPLine := line.new(bar_index, sellTP, bar_index + lineLen, sellTP, color=color.new(bullPrimary, 30), style=line.style_dashed, width=1)
+        ultSellTPLabel := label.new(bar_index + lineLen, sellTP, "TP " + str.tostring(sellTP, "#.##") + " " + sellTPSource + " (1:" + str.tostring(sellActualRR, "#.#") + ")", style=label.style_label_left, color=color.new(bullPrimary, 50), textcolor=color.white, size=size.tiny)
+
+    // Track active signal for dashboard
+    activeRR := sellActualRR
+    activeSLType := structSLSellOk ? "Swing" : structSLSellOk2 ? "Swing2" : "ATR"
+    activeTP := sellTP
+    activeSL := sellSL
 
 // ==================================================================================
 // DASHBOARD functions
@@ -2221,13 +2271,13 @@ if showDashboard and barstate.islast
     table.cell(dash, 0, 45, "ATR", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
     table.cell(dash, 1, 45, str.tostring(atrPrev, "#.##"), bgcolor=color.new(neutralColor, 50), text_color=color.white, text_size=txtSm)
     table.cell(dash, 2, 45, "SL Dist", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 3, 45, str.tostring(atrPrev * atrMultiplierSL, "#.##") + " (" + str.tostring(atrMultiplierSL, "#.#") + "x)", bgcolor=color.new(bearSecondary, 50), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 3, 45, not na(activeSL) ? str.tostring(math.abs(close - activeSL), "#.##") + " (" + activeSLType + ")" : str.tostring(atrPrev * atrMultiplierSL, "#.##") + " (" + str.tostring(atrMultiplierSL, "#.#") + "x)", bgcolor=color.new(bearSecondary, 50), text_color=color.white, text_size=txtSm)
     table.cell(dash, 4, 45, "", bgcolor=rowBg)
 
     table.cell(dash, 0, 46, "TP Dist", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 1, 46, str.tostring(atrPrev * atrMultiplierTP, "#.##") + " (" + str.tostring(atrMultiplierTP, "#.#") + "x)", bgcolor=color.new(bullSecondary, 50), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 1, 46, not na(activeTP) ? str.tostring(math.abs(activeTP - close), "#.##") : str.tostring(atrPrev * atrMultiplierTP, "#.##") + " (" + str.tostring(atrMultiplierTP, "#.#") + "x)", bgcolor=color.new(bullSecondary, 50), text_color=color.white, text_size=txtSm)
     table.cell(dash, 2, 46, "R:R", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 3, 46, "1:" + str.tostring(atrMultiplierTP / atrMultiplierSL, "#.#"), bgcolor=color.new(neutralColor, 50), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 3, 46, activeRR > 0 ? "1:" + str.tostring(activeRR, "#.#") : "1:" + str.tostring(buySellRR, "#.#"), bgcolor=color.new(neutralColor, 50), text_color=color.white, text_size=txtSm)
     table.cell(dash, 4, 46, "", bgcolor=rowBg)
 
     // --- Table Section 8: MTF HEATMAP ---
@@ -2280,7 +2330,7 @@ if showDashboard and barstate.islast
     table.cell(dash, 0, 54, "Pivot P", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
     table.cell(dash, 1, 54, str.tostring(pivotP[1], "#.##"), bgcolor=color.new(neutralColor, 50), text_color=color.white, text_size=txtSm)
     table.cell(dash, 2, 54, "R1/S1", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 3, 54, nearPivotR1 ? "Near R1" : nearPivotS1 ? "Near S1" : "-", bgcolor=f_condColor3(nearPivotS1, nearPivotR1), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 3, 54, usePivots ? str.tostring(pivotR1, "#.#") + "/" + str.tostring(pivotS1, "#.#") : "-", bgcolor=nearPivotR1 ? color.new(bearSecondary, 50) : nearPivotS1 ? color.new(bullSecondary, 50) : color.new(neutralColor, 50), text_color=color.white, text_size=txtSm)
     table.cell(dash, 4, 54, "", bgcolor=rowBg)
     table.cell(dash, 0, 55, "Fib 0.5", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
     table.cell(dash, 1, 55, str.tostring(fib50[1], "#.##"), bgcolor=color.new(neutralColor, 50), text_color=color.white, text_size=txtSm)
