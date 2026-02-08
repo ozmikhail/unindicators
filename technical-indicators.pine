@@ -5,105 +5,218 @@ indicator("Technical Indicators", overlay=true, max_bars_back=500, max_lines_cou
 // INPUT PARAMETERS
 // ==================================================================================
 
+// === Display Indicators Settings ===
+var gDisplayIndicators = "Display Indicators"
+useDashboard = input.bool(true, "Show Dashboard", group=gDisplayIndicators)
+useHullMA = input.bool(false, "Show Hull MA", group=gDisplayIndicators)
+useVWAPLine = input.bool(false, "Show VWAP Line", group=gDisplayIndicators)
+useBackground = input.bool(false, "Show Trend Background", group=gDisplayIndicators)
+useMTFHeatmap = input.bool(true, "Show MTF Trend Heatmap", group=gDisplayIndicators)
+useBB = input.bool(true, "Show Bollinger Bands", group=gDisplayIndicators)
+usePatternMarkers = input.bool(false, "Show Candlestick Pattern Markers", group=gDisplayIndicators)
+useKeltner = input.bool(true, "Show Keltner Channels", group=gDisplayIndicators)
+useDonchian = input.bool(true, "Show Donchian Channel", group=gDisplayIndicators)
+useMcGinley = input.bool(true, "Show McGinley Dynamic", group=gDisplayIndicators)
+useAlligator = input.bool(true, "Show Alligator", group=gDisplayIndicators)
+usePivots = input.bool(true, "Show Pivot Points", group=gDisplayIndicators)
+useFibLevels = input.bool(false, "Show Fib Levels", group=gDisplayIndicators)
+useGMMA = input.bool(true, "Show GMMA", group=gDisplayIndicators)
+useSuperTrend = input.bool(true, "Show SuperTrend", group=gDisplayIndicators)
+useSAR = input.bool(true, "Show Parabolic SAR", group=gDisplayIndicators)
+useIchimoku = input.bool(true, "Show Ichimoku Cloud", group=gDisplayIndicators)
+useAroon = input.bool(true, "Enable Aroon", group=gDisplayIndicators)
+useLinReg = input.bool(true, "Enable Linear Regression", group=gDisplayIndicators)
+useTTMSqueeze = input.bool(true, "Enable TTM Squeeze", group=gDisplayIndicators)
+useHVRank = input.bool(true, "Enable HV Percentile Rank", group=gDisplayIndicators)
+useChandelier = input.bool(true, "Enable Chandelier Exit", group=gDisplayIndicators)
+useVWAP = input.bool(true, "Enable VWAP", group=gDisplayIndicators)
+useCMF = input.bool(true, "Enable CMF", group=gDisplayIndicators)
+useMFI = input.bool(true, "Enable MFI", group=gDisplayIndicators, tooltip="Money Flow Index (volume-weighted RSI). Distinct from Market Facilitation Index (Bill Williams).")
+useADLine = input.bool(true, "Enable A/D Line", group=gDisplayIndicators)
+usePVT = input.bool(true, "Enable PVT", group=gDisplayIndicators)
+useCCI = input.bool(true, "Enable CCI", group=gDisplayIndicators)
+useWilliamsR = input.bool(true, "Enable Williams %R", group=gDisplayIndicators)
+useCMO = input.bool(true, "Enable CMO", group=gDisplayIndicators)
+useFisher = input.bool(true, "Enable Fisher Transform", group=gDisplayIndicators)
+useEFI = input.bool(true, "Enable EFI", group=gDisplayIndicators)
+useOrderBlocks = input.bool(true, "Enable Order Blocks", group=gDisplayIndicators)
+useCorrelation = input.bool(false, "Enable Correlation Filter", group=gDisplayIndicators, tooltip="Requires benchmark symbol. Uses request.security().")
+useRelStrength = input.bool(false, "Enable Relative Strength", group=gDisplayIndicators)
+useEngulfing = input.bool(true, "Enable Engulfing Pattern", group=gDisplayIndicators)
+usePinBar = input.bool(true, "Enable Pin Bar / Hammer", group=gDisplayIndicators)
+useMorningStar = input.bool(true, "Enable Morning/Evening Star", group=gDisplayIndicators)
+useDoji = input.bool(true, "Enable Doji", group=gDisplayIndicators)
+useHarami = input.bool(true, "Enable Harami", group=gDisplayIndicators)
+useThreeSoldiers = input.bool(true, "Enable Three White Soldiers / Black Crows", group=gDisplayIndicators)
+useTweezer = input.bool(true, "Enable Tweezer Tops/Bottoms", group=gDisplayIndicators)
+usePiercingLine = input.bool(true, "Enable Piercing Line / Dark Cloud Cover", group=gDisplayIndicators)
+useZScore = input.bool(true, "Enable Z-Score Filter", group=gDisplayIndicators)
+useRSquared = input.bool(true, "Enable R-Squared", group=gDisplayIndicators)
+useATRAccel = input.bool(true, "Enable ATR Acceleration", group=gDisplayIndicators)
+useBuySellPressure = input.bool(true, "Enable Buy/Sell Pressure", group=gDisplayIndicators)
+useEhlersSine = input.bool(true, "Enable Ehlers Sine Wave", group=gDisplayIndicators)
+useWyckoff = input.bool(true, "Enable Wyckoff Detection", group=gDisplayIndicators)
+useVWMA = input.bool(true, "Enable VWMA Confirmation", group=gDisplayIndicators)
+useDisplacement = input.bool(true, "Enable Displacement Detection", group=gDisplayIndicators)
+useDEMA = input.bool(true, "Enable DEMA", group=gDisplayIndicators)
+useTEMA = input.bool(true, "Enable TEMA", group=gDisplayIndicators)
+useGator = input.bool(true, "Enable Gator Oscillator", group=gDisplayIndicators)
+useTRIX = input.bool(true, "Enable TRIX", group=gDisplayIndicators)
+useUO = input.bool(true, "Enable Oscillator", group=gDisplayIndicators)
+useKST = input.bool(true, "Enable KST", group=gDisplayIndicators)
+useDPO = input.bool(true, "Enable DPO", group=gDisplayIndicators)
+useRVI = input.bool(true, "Enable RVI", group=gDisplayIndicators)
+useSchaff = input.bool(true, "Enable Schaff Trend Cycle", group=gDisplayIndicators)
+usePGO = input.bool(true, "Enable PGO", group=gDisplayIndicators)
+useCoppock = input.bool(true, "Enable Coppock", group=gDisplayIndicators)
+useMassIndex = input.bool(true, "Enable Mass Index", group=gDisplayIndicators)
+useKlinger = input.bool(true, "Enable Klinger", group=gDisplayIndicators)
+useEOM = input.bool(true, "Enable EOM", group=gDisplayIndicators)
+useNVI = input.bool(true, "Enable NVI", group=gDisplayIndicators)
+usePVI = input.bool(true, "Enable PVI", group=gDisplayIndicators)
+useIII = input.bool(true, "Enable III", group=gDisplayIndicators)
+useMFI_BW = input.bool(true, "Enable MFI Bill Williams", group=gDisplayIndicators)
+useFib = input.bool(true, "Enable Auto Fib", group=gDisplayIndicators)
+useSR = input.bool(true, "Enable S/R Levels", group=gDisplayIndicators)
+useGap = input.bool(true, "Enable Gap Detection", group=gDisplayIndicators)
+useVortex = input.bool(true, "Enable Vortex", group=gDisplayIndicators)
+useElderImpulse = input.bool(true, "Enable Elder Impulse", group=gDisplayIndicators)
+useVWRSI = input.bool(true, "Enable VW-RSI", group=gDisplayIndicators)
+useTwiggs = input.bool(true, "Enable Twiggs MF", group=gDisplayIndicators)
+
+// === Buy/Sell Signal ===
+var gBuySell = "Buy/Sell Signal"
+useBuySellSignal = input.bool(true, "Enable Buy/Sell Signal", group=gBuySell, tooltip="Toggle for the Buy/Sell signal system. Uses all indicators with weighted category scoring.")
+buySellThreshold = input.float(55, "Signal Threshold (0-100)", minval=30, maxval=95, step=5, group=gBuySell, tooltip="Minimum composite score to generate a signal. Higher = fewer but more confident signals.")
+buySellCooldown = input.int(5, "Signal Cooldown (bars)", minval=1, maxval=50, group=gBuySell, tooltip="Minimum bars between signals to prevent spam.")
+useBuySellSLTP = input.bool(true, "Show SL/TP Levels", group=gBuySell)
+slTpDisplayMode = input.string("Lines", "SL/TP Display", options=["Lines", "Zones"], group=gBuySell, tooltip="Lines: Entry, SL and TP as lines only. Zones: Colored background ranges between the levels.")
+buySellRR = input.float(2.0, "Risk:Reward Ratio", minval=1.0, maxval=5.0, step=0.5, group=gBuySell, tooltip="Target R:R ratio for TP calculation. SL is ATR-based + structure.")
+buySellConfidenceFilter = input.string("All", "Min Confidence Level", options=["All", "Medium+", "High Only"], group=gBuySell, tooltip="All: use score >= threshold. Medium+: score >= 65. High Only: score >= 80.")
+usePrevSignals = input.bool(true, "Show Previous Signals", group=gBuySell, tooltip="Show grayed-out previous signal zones and levels. Disable for a cleaner chart.")
+useSignalZone = input.bool(true, "Show signal zone", group=gBuySell, tooltip="Show the BUY/SELL score box on the signal candle.")
+prevSignalTransparency = input.int(80, "Previous Signal Transparency (%)", minval=50, maxval=98, step=5, group=gBuySell, tooltip="How transparent previous signals appear. Higher = more faded.")
+
+// === Theme ===
+var gTheme = "Theme & Colors"
+bullPrimary   = input.color(color.rgb(0, 200, 83),   "Bull Primary",    group=gTheme)
+bearPrimary   = input.color(color.rgb(234, 57, 67),   "Bear Primary",    group=gTheme)
+bullSecondary = input.color(color.rgb(38, 166, 91),   "Bull Secondary",  group=gTheme)
+bearSecondary = input.color(color.rgb(178, 50, 58),   "Bear Secondary",  group=gTheme)
+neutralColor  = input.color(color.rgb(120, 123, 134), "Neutral",         group=gTheme)
+warningColor  = input.color(color.rgb(255, 177, 66),  "Warning/Caution", group=gTheme)
+structureClr  = input.color(color.rgb(156, 107, 255), "Structure/Fib",   group=gTheme)
+volumeClr     = input.color(color.rgb(66, 165, 245),  "Volume/BB",       group=gTheme)
+entryClr      = input.color(color.rgb(100, 181, 246), "Entry Line",      group=gTheme)
+bbClr       = volumeClr                         // Blue — Bollinger stays blue
+kcClr       = color.rgb(255, 167, 38)           // Amber — Keltner
+donchClr    = color.rgb(77, 208, 225)           // Cyan — Donchian
+emaFastClr  = color.rgb(255, 183, 77)           // Light amber — EMA 9
+emaMidClr   = color.rgb(255, 138, 50)           // Deeper amber — EMA 21
+emaSlowClr  = color.rgb(215, 100, 30)           // Dark amber — EMA 50
+alligJawClr   = color.rgb(66, 165, 245)         // Blue (matches volumeClr)
+alligTeethClr = color.rgb(234, 57, 67)          // Red (matches bearPrimary)
+alligLipsClr  = color.rgb(0, 200, 83)           // Green (matches bullPrimary)
+
 // === Trend Filter Settings ===
-var g1 = "Trend Filter"
-hullLength = input.int(20, "Hull MA Length", minval=1, group=g1)
-useHTF = input.bool(true, "Use Higher Timeframe Filter", group=g1)
-htfTimeframe = input.timeframe("D", "Higher Timeframe", group=g1)
-htfEmaLength = input.int(50, "HTF EMA Length", group=g1)
-adxLength = input.int(14, "ADX Length", group=g1)
-adxThreshold = input.float(25, "ADX Threshold", minval=0, group=g1)
+var gTrendFilter = "Trend Filter"
+hullLength = input.int(20, "Hull MA Length", minval=1, group=gTrendFilter)
+useHTF = input.bool(true, "Use Higher Timeframe Filter", group=gTrendFilter)
+htfTimeframe = input.timeframe("D", "Higher Timeframe", group=gTrendFilter)
+htfEmaLength = input.int(50, "HTF EMA Length", group=gTrendFilter)
+adxLength = input.int(14, "ADX Length", group=gTrendFilter)
+adxThreshold = input.float(25, "ADX Threshold", minval=0, group=gTrendFilter)
 
 // === Momentum Settings ===
-var g2 = "Momentum"
-rsiLength = input.int(14, "RSI Length", minval=1, group=g2)
-rsiOverbought = input.float(70, "RSI Overbought", minval=50, maxval=100, group=g2)
-rsiOversold = input.float(30, "RSI Oversold", minval=0, maxval=50, group=g2)
-macdFast = input.int(12, "MACD Fast", minval=1, group=g2)
-macdSlow = input.int(26, "MACD Slow", minval=1, group=g2)
-macdSignal = input.int(9, "MACD Signal", minval=1, group=g2)
-useRSIRegime = input.bool(false, "Use Trend-Adjusted RSI Levels", group=g2, tooltip="Bull regime: oversold 40, overbought 80. Bear regime: 20/60.")
-rsiBullOversold = input.float(40, "RSI Bull Oversold", minval=20, maxval=50, group=g2)
-rsiBullOverbought = input.float(80, "RSI Bull Overbought", minval=50, maxval=100, group=g2)
-rsiBearOversold = input.float(20, "RSI Bear Oversold", minval=0, maxval=40, group=g2)
-rsiBearOverbought = input.float(60, "RSI Bear Overbought", minval=40, maxval=80, group=g2)
+var gMomentum = "Momentum"
+rsiLength = input.int(14, "RSI Length", minval=1, group=gMomentum)
+rsiOverbought = input.float(70, "RSI Overbought", minval=50, maxval=100, group=gMomentum)
+rsiOversold = input.float(30, "RSI Oversold", minval=0, maxval=50, group=gMomentum)
+macdFast = input.int(12, "MACD Fast", minval=1, group=gMomentum)
+macdSlow = input.int(26, "MACD Slow", minval=1, group=gMomentum)
+macdSignal = input.int(9, "MACD Signal", minval=1, group=gMomentum)
+useRSIRegime = input.bool(false, "Use Trend-Adjusted RSI Levels", group=gMomentum, tooltip="Bull regime: oversold 40, overbought 80. Bear regime: 20/60.")
+rsiBullOversold = input.float(40, "RSI Bull Oversold", minval=20, maxval=50, group=gMomentum)
+rsiBullOverbought = input.float(80, "RSI Bull Overbought", minval=50, maxval=100, group=gMomentum)
+rsiBearOversold = input.float(20, "RSI Bear Oversold", minval=0, maxval=40, group=gMomentum)
+rsiBearOverbought = input.float(60, "RSI Bear Overbought", minval=40, maxval=80, group=gMomentum)
 
 // === Volatility Settings ===
-var g3 = "Volatility"
-atrLength = input.int(14, "ATR Length", minval=1, group=g3)
-atrMultiplierSL = input.float(2.0, "ATR Stop Loss Multiplier", minval=0.5, step=0.1, group=g3)
-atrMultiplierTP = input.float(3.0, "ATR Take Profit Multiplier", minval=0.5, step=0.1, group=g3)
-bbLength = input.int(20, "Bollinger Bands Length", minval=1, group=g3)
-bbMultiplier = input.float(2.0, "Bollinger Bands StdDev", minval=0.5, step=0.1, group=g3)
-squeezeLength = input.int(20, "BB Squeeze Length", minval=1, group=g3)
-useBBNotExtremes = input.bool(true, "BB: Not at Band Extremes", group=g3)
-useNoSqueeze = input.bool(false, "Avoid BB Squeeze", group=g3)
-useATRExpanding = input.bool(false, "Require ATR Expanding", group=g3)
+var gVolatility = "Volatility"
+atrLength = input.int(14, "ATR Length", minval=1, group=gVolatility)
+atrMultiplierSL = input.float(2.0, "ATR Stop Loss Multiplier", minval=0.5, step=0.1, group=gVolatility)
+atrMultiplierTP = input.float(3.0, "ATR Take Profit Multiplier", minval=0.5, step=0.1, group=gVolatility)
+bbLength = input.int(20, "Bollinger Bands Length", minval=1, group=gVolatility)
+bbMultiplier = input.float(2.0, "Bollinger Bands StdDev", minval=0.5, step=0.1, group=gVolatility)
+squeezeLength = input.int(20, "BB Squeeze Length", minval=1, group=gVolatility)
+useBBNotExtremes = input.bool(true, "BB: Not at Band Extremes", group=gVolatility)
+useNoSqueeze = input.bool(false, "Avoid BB Squeeze", group=gVolatility)
+useATRExpanding = input.bool(false, "Require ATR Expanding", group=gVolatility)
 
 // === Volume Settings ===
-var g4 = "Volume"
-volumeLength = input.int(20, "Volume MA Length", minval=1, group=g4)
-volumeMultiplier = input.float(1.0, "Volume Multiplier", minval=0.1, step=0.1, group=g4)
-useVolumeTrend = input.bool(true, "Volume Trend Up", group=g4)
-volumeTrendBars = input.int(3, "Volume Trend Bars", minval=2, group=g4)
-useOBV = input.bool(true, "Use OBV Alignment", group=g4)
-obvLength = input.int(5, "OBV MA Length", minval=1, group=g4)
+var gVolume = "Volume"
+volumeLength = input.int(20, "Volume MA Length", minval=1, group=gVolume)
+volumeMultiplier = input.float(1.0, "Volume Multiplier", minval=0.1, step=0.1, group=gVolume)
+useVolumeTrend = input.bool(true, "Volume Trend Up", group=gVolume)
+volumeTrendBars = input.int(3, "Volume Trend Bars", minval=2, group=gVolume)
+useOBV = input.bool(true, "Use OBV Alignment", group=gVolume)
+obvLength = input.int(5, "OBV MA Length", minval=1, group=gVolume)
 
 // === Signal Settings ===
-var g5 = "Signal Quality"
-minSignalScore = input.float(70, "Minimum Signal Score (0-100)", minval=0, maxval=100, group=g5)
-useDivergence = input.bool(true, "Enable Divergence Detection", group=g5)
-divergenceLookback = input.int(5, "Divergence Lookback", minval=2, group=g5)
+var gSignalQuality = "Signal Quality"
+minSignalScore = input.float(70, "Minimum Signal Score (0-100)", minval=0, maxval=100, group=gSignalQuality)
+useDivergence = input.bool(true, "Enable Divergence Detection", group=gSignalQuality)
+divergenceLookback = input.int(5, "Divergence Lookback", minval=2, group=gSignalQuality)
 
 // === Structure ===
-var g7 = "Structure"
-useStructure = input.bool(true, "Use Structure Filter", group=g7)
-swingLookback = input.int(5, "Swing Lookback", minval=2, group=g7)
-useBreakout = input.bool(true, "Require Breakout", group=g7)
-swingDisplacementATR = input.float(1.0, "Swing Displacement (ATR mult)", minval=0, step=0.1, group=g7)
-swingMinBars = input.int(5, "Min Bars Left/Right of Pivot", minval=2, group=g7)
-useBOSBody = input.bool(true, "BOS: Require Close Beyond Swing", group=g7)
-useCHoCHFilter = input.bool(true, "Disable Trend Entries on CHoCH", group=g7)
+var gStructure = "Structure"
+useStructure = input.bool(true, "Use Structure Filter", group=gStructure)
+swingLookback = input.int(5, "Swing Lookback", minval=2, group=gStructure)
+useBreakout = input.bool(true, "Require Breakout", group=gStructure)
+swingDisplacementATR = input.float(1.0, "Swing Displacement (ATR mult)", minval=0, step=0.1, group=gStructure)
+swingMinBars = input.int(5, "Min Bars Left/Right of Pivot", minval=2, group=gStructure)
+useBOSBody = input.bool(true, "BOS: Require Close Beyond Swing", group=gStructure)
+useCHoCHFilter = input.bool(true, "Disable Trend Entries on CHoCH", group=gStructure)
 
 // === MA Alignment ===
-var g8 = "MA Alignment"
-useMAStack = input.bool(true, "Use MA Stack Filter", group=g8)
-maFastLen = input.int(9, "Fast MA Length", minval=1, group=g8)
-maSlowLen = input.int(21, "Slow MA Length", minval=1, group=g8)
-maSlowerLen = input.int(50, "Slower MA Length", minval=1, group=g8)
+var gMAAlignment = "MA Alignment"
+useMAStack = input.bool(true, "Use MA Stack Filter", group=gMAAlignment)
+maFastLen = input.int(9, "Fast MA Length", minval=1, group=gMAAlignment)
+maSlowLen = input.int(21, "Slow MA Length", minval=1, group=gMAAlignment)
+maSlowerLen = input.int(50, "Slower MA Length", minval=1, group=gMAAlignment)
 
 // === Extra Momentum ===
-var g9 = "Extra Momentum"
-useStoch = input.bool(true, "Use Stochastic", group=g9)
-stochK = input.int(14, "Stochastic %K", minval=1, group=g9)
-stochD = input.int(3, "Stochastic %D", minval=1, group=g9)
-stochOverbought = input.int(80, "Stochastic Overbought", minval=50, group=g9)
-stochOversold = input.int(20, "Stochastic Oversold", maxval=50, group=g9)
-useROC = input.bool(true, "Use ROC", group=g9)
-rocLength = input.int(10, "ROC Length", minval=1, group=g9)
-useMacdHist = input.bool(true, "Use MACD Histogram", group=g9)
+var gExtraMomentum = "Extra Momentum"
+useStoch = input.bool(true, "Use Stochastic", group=gExtraMomentum)
+stochK = input.int(14, "Stochastic %K", minval=1, group=gExtraMomentum)
+stochD = input.int(3, "Stochastic %D", minval=1, group=gExtraMomentum)
+stochOverbought = input.int(80, "Stochastic Overbought", minval=50, group=gExtraMomentum)
+stochOversold = input.int(20, "Stochastic Oversold", maxval=50, group=gExtraMomentum)
+useROC = input.bool(true, "Use ROC", group=gExtraMomentum)
+rocLength = input.int(10, "ROC Length", minval=1, group=gExtraMomentum)
+useMacdHist = input.bool(true, "Use MACD Histogram", group=gExtraMomentum)
 
 // === Price Action ===
-var g10 = "Price Action"
-useCandleFilter = input.bool(true, "Candle Direction Filter", group=g10)
+var gPriceAction = "Price Action"
+useCandleFilter = input.bool(true, "Candle Direction Filter", group=gPriceAction)
 
 // === Session ===
-var g11 = "Session"
-useSessionFilter = input.bool(false, "Use Session Filter", group=g11)
-sessionInput = input.string("0800-1700", "Session (HHMM-HHMM)", group=g11)
+var gSession = "Session"
+useSessionFilter = input.bool(false, "Use Session Filter", group=gSession)
+sessionInput = input.string("0800-1700", "Session (HHMM-HHMM)", group=gSession)
 
 // === HTF Momentum ===
-var g12 = "HTF Momentum"
-useHTFRSI = input.bool(true, "Use HTF RSI Filter", group=g12)
-htfRsiLength = input.int(14, "HTF RSI Length", minval=1, group=g12)
-htfRsiNotOverbought = input.float(70, "HTF RSI Max (buy when below)", minval=50, group=g12)
-htfRsiNotOversold = input.float(30, "HTF RSI Min (sell when above)", maxval=50, group=g12)
+var gHTFMomentum = "HTF Momentum"
+useHTFRSI = input.bool(true, "Use HTF RSI Filter", group=gHTFMomentum)
+htfRsiLength = input.int(14, "HTF RSI Length", minval=1, group=gHTFMomentum)
+htfRsiNotOverbought = input.float(70, "HTF RSI Max (buy when below)", minval=50, group=gHTFMomentum)
+htfRsiNotOversold = input.float(30, "HTF RSI Min (sell when above)", maxval=50, group=gHTFMomentum)
 
 // === Risk Filter ===
-var g13 = "Risk Filter"
-useATRFilter = input.bool(false, "Use ATR Range Filter", group=g13)
-atrMinPct = input.float(0, "ATR Min (% of avg, 0=off)", minval=0, step=0.1, group=g13)
-atrMaxPct = input.float(0, "ATR Max (% of avg, 0=off)", minval=0, step=0.1, group=g13)
+var gRiskFilter = "Risk Filter"
+useATRFilter = input.bool(false, "Use ATR Range Filter", group=gRiskFilter)
+atrMinPct = input.float(0, "ATR Min (% of avg, 0=off)", minval=0, step=0.1, group=gRiskFilter)
+atrMaxPct = input.float(0, "ATR Max (% of avg, 0=off)", minval=0, step=0.1, group=gRiskFilter)
 
 // === Premium/Discount ===
 var gPD = "Premium / Discount"
@@ -115,212 +228,157 @@ var gFVG = "Fair Value Gaps"
 useFVG = input.bool(false, "Show Fair Value Gaps", group=gFVG)
 fvgMinBodyPct = input.float(0.5, "Min Candle Body % of Range", minval=0.1, step=0.1, group=gFVG)
 
-// ==================================================================================
-// NEW FACTOR INPUTS
-// ==================================================================================
-
 // === SuperTrend ===
 var gST = "SuperTrend"
-useSuperTrend = input.bool(true, "Enable SuperTrend", group=gST)
 stFactor = input.float(3.0, "SuperTrend Factor", minval=1.0, step=0.1, group=gST)
 stAtrLen = input.int(10, "SuperTrend ATR Length", minval=1, group=gST)
 
 // === Parabolic SAR ===
 var gSAR = "Parabolic SAR"
-useSAR = input.bool(true, "Enable Parabolic SAR", group=gSAR)
 sarStart = input.float(0.02, "SAR Start", minval=0.001, step=0.001, group=gSAR)
 sarIncrement = input.float(0.02, "SAR Increment", minval=0.001, step=0.001, group=gSAR)
 sarMax = input.float(0.2, "SAR Max", minval=0.01, step=0.01, group=gSAR)
 
 // === Ichimoku Cloud ===
 var gICH = "Ichimoku Cloud"
-useIchimoku = input.bool(true, "Enable Ichimoku Cloud", group=gICH)
 ichConversion = input.int(9, "Conversion Line Period", minval=1, group=gICH)
 ichBase = input.int(26, "Base Line Period", minval=1, group=gICH)
 ichSpan = input.int(52, "Leading Span B Period", minval=1, group=gICH)
 
 // === Aroon ===
 var gAroon = "Aroon"
-useAroon = input.bool(true, "Enable Aroon", group=gAroon)
 aroonLength = input.int(25, "Aroon Length", minval=1, group=gAroon)
 
 // === Linear Regression ===
 var gLR = "Linear Regression"
-useLinReg = input.bool(true, "Enable Linear Regression", group=gLR)
 linRegLength = input.int(20, "LinReg Length", minval=5, group=gLR)
 
 // === Keltner / TTM Squeeze ===
 var gKC = "Keltner / TTM Squeeze"
-useKeltner = input.bool(true, "Enable Keltner Channels", group=gKC)
 kcLength = input.int(20, "KC Length", minval=1, group=gKC)
 kcMult = input.float(1.5, "KC ATR Multiplier", minval=0.5, step=0.1, group=gKC)
-useTTMSqueeze = input.bool(true, "Enable TTM Squeeze", group=gKC)
 
 // === Historical Volatility ===
 var gHV = "Historical Volatility"
-useHVRank = input.bool(true, "Enable HV Percentile Rank", group=gHV)
 hvLength = input.int(20, "HV Calculation Length", minval=5, group=gHV)
 hvRankLength = input.int(252, "HV Rank Lookback", minval=50, group=gHV)
 
 // === Chandelier Exit ===
 var gCE = "Chandelier Exit"
-useChandelier = input.bool(true, "Enable Chandelier Exit", group=gCE)
 chandLength = input.int(22, "Chandelier Length", minval=1, group=gCE)
 chandMult = input.float(3.0, "Chandelier ATR Mult", minval=1.0, step=0.1, group=gCE)
 
-// === VWAP ===
-var gVWAP = "VWAP"
-useVWAP = input.bool(true, "Enable VWAP", group=gVWAP)
-
 // === Chaikin Money Flow ===
 var gCMF = "Chaikin Money Flow"
-useCMF = input.bool(true, "Enable CMF", group=gCMF)
 cmfLength = input.int(20, "CMF Length", minval=1, group=gCMF)
 
 // === Money Flow Index ===
 var gMFI = "Money Flow Index"
-useMFI = input.bool(true, "Enable MFI", group=gMFI)
 mfiLength = input.int(14, "MFI Length", minval=1, group=gMFI)
 
 // === A/D Line ===
 var gAD = "Accumulation/Distribution"
-useADLine = input.bool(true, "Enable A/D Line", group=gAD)
 adLineMALen = input.int(20, "A/D MA Length", minval=1, group=gAD)
 
 // === PVT ===
 var gPVT = "Price Volume Trend"
-usePVT = input.bool(true, "Enable PVT", group=gPVT)
 pvtMALen = input.int(20, "PVT MA Length", minval=1, group=gPVT)
 
 // === CCI ===
 var gCCI = "CCI"
-useCCI = input.bool(true, "Enable CCI", group=gCCI)
 cciLength = input.int(20, "CCI Length", minval=1, group=gCCI)
 
 // === Williams %R ===
 var gWR = "Williams %R"
-useWilliamsR = input.bool(true, "Enable Williams %R", group=gWR)
 wrLength = input.int(14, "Williams %R Length", minval=1, group=gWR)
 
 // === CMO ===
 var gCMO = "Chande Momentum"
-useCMO = input.bool(true, "Enable CMO", group=gCMO)
 cmoLength = input.int(14, "CMO Length", minval=1, group=gCMO)
 
 // === Fisher Transform ===
 var gFisher = "Fisher Transform"
-useFisher = input.bool(true, "Enable Fisher Transform", group=gFisher)
 fisherLength = input.int(10, "Fisher Length", minval=2, group=gFisher)
 
 // === Elder Force Index ===
 var gEFI = "Elder Force Index"
-useEFI = input.bool(true, "Enable EFI", group=gEFI)
 efiLength = input.int(13, "EFI EMA Length", minval=1, group=gEFI)
 
 // === Order Blocks ===
 var gOB = "Order Blocks"
-useOrderBlocks = input.bool(true, "Enable Order Blocks", group=gOB)
 obDisplacementMult = input.float(1.5, "OB Displacement ATR Mult", minval=0.5, step=0.1, group=gOB)
 
 // === Intermarket ===
 var gIM = "Intermarket"
-useCorrelation = input.bool(false, "Enable Correlation Filter", group=gIM, tooltip="Requires benchmark symbol. Uses request.security().")
-useRelStrength = input.bool(false, "Enable Relative Strength", group=gIM)
 benchmarkSymbol = input.symbol("SPY", "Benchmark Symbol", group=gIM)
 corrLength = input.int(20, "Correlation Length", minval=5, group=gIM)
 
 // === Candlestick Patterns ===
 var gPat = "Candlestick Patterns"
-useEngulfing = input.bool(true, "Enable Engulfing Pattern", group=gPat)
-usePinBar = input.bool(true, "Enable Pin Bar / Hammer", group=gPat)
 pinBarWickRatio = input.float(2.0, "Pin Bar Min Wick/Body Ratio", minval=1.5, step=0.1, group=gPat)
-useMorningStar = input.bool(true, "Enable Morning/Evening Star", group=gPat)
-useDoji = input.bool(true, "Enable Doji", group=gPat)
 dojiBodyPct = input.float(0.1, "Doji Max Body % of Range", minval=0.05, maxval=0.5, step=0.05, group=gPat)
-useHarami = input.bool(true, "Enable Harami", group=gPat)
-useThreeSoldiers = input.bool(true, "Enable Three White Soldiers / Black Crows", group=gPat)
-useTweezer = input.bool(true, "Enable Tweezer Tops/Bottoms", group=gPat)
 tweezerTolerance = input.float(0.1, "Tweezer High/Low Tolerance (ATR mult)", minval=0.02, step=0.05, group=gPat)
-usePiercingLine = input.bool(true, "Enable Piercing Line / Dark Cloud Cover", group=gPat)
 
 // === Statistical ===
 var gStats = "Statistical"
-useZScore = input.bool(true, "Enable Z-Score Filter", group=gStats)
 zScoreLength = input.int(20, "Z-Score Length", minval=5, group=gStats)
-useRSquared = input.bool(true, "Enable R-Squared", group=gStats)
 
 // === Sentiment Proxies ===
 var gSent = "Sentiment Proxies"
-useATRAccel = input.bool(true, "Enable ATR Acceleration", group=gSent)
-useBuySellPressure = input.bool(true, "Enable Buy/Sell Pressure", group=gSent)
 pressureLength = input.int(14, "Pressure Length", minval=5, group=gSent)
 
 // === Cycle Analysis ===
 var gCycle = "Cycle Analysis"
-useEhlersSine = input.bool(true, "Enable Ehlers Sine Wave", group=gCycle)
 
 // === Wyckoff ===
 var gWyck = "Wyckoff"
-useWyckoff = input.bool(true, "Enable Wyckoff Detection", group=gWyck)
 wyckoffLookback = input.int(50, "Wyckoff Range Lookback", minval=20, group=gWyck)
 
 // === VWMA ===
 var gVWMA = "VWMA"
-useVWMA = input.bool(true, "Enable VWMA Confirmation", group=gVWMA)
 vwmaLength = input.int(20, "VWMA Length", minval=1, group=gVWMA)
 
 // === Displacement Detection ===
 var gDisp = "Displacement"
-useDisplacement = input.bool(true, "Enable Displacement Detection", group=gDisp)
 dispBodyMult = input.float(1.5, "Displacement Body Mult", minval=1.0, step=0.1, group=gDisp)
 
 // === Donchian Channel ===
 var gDonch = "Donchian Channel"
-useDonchian = input.bool(true, "Enable Donchian Channel", group=gDonch)
 donchianLength = input.int(20, "Donchian Length", minval=1, group=gDonch)
 
 // === McGinley Dynamic ===
 var gMcGinley = "McGinley Dynamic"
-useMcGinley = input.bool(true, "Enable McGinley Dynamic", group=gMcGinley)
 mcginleyLength = input.int(14, "McGinley Length", minval=1, group=gMcGinley)
 
 // === DEMA / TEMA ===
 var gDEMA = "DEMA / TEMA"
-useDEMA = input.bool(true, "Enable DEMA", group=gDEMA)
 demaLength = input.int(14, "DEMA Length", minval=1, group=gDEMA)
-useTEMA = input.bool(true, "Enable TEMA", group=gDEMA)
 temaLength = input.int(14, "TEMA Length", minval=1, group=gDEMA)
 
 // === GMMA ===
 var gGMMA = "GMMA"
-useGMMA = input.bool(true, "Enable GMMA", group=gGMMA)
 gmmaShort = input.string("3,5,8,10,12,15", "Short EMA Periods", group=gGMMA)
 gmmaLong = input.string("30,35,40,45,50,60", "Long EMA Periods", group=gGMMA)
 
 // === Williams Alligator ===
 var gAlligator = "Williams Alligator"
-useAlligator = input.bool(true, "Enable Alligator", group=gAlligator)
 alligatorJaw = input.int(13, "Jaw Period", minval=1, group=gAlligator)
 alligatorTeeth = input.int(8, "Teeth Period", minval=1, group=gAlligator)
 alligatorLips = input.int(5, "Lips Period", minval=1, group=gAlligator)
-useGator = input.bool(true, "Enable Gator Oscillator", group=gAlligator)
 
 // === TRIX ===
 var gTRIX = "TRIX"
-useTRIX = input.bool(true, "Enable TRIX", group=gTRIX)
 trixLength = input.int(14, "TRIX Length", minval=1, group=gTRIX)
 trixSignalLen = input.int(9, "TRIX Signal Length", minval=1, group=gTRIX)
 
 // === Oscillator ===
 var gUO = "Oscillator"
-useUO = input.bool(true, "Enable Oscillator", group=gUO)
 uoPeriod1 = input.int(7, "UO Period 1", minval=1, group=gUO)
 uoPeriod2 = input.int(14, "UO Period 2", minval=1, group=gUO)
 uoPeriod3 = input.int(28, "UO Period 3", minval=1, group=gUO)
 
 // === Know Sure Thing ===
 var gKST = "Know Sure Thing"
-useKST = input.bool(true, "Enable KST", group=gKST)
 kstRoc1 = input.int(10, "KST ROC 1", minval=1, group=gKST)
 kstRoc2 = input.int(15, "KST ROC 2", minval=1, group=gKST)
 kstRoc3 = input.int(20, "KST ROC 3", minval=1, group=gKST)
@@ -329,174 +387,86 @@ kstSmaLen = input.int(10, "KST Signal SMA", minval=1, group=gKST)
 
 // === DPO ===
 var gDPO = "Detrended Price Oscillator"
-useDPO = input.bool(true, "Enable DPO", group=gDPO)
 dpoLength = input.int(20, "DPO Length", minval=5, group=gDPO)
 
 // === RVI ===
 var gRVI = "Relative Vigor Index"
-useRVI = input.bool(true, "Enable RVI", group=gRVI)
 rviLength = input.int(14, "RVI Length", minval=1, group=gRVI)
 
 // === Schaff Trend Cycle ===
 var gSchaff = "Schaff Trend Cycle"
-useSchaff = input.bool(true, "Enable Schaff Trend Cycle", group=gSchaff)
 schaffCycle = input.int(10, "Schaff Cycle", minval=1, group=gSchaff)
 schaffSmooth1 = input.int(23, "Schaff Smooth 1", minval=1, group=gSchaff)
 schaffSmooth2 = input.int(50, "Schaff Smooth 2", minval=1, group=gSchaff)
 
 // === Pretty Good Oscillator ===
 var gPGO = "Pretty Good Oscillator"
-usePGO = input.bool(true, "Enable PGO", group=gPGO)
 pgoLength = input.int(14, "PGO Length", minval=1, group=gPGO)
 
 // === Coppock Curve ===
 var gCoppock = "Coppock Curve"
-useCoppock = input.bool(true, "Enable Coppock", group=gCoppock)
 coppockRoc1 = input.int(11, "Coppock ROC 1", minval=1, group=gCoppock)
 coppockRoc2 = input.int(14, "Coppock ROC 2", minval=1, group=gCoppock)
 coppockSma = input.int(10, "Coppock SMA", minval=1, group=gCoppock)
 
 // === Mass Index ===
 var gMass = "Mass Index"
-useMassIndex = input.bool(true, "Enable Mass Index", group=gMass)
 massSingle = input.int(9, "Mass Single EMA", minval=1, group=gMass)
 massSum = input.int(25, "Mass Sum Period", minval=1, group=gMass)
 massThreshold = input.float(27, "Mass Bulge Threshold", minval=20, step=0.5, group=gMass)
 
-// === StdDev Bands ===
-var gStdDev = "StdDev Bands"
-useStdDevBands = input.bool(true, "Enable StdDev Bands", group=gStdDev)
-stdDevLength = input.int(20, "StdDev Length", minval=1, group=gStdDev)
-stdDevMult = input.float(2.0, "StdDev Multiplier", minval=0.5, step=0.1, group=gStdDev)
-
 // === Klinger Volume ===
 var gKlinger = "Klinger Volume"
-useKlinger = input.bool(true, "Enable Klinger", group=gKlinger)
 kvoFast = input.int(34, "KVO Fast", minval=1, group=gKlinger)
 kvoSlow = input.int(55, "KVO Slow", minval=1, group=gKlinger)
 kvoSignal = input.int(13, "KVO Signal", minval=1, group=gKlinger)
 
 // === Ease of Movement ===
 var gEOM = "Ease of Movement"
-useEOM = input.bool(true, "Enable EOM", group=gEOM)
 eomLength = input.int(14, "EOM Length", minval=1, group=gEOM)
 
 // === NVI / PVI ===
 var gNVI = "NVI / PVI"
-useNVI = input.bool(true, "Enable NVI", group=gNVI)
-usePVI = input.bool(true, "Enable PVI", group=gNVI)
 nviPviMALen = input.int(255, "NVI/PVI MA Length", minval=20, group=gNVI)
 
 // === Intraday Intensity ===
 var gIII = "Intraday Intensity"
-useIII = input.bool(true, "Enable III", group=gIII)
 iiiLength = input.int(14, "III Smooth Length", minval=1, group=gIII)
 
 // === Market Facilitation Index (Bill Williams) ===
-var gMFI_BW = "MFI (Bill Williams)"
-useMFI_BW = input.bool(true, "Enable MFI Bill Williams", group=gMFI_BW)
+var gMFI_BW = "Market Facilitation (Bill Williams)"
 
 // === Pivot Points ===
 var gPivot = "Pivot Points"
-usePivots = input.bool(true, "Enable Pivot Points", group=gPivot)
 pivotTimeframe = input.timeframe("D", "Pivot Timeframe", group=gPivot)
 
 // === Fibonacci ===
 var gFib = "Fibonacci Retracement"
-useFib = input.bool(true, "Enable Auto Fib", group=gFib)
 fibLookback = input.int(20, "Fib Swing Lookback", minval=5, group=gFib)
 
 // === Support/Resistance ===
 var gSR = "Support/Resistance"
-useSR = input.bool(true, "Enable S/R Levels", group=gSR)
 srPivotCount = input.int(3, "S/R Pivot Count", minval=2, group=gSR)
 
 // === Gap Detection ===
 var gGap = "Gap Detection"
-useGap = input.bool(true, "Enable Gap Detection", group=gGap)
 gapMinATR = input.float(0, "Gap Min ATR (0=any)", minval=0, step=0.1, group=gGap)
 
 // === Vortex ===
 var gVortex = "Vortex Indicator"
-useVortex = input.bool(true, "Enable Vortex", group=gVortex)
 vortexLength = input.int(14, "Vortex Length", minval=1, group=gVortex)
 
 // === Elder Impulse ===
 var gElder = "Elder Impulse"
-useElderImpulse = input.bool(true, "Enable Elder Impulse", group=gElder)
 elderEmaLen = input.int(13, "Elder EMA Length", minval=1, group=gElder)
 
 // === VW-RSI ===
 var gVWRSI = "Volume-Weighted RSI"
-useVWRSI = input.bool(true, "Enable VW-RSI", group=gVWRSI)
 vwRsiLength = input.int(14, "VW-RSI Length", minval=1, group=gVWRSI)
 
 // === Twiggs Money Flow ===
 var gTwiggs = "Twiggs Money Flow"
-useTwiggs = input.bool(true, "Enable Twiggs MF", group=gTwiggs)
 twiggsLength = input.int(21, "Twiggs Length", minval=1, group=gTwiggs)
-
-// === Display Indicators Settings ===
-var g6 = "Display Indicators"
-showDashboard = input.bool(true, "Show Dashboard", group=g6)
-showHullMA = input.bool(false, "Show Hull MA", group=g6)
-showSuperTrendLine = input.bool(false, "Show SuperTrend Line", group=g6)
-showVWAPLine = input.bool(false, "Show VWAP Line", group=g6)
-showBackground = input.bool(false, "Show Trend Background", group=g6)
-showMTFHeatmap = input.bool(true, "Show MTF Trend Heatmap", group=g6)
-showBB = input.bool(true, "Show Bollinger Bands", group=g6)
-showPatternMarkers = input.bool(false, "Show Candlestick Pattern Markers", group=g6)
-showIchimokuCloud = input.bool(true, "Show Ichimoku Cloud", group=g6)
-showSARDots = input.bool(false, "Show Parabolic SAR Dots", group=g6)
-showKeltner = input.bool(false, "Show Keltner Channels", group=g6)
-showDonchian = input.bool(false, "Show Donchian Channel", group=g6)
-showMcGinley = input.bool(false, "Show McGinley Dynamic", group=g6)
-showAlligator = input.bool(false, "Show Alligator", group=g6)
-showPivots = input.bool(false, "Show Pivot Lines", group=g6)
-showFibLevels = input.bool(false, "Show Fib Levels", group=g6)
-showStdDevBands = input.bool(true, "Show StdDev Bands", group=g6)
-showGMMA = input.bool(false, "Show GMMA", group=g6)
-
-// === Buy/Sell Signal ===
-var gBuySell = "Buy/Sell Signal"
-showBuySellSignal = input.bool(true, "Enable Buy/Sell Signal", group=gBuySell, tooltip="Toggle for the Buy/Sell signal system. Uses all indicators with weighted category scoring.")
-buySellThreshold = input.float(55, "Signal Threshold (0-100)", minval=30, maxval=95, step=5, group=gBuySell, tooltip="Minimum composite score to generate a signal. Higher = fewer but more confident signals.")
-buySellCooldown = input.int(5, "Signal Cooldown (bars)", minval=1, maxval=50, group=gBuySell, tooltip="Minimum bars between signals to prevent spam.")
-showBuySellSLTP = input.bool(true, "Show SL/TP Levels", group=gBuySell)
-buySellRR = input.float(2.0, "Risk:Reward Ratio", minval=1.0, maxval=5.0, step=0.5, group=gBuySell, tooltip="Target R:R ratio for TP calculation. SL is ATR-based + structure.")
-buySellConfidenceFilter = input.string("All", "Min Confidence Level", options=["All", "Medium+", "High Only"], group=gBuySell, tooltip="All: show score >= threshold. Medium+: score >= 65. High Only: score >= 80.")
-showPrevSignals = input.bool(true, "Show Previous Signals", group=gBuySell, tooltip="Show grayed-out previous signal zones and levels. Disable for a cleaner chart.")
-prevSignalTransparency = input.int(80, "Previous Signal Transparency (%)", minval=50, maxval=98, step=5, group=gBuySell, tooltip="How transparent previous signals appear. Higher = more faded.")
-
-// ==================================================================================
-// COLOR PALETTE
-// ==================================================================================
-var gTheme = "Theme & Colors"
-bullPrimary   = input.color(color.rgb(0, 200, 83),   "Bull Primary",    group=gTheme)
-bearPrimary   = input.color(color.rgb(234, 57, 67),   "Bear Primary",    group=gTheme)
-bullSecondary = input.color(color.rgb(38, 166, 91),   "Bull Secondary",  group=gTheme)
-bearSecondary = input.color(color.rgb(178, 50, 58),   "Bear Secondary",  group=gTheme)
-neutralColor  = input.color(color.rgb(120, 123, 134), "Neutral",         group=gTheme)
-warningColor  = input.color(color.rgb(255, 177, 66),  "Warning/Caution", group=gTheme)
-structureClr  = input.color(color.rgb(156, 107, 255), "Structure/Fib",   group=gTheme)
-volumeClr     = input.color(color.rgb(66, 165, 245),  "Volume/BB",       group=gTheme)
-entryClr      = input.color(color.rgb(100, 181, 246), "Entry Line",      group=gTheme)
-
-// Channel-specific colors (disambiguate overlapping channels)
-bbClr       = volumeClr                         // Blue — Bollinger stays blue
-kcClr       = color.rgb(255, 167, 38)           // Amber — Keltner
-donchClr    = color.rgb(77, 208, 225)           // Cyan — Donchian
-stdDevClr   = color.rgb(171, 130, 255)          // Lavender — StdDev
-
-// MA-specific (3 distinct amber shades for EMA stack)
-emaFastClr  = color.rgb(255, 183, 77)           // Light amber — EMA 9
-emaMidClr   = color.rgb(255, 138, 50)           // Deeper amber — EMA 21
-emaSlowClr  = color.rgb(215, 100, 30)           // Dark amber — EMA 50
-
-// Alligator (matching palette instead of raw blue/red/green)
-alligJawClr   = color.rgb(66, 165, 245)         // Blue (matches volumeClr)
-alligTeethClr = color.rgb(234, 57, 67)          // Red (matches bearPrimary)
-alligLipsClr  = color.rgb(0, 200, 83)           // Green (matches bullPrimary)
 
 // ==================================================================================
 // FUNCTIONS
@@ -620,10 +590,10 @@ f_trix(src, length, signalLen) =>
 f_oscillator(period1, period2, period3) =>
     bp = close - math.min(low, low[1])
     tr_uo = math.max(high, high[1]) - math.min(low, low[1])
-    avg1 = ta.rma(bp, period1) / math.max(ta.rma(tr_uo, period1), 1e-10)
-    avg2 = ta.rma(bp, period2) / math.max(ta.rma(tr_uo, period2), 1e-10)
-    avg3 = ta.rma(bp, period3) / math.max(ta.rma(tr_uo, period3), 1e-10)
-    uo = 100 * (4 * avg1 + 2 * avg2 + avg3) / 7
+    avgTrendFilter = ta.rma(bp, period1) / math.max(ta.rma(tr_uo, period1), 1e-10)
+    avgMomentum = ta.rma(bp, period2) / math.max(ta.rma(tr_uo, period2), 1e-10)
+    avgVolatility = ta.rma(bp, period3) / math.max(ta.rma(tr_uo, period3), 1e-10)
+    uo = 100 * (4 * avgTrendFilter + 2 * avgMomentum + avgVolatility) / 7
     uo
 
 f_dpo(src, length) =>
@@ -739,6 +709,8 @@ bbBasis = ta.sma(close, bbLength)
 bbDev = bbMultiplier * ta.stdev(close, bbLength)
 bbUpper = bbBasis + bbDev
 bbLower = bbBasis - bbDev
+bbBullish = useBB ? close[1] > bbBasis[1] : true
+bbBearish = useBB ? close[1] < bbBasis[1] : true
 bbWidth = bbUpper - bbLower
 bbWidthSma = ta.sma(bbWidth, squeezeLength)
 bbSqueeze = bbWidth < bbWidthSma * 0.7
@@ -1213,14 +1185,7 @@ coppockBearish = useCoppock ? coppockValue[1] < 0 : true
 massValue = useMassIndex ? f_massIndex(massSingle, massSum) : 0.0
 massBulge = useMassIndex ? (massValue[1] > massThreshold and massValue[1] < massValue[2]) : false
 
-// === 48. StdDev Bands ===
-stdDevBasis = useStdDevBands ? ta.sma(close, stdDevLength) : close
-stdDevUp = stdDevBasis + stdDevMult * ta.stdev(close, stdDevLength)
-stdDevDn = stdDevBasis - stdDevMult * ta.stdev(close, stdDevLength)
-stdDevBullish = useStdDevBands ? close[1] > stdDevBasis[1] : true
-stdDevBearish = useStdDevBands ? close[1] < stdDevBasis[1] : true
-
-// === 49. Klinger Volume ===
+// === 48. Klinger Volume ===
 [kvoValue, kvoSignalLine] = f_klinger(kvoFast, kvoSlow, kvoSignal)
 klingerBullish = useKlinger ? kvoValue[1] > kvoSignalLine[1] : true
 klingerBearish = useKlinger ? kvoValue[1] < kvoSignalLine[1] : true
@@ -1411,7 +1376,7 @@ exhaustionPenaltySell = lagSellCount >= 14 ? 0.55 : lagSellCount >= 11 ? 0.75 : 
 buyCatAgree = (exhBuyScore > 0.35 ? 1 : 0) + (revBuyScore > 0.25 ? 1 : 0) + (structBuyScore > 0.15 ? 1 : 0) + (volBuyScore > 0.3 ? 1 : 0) + (trendAlignBuyScore > 0.35 ? 1 : 0)
 sellCatAgree = (exhSellScore > 0.35 ? 1 : 0) + (revSellScore > 0.25 ? 1 : 0) + (structSellScore > 0.15 ? 1 : 0) + (volSellScore > 0.3 ? 1 : 0) + (trendAlignSellScore > 0.35 ? 1 : 0)
 agreeMult = buyCatAgree >= 4 ? 1.12 : buyCatAgree >= 3 ? 1.06 : 1.0
-agreeMultSell = sellCatAgree >= 4 ? 1.12 : sellCatAgree >= 3 ? 1.06 : 1.0
+agreeMsell = sellCatAgree >= 4 ? 1.12 : sellCatAgree >= 3 ? 1.06 : 1.0
 
 // Divergence mega-bonus (most reliable reversal signal)
 divBonusBuy = bullishDivergence ? 8.0 : 0.0
@@ -1433,7 +1398,7 @@ pdPenaltySell = inDiscount ? 0.82 : 1.0
 
 // Bonuses INSIDE the multiplier bracket — penalties apply to everything, no escape hatch
 finalBuyScore = math.min((rawBuyScore + divBonusBuy + wyckBonusBuy + chochBonusBuy) * rSqMult * zScoreBuyMult * exhaustionBoostBuy * exhaustionPenaltyBuy * agreeMult * sessionMult * volSpikeMult * pdPenaltyBuy, 100.0)
-finalSellScore = math.min((rawSellScore + divBonusSell + wyckBonusSell + chochBonusSell) * rSqMult * zScoreSellMult * exhaustionBoostSell * exhaustionPenaltySell * agreeMultSell * sessionMult * volSpikeMult * pdPenaltySell, 100.0)
+finalSellScore = math.min((rawSellScore + divBonusSell + wyckBonusSell + chochBonusSell) * rSqMult * zScoreSellMult * exhaustionBoostSell * exhaustionPenaltySell * agreeMsell * sessionMult * volSpikeMult * pdPenaltySell, 100.0)
 
 // --- SIGNAL GENERATION ---
 var int barsSinceLastBuy = 999
@@ -1454,8 +1419,8 @@ signalBarBullish = close > open
 signalBarBearish = close < open
 
 // Hard exhaustion gate — a reversal system MUST detect exhaustion first
-signalBuy = showBuySellSignal and barstate.isconfirmed and finalBuyScore >= buySellThreshold and barsSinceLastBuy >= buySellCooldown and confFilterBuy and buyDominance >= 10.0 and signalBarBullish and exhBuyScore > 0.15
-signalSell = showBuySellSignal and barstate.isconfirmed and finalSellScore >= buySellThreshold and barsSinceLastSell >= buySellCooldown and confFilterSell and sellDominance >= 10.0 and signalBarBearish and exhSellScore > 0.15
+signalBuy = useBuySellSignal and barstate.isconfirmed and finalBuyScore >= buySellThreshold and barsSinceLastBuy >= buySellCooldown and confFilterBuy and buyDominance >= 10.0 and signalBarBullish and exhBuyScore > 0.15
+signalSell = useBuySellSignal and barstate.isconfirmed and finalSellScore >= buySellThreshold and barsSinceLastSell >= buySellCooldown and confFilterSell and sellDominance >= 10.0 and signalBarBearish and exhSellScore > 0.15
 
 if signalBuy
     barsSinceLastBuy := 0
@@ -1541,7 +1506,7 @@ regimeShort = adxStrong ? (trendUp ? "Uptrend" : trendDown ? "Downtrend" : "Tren
 
 // --- Layer 1: Background (transparency 92-97) ---
 // Trend background
-bgColor = showBackground ? (trendUp and adxStrong ? color.new(bullPrimary, 95) : trendDown and adxStrong ? color.new(bearPrimary, 95) : na) : na
+bgColor = useBackground ? (trendUp and adxStrong ? color.new(bullPrimary, 95) : trendDown and adxStrong ? color.new(bearPrimary, 95) : na) : na
 bgcolor(bgColor, title="Trend Background")
 
 // TTM Squeeze active background
@@ -1549,12 +1514,12 @@ bgcolor(useTTMSqueeze and ttmSqueezeOn ? color.new(warningColor, 95) : na, title
 
 // --- Layer 2: Zones (transparency 80-90) ---
 // Ichimoku Cloud
-ichSpanAPlot = plot(showIchimokuCloud and useIchimoku ? ichSpanA : na, "Ichimoku Span A", color=color.new(bullSecondary, 82), offset=ichBase, display=display.all)
-ichSpanBPlot = plot(showIchimokuCloud and useIchimoku ? ichSpanB : na, "Ichimoku Span B", color=color.new(bearSecondary, 82), offset=ichBase, display=display.all)
+ichSpanAPlot = plot(useIchimoku ? ichSpanA : na, "Ichimoku Span A", color=color.new(bullSecondary, 82), offset=ichBase, display=display.all)
+ichSpanBPlot = plot(useIchimoku ? ichSpanB : na, "Ichimoku Span B", color=color.new(bearSecondary, 82), offset=ichBase, display=display.all)
 fill(ichSpanAPlot, ichSpanBPlot, color=ichGreenCloud ? color.new(bullPrimary, 90) : color.new(bearPrimary, 90), title="Ichimoku Cloud")
 
 // Bollinger Bands
-bbRelevant = showBB and (bbSqueeze or bbPercent < 0.1 or bbPercent > 0.9 or true)
+bbRelevant = useBB and (bbSqueeze or bbPercent < 0.1 or bbPercent > 0.9 or true)
 bbUpperPlot = plot(bbRelevant ? bbUpper : na, "BB Upper", color=color.new(bbClr, 82), linewidth=1)
 bbLowerPlot = plot(bbRelevant ? bbLower : na, "BB Lower", color=color.new(bbClr, 82), linewidth=1)
 plot(bbRelevant ? bbBasis : na, "BB Basis", color=color.new(bbClr, 65), linewidth=1)
@@ -1562,7 +1527,7 @@ bbFillIntensity = bbSqueeze ? color.new(warningColor, 88) : color.new(bbClr, 93)
 fill(bbUpperPlot, bbLowerPlot, color=bbFillIntensity, title="BB Fill")
 
 // Keltner Channels (only when relevant)
-kcVisible = showKeltner and useKeltner
+kcVisible = useKeltner
 plot(kcVisible ? kcUpper : na, "KC Upper", color=color.new(kcClr, 82), linewidth=1, style=plot.style_circles)
 plot(kcVisible ? kcLower : na, "KC Lower", color=color.new(kcClr, 82), linewidth=1, style=plot.style_circles)
 
@@ -1585,86 +1550,80 @@ plot(useMAStack ? emaSlow : na, "EMA 21", color=color.new(emaMidClr, 45), linewi
 plot(useMAStack ? emaSlower : na, "EMA 50", color=color.new(emaSlowClr, 55), linewidth=1)
 
 // VWAP
-plot(showVWAPLine and useVWAP ? vwapValue : na, "VWAP", color=color.new(volumeClr, 25), linewidth=1, style=plot.style_line)
+plot(useVWAPLine and useVWAP ? vwapValue : na, "VWAP", color=color.new(volumeClr, 25), linewidth=1, style=plot.style_line)
 
 // Hull MA with ADX-based gradient intensity
 hmaGradientBull = color.from_gradient(adxValue, 15, 35, color.new(bullPrimary, 60), color.new(bullPrimary, 0))
 hmaGradientBear = color.from_gradient(adxValue, 15, 35, color.new(bearPrimary, 60), color.new(bearPrimary, 0))
 hmaColor = hullTrend ? hmaGradientBull : hmaGradientBear
-plot(showHullMA ? hullMA : na, "Hull MA", color=hmaColor, linewidth=2)
+plot(useHullMA ? hullMA : na, "Hull MA", color=hmaColor, linewidth=2)
 
 // --- Layer 4: Signals & Levels ---
 // SuperTrend line
 stColor = stDir < 0 ? bullPrimary : bearPrimary
-plot(showSuperTrendLine and useSuperTrend ? stValue : na, "SuperTrend", color=color.new(stColor, 20), linewidth=2, style=plot.style_line)
+plot(useSuperTrend ? stValue : na, "SuperTrend", color=color.new(stColor, 20), linewidth=2, style=plot.style_line)
 
 // Parabolic SAR dots
-plotshape(showSARDots and useSAR ? sarValue : na, "SAR", shape.cross, location.absolute, color=color.new(neutralColor, 40), size=size.tiny)
+plotshape(useSAR ? sarValue : na, "SAR", shape.cross, location.absolute, color=color.new(neutralColor, 40), size=size.tiny)
 
 // Candlestick pattern markers (tiered offsets: primary 0.25, secondary 0.45, tertiary 0.65)
 // --- Primary tier: strongest patterns ---
-if showPatternMarkers and bullEngulfing
+if usePatternMarkers and bullEngulfing
     label.new(bar_index, low - atr * 0.25, "E", style=label.style_label_up, color=color.new(structureClr, 30), textcolor=color.white, size=size.tiny, tooltip="Bullish Engulfing")
-if showPatternMarkers and bearEngulfing
+if usePatternMarkers and bearEngulfing
     label.new(bar_index, high + atr * 0.25, "E", style=label.style_label_down, color=color.new(structureClr, 30), textcolor=color.white, size=size.tiny, tooltip="Bearish Engulfing")
-if showPatternMarkers and morningStar
+if usePatternMarkers and morningStar
     label.new(bar_index, low - atr * 0.25, "MoS", style=label.style_label_up, color=color.new(bullSecondary, 20), textcolor=color.white, size=size.tiny, tooltip="Morning Star")
-if showPatternMarkers and eveningStar
+if usePatternMarkers and eveningStar
     label.new(bar_index, high + atr * 0.25, "EvS", style=label.style_label_down, color=color.new(bearSecondary, 20), textcolor=color.white, size=size.tiny, tooltip="Evening Star")
-if showPatternMarkers and threeWhiteSoldiers
+if usePatternMarkers and threeWhiteSoldiers
     label.new(bar_index, low - atr * 0.25, "3WS", style=label.style_label_up, color=color.new(bullSecondary, 20), textcolor=color.white, size=size.tiny, tooltip="Three White Soldiers")
-if showPatternMarkers and threeBlackCrows
+if usePatternMarkers and threeBlackCrows
     label.new(bar_index, high + atr * 0.25, "3BC", style=label.style_label_down, color=color.new(bearSecondary, 20), textcolor=color.white, size=size.tiny, tooltip="Three Black Crows")
 // --- Secondary tier: reversal patterns ---
-if showPatternMarkers and hammerBull
+if usePatternMarkers and hammerBull
     label.new(bar_index, low - atr * 0.45, "H", style=label.style_label_up, color=color.new(bullSecondary, 30), textcolor=color.white, size=size.tiny, tooltip="Hammer")
-if showPatternMarkers and shootingStar
+if usePatternMarkers and shootingStar
     label.new(bar_index, high + atr * 0.45, "S", style=label.style_label_down, color=color.new(bearSecondary, 30), textcolor=color.white, size=size.tiny, tooltip="Shooting Star")
-if showPatternMarkers and bullHarami
+if usePatternMarkers and bullHarami
     label.new(bar_index, low - atr * 0.45, "Ha", style=label.style_label_up, color=color.new(bullSecondary, 30), textcolor=color.white, size=size.tiny, tooltip="Bullish Harami")
-if showPatternMarkers and bearHarami
+if usePatternMarkers and bearHarami
     label.new(bar_index, high + atr * 0.45, "Ha", style=label.style_label_down, color=color.new(bearSecondary, 30), textcolor=color.white, size=size.tiny, tooltip="Bearish Harami")
-if showPatternMarkers and tweezerBottom
+if usePatternMarkers and tweezerBottom
     label.new(bar_index, low - atr * 0.45, "TB", style=label.style_label_up, color=color.new(bullSecondary, 30), textcolor=color.white, size=size.tiny, tooltip="Tweezer Bottoms")
-if showPatternMarkers and tweezerTop
+if usePatternMarkers and tweezerTop
     label.new(bar_index, high + atr * 0.45, "TT", style=label.style_label_down, color=color.new(bearSecondary, 30), textcolor=color.white, size=size.tiny, tooltip="Tweezer Tops")
 // --- Tertiary tier: minor patterns ---
-if showPatternMarkers and doji
+if usePatternMarkers and doji
     label.new(bar_index, low - atr * 0.65, "Do", style=label.style_label_up, color=color.new(structureClr, 30), textcolor=color.white, size=size.tiny, tooltip="Doji")
-if showPatternMarkers and piercingLine
+if usePatternMarkers and piercingLine
     label.new(bar_index, low - atr * 0.65, "PL", style=label.style_label_up, color=color.new(bullSecondary, 30), textcolor=color.white, size=size.tiny, tooltip="Piercing Line")
-if showPatternMarkers and darkCloudCover
+if usePatternMarkers and darkCloudCover
     label.new(bar_index, high + atr * 0.65, "DCC", style=label.style_label_down, color=color.new(bearSecondary, 30), textcolor=color.white, size=size.tiny, tooltip="Dark Cloud Cover")
 
 // --- Layer 5: New indicator overlays ---
 // Donchian Channel
-plot(showDonchian and useDonchian ? donchianUpper : na, "Donchian Upper", color=color.new(donchClr, 72), linewidth=1)
-plot(showDonchian and useDonchian ? donchianLower : na, "Donchian Lower", color=color.new(donchClr, 72), linewidth=1)
-plot(showDonchian and useDonchian ? donchianMid : na, "Donchian Mid", color=color.new(donchClr, 80), linewidth=1)
+plot(useDonchian ? donchianUpper : na, "Donchian Upper", color=color.new(donchClr, 72), linewidth=1)
+plot(useDonchian ? donchianLower : na, "Donchian Lower", color=color.new(donchClr, 72), linewidth=1)
+plot(useDonchian ? donchianMid : na, "Donchian Mid", color=color.new(donchClr, 80), linewidth=1)
 
 // McGinley Dynamic
-plot(showMcGinley and useMcGinley ? mcginleyVal : na, "McGinley", color=color.new(structureClr, 50), linewidth=1)
+plot(useMcGinley ? mcginleyVal : na, "McGinley", color=color.new(structureClr, 50), linewidth=1)
 
 // DEMA / TEMA — using line.new to save plot slots
-if useDEMA and showMcGinley and not na(demaVal[1])
+if useDEMA and useMcGinley and not na(demaVal[1])
     line.new(bar_index - 1, demaVal[1], bar_index, demaVal, color=color.new(warningColor, 60), width=1)
-if useTEMA and showMcGinley and not na(temaVal[1])
+if useTEMA and useMcGinley and not na(temaVal[1])
     line.new(bar_index - 1, temaVal[1], bar_index, temaVal, color=color.new(warningColor, 70), width=1)
 
 // GMMA bands (short avg and long avg)
-plot(showGMMA and useGMMA ? gmmaShortAvg : na, "GMMA Short", color=color.new(bullSecondary, 70), linewidth=1)
-plot(showGMMA and useGMMA ? gmmaLongAvg : na, "GMMA Long", color=color.new(bearSecondary, 70), linewidth=1)
+plot(useGMMA ? gmmaShortAvg : na, "GMMA Short", color=color.new(bullSecondary, 70), linewidth=1)
+plot(useGMMA ? gmmaLongAvg : na, "GMMA Long", color=color.new(bearSecondary, 70), linewidth=1)
 
 // Williams Alligator
-plot(showAlligator and useAlligator ? alligatorJawPlot : na, "Alligator Jaw", color=color.new(alligJawClr, 45), linewidth=2)
-plot(showAlligator and useAlligator ? alligatorTeethPlot : na, "Alligator Teeth", color=color.new(alligTeethClr, 45), linewidth=2)
-plot(showAlligator and useAlligator ? alligatorLipsPlot : na, "Alligator Lips", color=color.new(alligLipsClr, 45), linewidth=2)
-
-// StdDev Bands — using line.new to save plot slots
-if showStdDevBands and useStdDevBands and not na(stdDevUp[1])
-    line.new(bar_index - 1, stdDevUp[1],    bar_index, stdDevUp,    color=color.new(stdDevClr, 72), width=1)
-    line.new(bar_index - 1, stdDevDn[1],    bar_index, stdDevDn,    color=color.new(stdDevClr, 72), width=1)
-    line.new(bar_index - 1, stdDevBasis[1], bar_index, stdDevBasis, color=color.new(stdDevClr, 65), width=1)
+plot(useAlligator ? alligatorJawPlot : na, "Alligator Jaw", color=color.new(alligJawClr, 45), linewidth=2)
+plot(useAlligator ? alligatorTeethPlot : na, "Alligator Teeth", color=color.new(alligTeethClr, 45), linewidth=2)
+plot(useAlligator ? alligatorLipsPlot : na, "Alligator Lips", color=color.new(alligLipsClr, 45), linewidth=2)
 
 // Pivot lines (horizontal) — using line.new to save plot slots
 var line pivotPLine  = na
@@ -1673,7 +1632,7 @@ var line pivotR2Line = na
 var line pivotS1Line = na
 var line pivotS2Line = na
 
-if barstate.islast and showPivots and usePivots
+if barstate.islast and usePivots
     line.delete(pivotPLine)
     line.delete(pivotR1Line)
     line.delete(pivotR2Line)
@@ -1690,7 +1649,7 @@ var line fib50Line  = na
 var line fib382Line = na
 var line fib618Line = na
 
-if barstate.islast and showFibLevels and useFib
+if barstate.islast and useFibLevels and useFib
     line.delete(fib50Line)
     line.delete(fib382Line)
     line.delete(fib618Line)
@@ -1706,7 +1665,7 @@ if gapValid and gapDown
 
 // Elder Impulse background
 elderBgColor = useElderImpulse ? (elderImpulseBull ? color.new(bullPrimary, 91) : elderImpulseBear ? color.new(bearPrimary, 91) : color.new(neutralColor, 96)) : na
-bgcolor(showBackground and useElderImpulse ? elderBgColor : na, title="Elder Impulse")
+bgcolor(useBackground and useElderImpulse ? elderBgColor : na, title="Elder Impulse")
 
 // --- Buy/Sell Signal: Labels, SL/TP lines, Tooltips ---
 // Timeframe-adaptive line length
@@ -1719,20 +1678,26 @@ var string activeSLType = "-"
 var float activeTP = na
 var float activeSL = na
 
-var line ultBuySLLine = na
-var line ultBuyTPLine = na
-var label ultBuySLLabel = na
-var label ultBuyTPLabel = na
-var line ultSellSLLine = na
-var line ultSellTPLine = na
-var label ultSellSLLabel = na
-var label ultSellTPLabel = na
-var box ultBuyZone = na
-var box ultSellZone = na
-var line ultBuyEntryLine = na
-var label ultBuyEntryLabel = na
-var line ultSellEntryLine = na
-var label ultSellEntryLabel = na
+var line buySLLine = na
+var line buyTPLine = na
+var label buySLLabel = na
+var label buyTPLabel = na
+var line sellSLLine = na
+var line sellTPLine = na
+var label sellSLLabel = na
+var label sellTPLabel = na
+var box buyZone = na
+var box sellZone = na
+var label buyZoneLabel = na
+var label sellZoneLabel = na
+var box buyRiskZone = na
+var box buyRewardZone = na
+var box sellRiskZone = na
+var box sellRewardZone = na
+var line buyEntryLine = na
+var label buyEntryLabel = na
+var line sellEntryLine = na
+var label sellEntryLabel = na
 
 if signalBuy
     // Build key reasons
@@ -1756,115 +1721,154 @@ if signalBuy
     if lagSellCount >= 11
         buyReasons += "Bears overextended (" + str.tostring(lagSellCount) + "/17 lag)\n"
     if volSpikeMult < 1.0
-        buyReasons += "⚠ Vol spike penalty (" + str.tostring(volSpikeMult, "#.##") + "x)\n"
+        buyReasons += "ATTENTION: Vol spike penalty (" + str.tostring(volSpikeMult, "#.##") + "x)\n"
     if inPremium
-        buyReasons += "⚠ Buying in Premium zone (0.82x)\n"
-    combinedMultBuy = rSqMult * volSpikeMult * pdPenaltyBuy * zScoreBuyMult * sessionMult
-    buyReasons += "Combined mult: " + str.tostring(combinedMultBuy, "#.##") + "x\n"
-    buySLSource = structSLBuyOk ? "[Swing]" : structSLBuyOk2 ? "[Swing2]" : "[ATR]"
+        buyReasons += "ATTENTION: Buying in Premium zone (0.82x)\n"
+    combinedMbuy = rSqMult * volSpikeMult * pdPenaltyBuy * zScoreBuyMult * sessionMult
+    buyReasons += "Combined mult: " + str.tostring(combinedMbuy, "#.##") + "x\n"
+    buySLSource = structSLBuyOk ? "[Swing]" : structSLBuyOk2 ? "[SwingMomentum]" : "[ATR]"
 
-    buyTooltip = "BUY SIGNAL\n" + "Score: " + str.tostring(finalBuyScore, "#.#") + "/100 (" + buyConfidence + ")\n" + "Dominance: +" + str.tostring(buyDominance, "#.#") + " vs sell\n" + "━━━━━━━━━━━━━━━━━━━━\n" + "Exhaustion:  " + str.tostring(exhBuyScore * 100, "#") + "% (wt 30%)\n" + "Reversal:    " + str.tostring(revBuyScore * 100, "#") + "% (wt 25%)\n" + "Structure:   " + str.tostring(structBuyScore * 100, "#") + "% (wt 20%)\n" + "Volume:      " + str.tostring(volBuyScore * 100, "#") + "% (wt 15%)\n" + "Trend Align: " + str.tostring(trendAlignBuyScore * 100, "#") + "% (wt 10%)\n" + "━━━━━━━━━━━━━━━━━━━━\n" + "Categories agree: " + str.tostring(buyCatAgree) + "/5\n" + "R²: " + str.tostring(rSqValue, "#.##") + " (×" + str.tostring(rSqMult, "#.##") + ")" + " | Z: " + str.tostring(zScore[1], "#.#") + "\n" + "HV Rank: " + str.tostring(hvRank[1], "#") + "%" + (volSpikeMult < 1.0 ? " ⚠" : "") + "\n" + "P/D Zone: " + (inPremium ? "Premium ⚠" : "Discount ✓") + "\n" + "Lagging bull/bear: " + str.tostring(lagBuyCount) + "/" + str.tostring(lagSellCount) + "\n" + "Divergence: " + (bullishDivergence ? "YES (+8)" : "No") + "\n" + "━━━━━━━━━━━━━━━━━━━━\n" + "KEY REASONS:\n" + buyReasons + "━━━━━━━━━━━━━━━━━━━━\n" + "Entry: " + str.tostring(close, "#.##") + "\n" + "SL: " + str.tostring(buySL, "#.##") + " (-" + str.tostring((close - buySL) / close * 100, "#.#") + "%) " + buySLSource + "\n" + "TP: " + str.tostring(buyTP, "#.##") + " (+" + str.tostring((buyTP - close) / close * 100, "#.#") + "%) at " + buyTPSource + "\n" + "R:R = 1:" + str.tostring(buyActualRR, "#.#")
+    buyTooltip = "Buy Signal\n" + "Score: " + str.tostring(finalBuyScore, "#.#") + "/100 (" + buyConfidence + ")\n" + "Dominance: +" + str.tostring(buyDominance, "#.#") + " vs sell\n" + "━━━━━━━━━━━━━━━━━━━━\n" + "Exhaustion:  " + str.tostring(exhBuyScore * 100, "#") + "% (wt 30%)\n" + "Reversal:    " + str.tostring(revBuyScore * 100, "#") + "% (wt 25%)\n" + "Structure:   " + str.tostring(structBuyScore * 100, "#") + "% (wt 20%)\n" + "Volume:      " + str.tostring(volBuyScore * 100, "#") + "% (wt 15%)\n" + "Trend Align: " + str.tostring(trendAlignBuyScore * 100, "#") + "% (wt 10%)\n" + "━━━━━━━━━━━━━━━━━━━━\n" + "Categories agree: " + str.tostring(buyCatAgree) + "/5\n" + "R²: " + str.tostring(rSqValue, "#.##") + " (×" + str.tostring(rSqMult, "#.##") + ")" + " | Z: " + str.tostring(zScore[1], "#.#") + "\n" + "HV Rank: " + str.tostring(hvRank[1], "#") + "%" + (volSpikeMult < 1.0 ? " ⚠" : "") + "\n" + "P/D Zone: " + (inPremium ? "Premium ⚠" : "Discount ✓") + "\n" + "Lagging bull/bear: " + str.tostring(lagBuyCount) + "/" + str.tostring(lagSellCount) + "\n" + "Divergence: " + (bullishDivergence ? "YES (+8)" : "No") + "\n" + "━━━━━━━━━━━━━━━━━━━━\n" + "KEY REASONS:\n" + buyReasons + "━━━━━━━━━━━━━━━━━━━━\n" + "Entry: " + str.tostring(close, "#.##") + "\n" + "SL: " + str.tostring(buySL, "#.##") + " (-" + str.tostring((close - buySL) / close * 100, "#.#") + "%) " + buySLSource + "\n" + "TP: " + str.tostring(buyTP, "#.##") + " (+" + str.tostring((buyTP - close) / close * 100, "#.#") + "%) at " + buyTPSource + "\n" + "R:R = 1:" + str.tostring(buyActualRR, "#.#")
 
     // --- Handle previous buy signals ---
-    if showPrevSignals
+    if usePrevSignals
         grayLine = color.new(color.rgb(90, 90, 105), prevSignalTransparency)
         grayLabel = color.new(color.rgb(90, 90, 105), math.min(prevSignalTransparency + 10, 99))
         grayTxt = color.new(color.rgb(130, 130, 145), math.max(prevSignalTransparency - 20, 30))
         grayBox = color.new(color.rgb(90, 90, 105), math.min(prevSignalTransparency + 8, 99))
         grayBoxBorder = color.new(color.rgb(90, 90, 105), prevSignalTransparency)
-        if not na(ultBuyZone)
-            box.set_bgcolor(ultBuyZone, grayBox)
-            box.set_border_color(ultBuyZone, grayBoxBorder)
-            box.set_text_color(ultBuyZone, grayTxt)
-        if not na(ultBuyEntryLine)
-            line.set_color(ultBuyEntryLine, grayLine)
-            label.set_color(ultBuyEntryLabel, grayLabel)
-            label.set_textcolor(ultBuyEntryLabel, grayTxt)
-        if not na(ultBuySLLine)
-            line.set_color(ultBuySLLine, grayLine)
-            line.set_color(ultBuyTPLine, grayLine)
-            label.set_color(ultBuySLLabel, grayLabel)
-            label.set_textcolor(ultBuySLLabel, grayTxt)
-            label.set_color(ultBuyTPLabel, grayLabel)
-            label.set_textcolor(ultBuyTPLabel, grayTxt)
+        if not na(buyZone)
+            box.set_bgcolor(buyZone, grayBox)
+            box.set_border_color(buyZone, grayBoxBorder)
+            box.set_text_color(buyZone, grayTxt)
+        if not na(buyZoneLabel)
+            label.set_color(buyZoneLabel, grayLabel)
+            label.set_textcolor(buyZoneLabel, grayTxt)
+        if not na(buyEntryLine)
+            line.set_color(buyEntryLine, grayLine)
+            label.set_color(buyEntryLabel, grayLabel)
+            label.set_textcolor(buyEntryLabel, grayTxt)
+        if not na(buySLLine)
+            line.set_color(buySLLine, grayLine)
+            line.set_color(buyTPLine, grayLine)
+            label.set_color(buySLLabel, grayLabel)
+            label.set_textcolor(buySLLabel, grayTxt)
+            label.set_color(buyTPLabel, grayLabel)
+            label.set_textcolor(buyTPLabel, grayTxt)
+        if not na(buyRiskZone)
+            box.set_bgcolor(buyRiskZone, grayBox)
+            box.set_border_color(buyRiskZone, grayBoxBorder)
+        if not na(buyRewardZone)
+            box.set_bgcolor(buyRewardZone, grayBox)
+            box.set_border_color(buyRewardZone, grayBoxBorder)
+        if not na(sellRiskZone)
+            box.set_bgcolor(sellRiskZone, grayBox)
+            box.set_border_color(sellRiskZone, grayBoxBorder)
+        if not na(sellRewardZone)
+            box.set_bgcolor(sellRewardZone, grayBox)
+            box.set_border_color(sellRewardZone, grayBoxBorder)
         // --- Gray out previous sell signals (only one active at a time) ---
-        if not na(ultSellZone)
-            box.set_bgcolor(ultSellZone, grayBox)
-            box.set_border_color(ultSellZone, grayBoxBorder)
-            box.set_text_color(ultSellZone, grayTxt)
-        if not na(ultSellEntryLine)
-            line.set_color(ultSellEntryLine, grayLine)
-            label.set_color(ultSellEntryLabel, grayLabel)
-            label.set_textcolor(ultSellEntryLabel, grayTxt)
-        if not na(ultSellSLLine)
-            line.set_color(ultSellSLLine, grayLine)
-            line.set_color(ultSellTPLine, grayLine)
-            label.set_color(ultSellSLLabel, grayLabel)
-            label.set_textcolor(ultSellSLLabel, grayTxt)
-            label.set_color(ultSellTPLabel, grayLabel)
-            label.set_textcolor(ultSellTPLabel, grayTxt)
+        if not na(sellZone)
+            box.set_bgcolor(sellZone, grayBox)
+            box.set_border_color(sellZone, grayBoxBorder)
+            box.set_text_color(sellZone, grayTxt)
+        if not na(sellZoneLabel)
+            label.set_color(sellZoneLabel, grayLabel)
+            label.set_textcolor(sellZoneLabel, grayTxt)
+        if not na(sellEntryLine)
+            line.set_color(sellEntryLine, grayLine)
+            label.set_color(sellEntryLabel, grayLabel)
+            label.set_textcolor(sellEntryLabel, grayTxt)
+        if not na(sellSLLine)
+            line.set_color(sellSLLine, grayLine)
+            line.set_color(sellTPLine, grayLine)
+            label.set_color(sellSLLabel, grayLabel)
+            label.set_textcolor(sellSLLabel, grayTxt)
+            label.set_color(sellTPLabel, grayLabel)
+            label.set_textcolor(sellTPLabel, grayTxt)
     else
-        if not na(ultBuyZone)
-            box.delete(ultBuyZone)
-            ultBuyZone := na
-        if not na(ultBuyEntryLine)
-            line.delete(ultBuyEntryLine)
-            label.delete(ultBuyEntryLabel)
-            ultBuyEntryLine := na
-            ultBuyEntryLabel := na
-        if not na(ultBuySLLine)
-            line.delete(ultBuySLLine)
-            line.delete(ultBuyTPLine)
-            label.delete(ultBuySLLabel)
-            label.delete(ultBuyTPLabel)
-            ultBuySLLine := na
-            ultBuyTPLine := na
-            ultBuySLLabel := na
-            ultBuyTPLabel := na
-        if not na(ultSellZone)
-            box.delete(ultSellZone)
-            ultSellZone := na
-        if not na(ultSellEntryLine)
-            line.delete(ultSellEntryLine)
-            label.delete(ultSellEntryLabel)
-            ultSellEntryLine := na
-            ultSellEntryLabel := na
-        if not na(ultSellSLLine)
-            line.delete(ultSellSLLine)
-            line.delete(ultSellTPLine)
-            label.delete(ultSellSLLabel)
-            label.delete(ultSellTPLabel)
-            ultSellSLLine := na
-            ultSellTPLine := na
-            ultSellSLLabel := na
-            ultSellTPLabel := na
+        if not na(buyZone)
+            box.delete(buyZone)
+            buyZone := na
+        if not na(buyZoneLabel)
+            label.delete(buyZoneLabel)
+            buyZoneLabel := na
+        if not na(buyEntryLine)
+            line.delete(buyEntryLine)
+            label.delete(buyEntryLabel)
+            buyEntryLine := na
+            buyEntryLabel := na
+        if not na(buySLLine)
+            line.delete(buySLLine)
+            line.delete(buyTPLine)
+            label.delete(buySLLabel)
+            label.delete(buyTPLabel)
+            buySLLine := na
+            buyTPLine := na
+            buySLLabel := na
+            buyTPLabel := na
+        if not na(buyRiskZone)
+            box.delete(buyRiskZone)
+            buyRiskZone := na
+        if not na(buyRewardZone)
+            box.delete(buyRewardZone)
+            buyRewardZone := na
+        if not na(sellRiskZone)
+            box.delete(sellRiskZone)
+            sellRiskZone := na
+        if not na(sellRewardZone)
+            box.delete(sellRewardZone)
+            sellRewardZone := na
+        if not na(sellZone)
+            box.delete(sellZone)
+            sellZone := na
+        if not na(sellZoneLabel)
+            label.delete(sellZoneLabel)
+            sellZoneLabel := na
+        if not na(sellEntryLine)
+            line.delete(sellEntryLine)
+            label.delete(sellEntryLabel)
+            sellEntryLine := na
+            sellEntryLabel := na
+        if not na(sellSLLine)
+            line.delete(sellSLLine)
+            line.delete(sellTPLine)
+            label.delete(sellSLLabel)
+            label.delete(sellTPLabel)
+            sellSLLine := na
+            sellTPLine := na
+            sellSLLabel := na
+            sellTPLabel := na
 
     // --- New buy zone (body-anchored, ATR-scaled) ---
-    zoneHalfH = atrPrev * 0.8
-    bodyLow = math.min(open, close)
-    buyZoneLow = bodyLow - zoneHalfH * 0.3
-    buyZoneHigh = bodyLow + zoneHalfH
-    zoneForward = finalBuyScore >= 80 ? 5 : 3
-    buyZoneBg = finalBuyScore >= 80 ? color.new(bullPrimary, 78) : color.new(bullSecondary, 82)
-    buyZoneBorder = finalBuyScore >= 80 ? color.new(bullPrimary, 35) : color.new(bullSecondary, 50)
-    ultBuyZone := box.new(bar_index - 1, buyZoneHigh, bar_index + zoneForward, buyZoneLow, border_color=buyZoneBorder, bgcolor=buyZoneBg, border_width=1, text="BUY " + str.tostring(finalBuyScore, "#"), text_color=color.white, text_size=size.small, text_halign=text.align_center, text_valign=text.align_center)
-    // Small label below for tooltip (boxes don't support tooltips)
-    label.new(bar_index, buyZoneLow - atr * 0.15, "▲ " + str.tostring(finalBuyScore, "#"), style=label.style_label_up, color=buyZoneBorder, textcolor=color.white, size=size.small, tooltip=buyTooltip)
+    if useSignalZone
+        zoneHalfH = atrPrev * 0.8
+        bodyLow = math.min(open, close)
+        buyZoneLow = bodyLow - zoneHalfH * 0.3
+        buyZoneHigh = bodyLow + zoneHalfH
+        zoneForward = finalBuyScore >= 80 ? 5 : 3
+        buyZoneBg = finalBuyScore >= 80 ? color.new(bullPrimary, 78) : color.new(bullSecondary, 82)
+        buyZoneBorder = finalBuyScore >= 80 ? color.new(bullPrimary, 35) : color.new(bullSecondary, 50)
+        buyZone := box.new(bar_index - 1, buyZoneHigh, bar_index + zoneForward, buyZoneLow, border_color=buyZoneBorder, bgcolor=buyZoneBg, border_width=1, text="BUY " + str.tostring(finalBuyScore, "#"), text_color=color.white, text_size=size.small, text_halign=text.align_center, text_valign=text.align_center)
+        buyZoneLabel := label.new(bar_index, buyZoneLow - atr * 0.15, "▲ " + str.tostring(finalBuyScore, "#"), style=label.style_label_up, color=buyZoneBorder, textcolor=color.white, size=size.small, tooltip=buyTooltip)
 
     // --- Entry line ---
-    ultBuyEntryLine := line.new(bar_index, close, bar_index + lineLen, close, color=color.new(entryClr, 15), style=line.style_solid, width=2)
-    ultBuyEntryLabel := label.new(bar_index + lineLen, close, "ENTRY " + str.tostring(close, "#.##"), style=label.style_label_left, color=color.new(entryClr, 35), textcolor=color.white, size=size.tiny)
+    buyEntryLine := line.new(bar_index, close, bar_index + lineLen, close, color=color.new(entryClr, 15), style=line.style_solid, width=2)
+    buyEntryLabel := label.new(bar_index + lineLen, close, "ENTRY " + str.tostring(close, "#.##"), style=label.style_label_left, color=color.new(entryClr, 35), textcolor=color.white, size=size.tiny)
 
-    // --- SL/TP lines ---
-    if showBuySellSLTP
-        ultBuySLLine := line.new(bar_index, buySL, bar_index + lineLen, buySL, color=color.new(bearPrimary, 25), style=line.style_dashed, width=2)
-        ultBuySLLabel := label.new(bar_index + lineLen, buySL, "SL " + str.tostring(buySL, "#.##"), style=label.style_label_left, color=color.new(bearPrimary, 45), textcolor=color.white, size=size.tiny)
-        ultBuyTPLine := line.new(bar_index, buyTP, bar_index + lineLen, buyTP, color=color.new(bullPrimary, 25), style=line.style_dashed, width=1)
-        ultBuyTPLabel := label.new(bar_index + lineLen, buyTP, "TP " + str.tostring(buyTP, "#.##") + " " + buyTPSource + " (1:" + str.tostring(buyActualRR, "#.#") + ")", style=label.style_label_left, color=color.new(bullPrimary, 45), textcolor=color.white, size=size.tiny)
+    // --- SL/TP lines and/or zones ---
+    if useBuySellSLTP
+        if slTpDisplayMode == "Zones"
+            buyRiskZone := box.new(bar_index, close, bar_index + lineLen, buySL, border_color=color.new(bearPrimary, 40), bgcolor=color.new(bearPrimary, 85), border_width=1)
+            buyRewardZone := box.new(bar_index, buyTP, bar_index + lineLen, close, border_color=color.new(bullPrimary, 40), bgcolor=color.new(bullPrimary, 85), border_width=1)
+        buySLLine := line.new(bar_index, buySL, bar_index + lineLen, buySL, color=color.new(bearPrimary, 25), style=line.style_dashed, width=2)
+        buySLLabel := label.new(bar_index + lineLen, buySL, "SL " + str.tostring(buySL, "#.##"), style=label.style_label_left, color=color.new(bearPrimary, 45), textcolor=color.white, size=size.tiny)
+        buyTPLine := line.new(bar_index, buyTP, bar_index + lineLen, buyTP, color=color.new(bullPrimary, 25), style=line.style_dashed, width=1)
+        buyTPLabel := label.new(bar_index + lineLen, buyTP, "TP " + str.tostring(buyTP, "#.##") + " " + buyTPSource + " (1:" + str.tostring(buyActualRR, "#.#") + ")", style=label.style_label_left, color=color.new(bullPrimary, 45), textcolor=color.white, size=size.tiny)
 
     // Track active signal for dashboard
     activeRR := buyActualRR
-    activeSLType := structSLBuyOk ? "Swing" : structSLBuyOk2 ? "Swing2" : "ATR"
+    activeSLType := structSLBuyOk ? "Swing" : structSLBuyOk2 ? "SwingMomentum" : "ATR"
     activeTP := buyTP
     activeSL := buySL
 
@@ -1889,117 +1893,171 @@ if signalSell
     if lagBuyCount >= 11
         sellReasons += "Bulls overextended (" + str.tostring(lagBuyCount) + "/17 lag)\n"
     if volSpikeMult < 1.0
-        sellReasons += "⚠ Vol spike penalty (" + str.tostring(volSpikeMult, "#.##") + "x)\n"
+        sellReasons += "ATTENTION: Vol spike penalty (" + str.tostring(volSpikeMult, "#.##") + "x)\n"
     if inDiscount
-        sellReasons += "⚠ Selling in Discount zone (0.82x)\n"
-    combinedMultSell = rSqMult * volSpikeMult * pdPenaltySell * zScoreSellMult * sessionMult
-    sellReasons += "Combined mult: " + str.tostring(combinedMultSell, "#.##") + "x\n"
-    sellSLSource = structSLSellOk ? "[Swing]" : structSLSellOk2 ? "[Swing2]" : "[ATR]"
+        sellReasons += "ATTENTION: Selling in Discount zone (0.82x)\n"
+    combinedMsell = rSqMult * volSpikeMult * pdPenaltySell * zScoreSellMult * sessionMult
+    sellReasons += "Combined mult: " + str.tostring(combinedMsell, "#.##") + "x\n"
+    sellSLSource = structSLSellOk ? "[Swing]" : structSLSellOk2 ? "[SwingMomentum]" : "[ATR]"
 
-    sellTooltip = "SELL SIGNAL\n" + "Score: " + str.tostring(finalSellScore, "#.#") + "/100 (" + sellConfidence + ")\n" + "Dominance: +" + str.tostring(sellDominance, "#.#") + " vs buy\n" + "━━━━━━━━━━━━━━━━━━━━\n" + "Exhaustion:  " + str.tostring(exhSellScore * 100, "#") + "% (wt 30%)\n" + "Reversal:    " + str.tostring(revSellScore * 100, "#") + "% (wt 25%)\n" + "Structure:   " + str.tostring(structSellScore * 100, "#") + "% (wt 20%)\n" + "Volume:      " + str.tostring(volSellScore * 100, "#") + "% (wt 15%)\n" + "Trend Align: " + str.tostring(trendAlignSellScore * 100, "#") + "% (wt 10%)\n" + "━━━━━━━━━━━━━━━━━━━━\n" + "Categories agree: " + str.tostring(sellCatAgree) + "/5\n" + "R²: " + str.tostring(rSqValue, "#.##") + " (×" + str.tostring(rSqMult, "#.##") + ")" + " | Z: " + str.tostring(zScore[1], "#.#") + "\n" + "HV Rank: " + str.tostring(hvRank[1], "#") + "%" + (volSpikeMult < 1.0 ? " ⚠" : "") + "\n" + "P/D Zone: " + (inDiscount ? "Discount ⚠" : "Premium ✓") + "\n" + "Lagging bull/bear: " + str.tostring(lagBuyCount) + "/" + str.tostring(lagSellCount) + "\n" + "Divergence: " + (bearishDivergence ? "YES (+8)" : "No") + "\n" + "━━━━━━━━━━━━━━━━━━━━\n" + "KEY REASONS:\n" + sellReasons + "━━━━━━━━━━━━━━━━━━━━\n" + "Entry: " + str.tostring(close, "#.##") + "\n" + "SL: " + str.tostring(sellSL, "#.##") + " (+" + str.tostring((sellSL - close) / close * 100, "#.#") + "%) " + sellSLSource + "\n" + "TP: " + str.tostring(sellTP, "#.##") + " (-" + str.tostring((close - sellTP) / close * 100, "#.#") + "%) at " + sellTPSource + "\n" + "R:R = 1:" + str.tostring(sellActualRR, "#.#")
+    sellTooltip = "Sell Signal\n" + "Score: " + str.tostring(finalSellScore, "#.#") + "/100 (" + sellConfidence + ")\n" + "Dominance: +" + str.tostring(sellDominance, "#.#") + " vs buy\n" + "━━━━━━━━━━━━━━━━━━━━\n" + "Exhaustion:  " + str.tostring(exhSellScore * 100, "#") + "% (wt 30%)\n" + "Reversal:    " + str.tostring(revSellScore * 100, "#") + "% (wt 25%)\n" + "Structure:   " + str.tostring(structSellScore * 100, "#") + "% (wt 20%)\n" + "Volume:      " + str.tostring(volSellScore * 100, "#") + "% (wt 15%)\n" + "Trend Align: " + str.tostring(trendAlignSellScore * 100, "#") + "% (wt 10%)\n" + "━━━━━━━━━━━━━━━━━━━━\n" + "Categories agree: " + str.tostring(sellCatAgree) + "/5\n" + "R²: " + str.tostring(rSqValue, "#.##") + " (×" + str.tostring(rSqMult, "#.##") + ")" + " | Z: " + str.tostring(zScore[1], "#.#") + "\n" + "HV Rank: " + str.tostring(hvRank[1], "#") + "%" + (volSpikeMult < 1.0 ? " ⚠" : "") + "\n" + "P/D Zone: " + (inDiscount ? "Discount ⚠" : "Premium ✓") + "\n" + "Lagging bull/bear: " + str.tostring(lagBuyCount) + "/" + str.tostring(lagSellCount) + "\n" + "Divergence: " + (bearishDivergence ? "Yes (+8)" : "No") + "\n" + "━━━━━━━━━━━━━━━━━━━━\n" + "Key Reasons:\n" + sellReasons + "━━━━━━━━━━━━━━━━━━━━\n" + "Entry: " + str.tostring(close, "#.##") + "\n" + "SL: " + str.tostring(sellSL, "#.##") + " (+" + str.tostring((sellSL - close) / close * 100, "#.#") + "%) " + sellSLSource + "\n" + "TP: " + str.tostring(sellTP, "#.##") + " (-" + str.tostring((close - sellTP) / close * 100, "#.#") + "%) at " + sellTPSource + "\n" + "R:R = 1:" + str.tostring(sellActualRR, "#.#")
 
     // --- Handle previous sell signals ---
-    if showPrevSignals
+    if usePrevSignals
         grayLine = color.new(color.rgb(90, 90, 105), prevSignalTransparency)
         grayLabel = color.new(color.rgb(90, 90, 105), math.min(prevSignalTransparency + 10, 99))
         grayTxt = color.new(color.rgb(130, 130, 145), math.max(prevSignalTransparency - 20, 30))
         grayBox = color.new(color.rgb(90, 90, 105), math.min(prevSignalTransparency + 8, 99))
         grayBoxBorder = color.new(color.rgb(90, 90, 105), prevSignalTransparency)
-        if not na(ultSellZone)
-            box.set_bgcolor(ultSellZone, grayBox)
-            box.set_border_color(ultSellZone, grayBoxBorder)
-            box.set_text_color(ultSellZone, grayTxt)
-        if not na(ultSellEntryLine)
-            line.set_color(ultSellEntryLine, grayLine)
-            label.set_color(ultSellEntryLabel, grayLabel)
-            label.set_textcolor(ultSellEntryLabel, grayTxt)
-        if not na(ultSellSLLine)
-            line.set_color(ultSellSLLine, grayLine)
-            line.set_color(ultSellTPLine, grayLine)
-            label.set_color(ultSellSLLabel, grayLabel)
-            label.set_textcolor(ultSellSLLabel, grayTxt)
-            label.set_color(ultSellTPLabel, grayLabel)
-            label.set_textcolor(ultSellTPLabel, grayTxt)
+        if not na(sellZone)
+            box.set_bgcolor(sellZone, grayBox)
+            box.set_border_color(sellZone, grayBoxBorder)
+            box.set_text_color(sellZone, grayTxt)
+        if not na(sellZoneLabel)
+            label.set_color(sellZoneLabel, grayLabel)
+            label.set_textcolor(sellZoneLabel, grayTxt)
+        if not na(sellEntryLine)
+            line.set_color(sellEntryLine, grayLine)
+            label.set_color(sellEntryLabel, grayLabel)
+            label.set_textcolor(sellEntryLabel, grayTxt)
+        if not na(sellSLLine)
+            line.set_color(sellSLLine, grayLine)
+            line.set_color(sellTPLine, grayLine)
+            label.set_color(sellSLLabel, grayLabel)
+            label.set_textcolor(sellSLLabel, grayTxt)
+            label.set_color(sellTPLabel, grayLabel)
+            label.set_textcolor(sellTPLabel, grayTxt)
+        if not na(sellRiskZone)
+            box.set_bgcolor(sellRiskZone, grayBox)
+            box.set_border_color(sellRiskZone, grayBoxBorder)
+        if not na(sellRewardZone)
+            box.set_bgcolor(sellRewardZone, grayBox)
+            box.set_border_color(sellRewardZone, grayBoxBorder)
+        if not na(buyRiskZone)
+            box.set_bgcolor(buyRiskZone, grayBox)
+            box.set_border_color(buyRiskZone, grayBoxBorder)
+        if not na(buyRewardZone)
+            box.set_bgcolor(buyRewardZone, grayBox)
+            box.set_border_color(buyRewardZone, grayBoxBorder)
         // --- Gray out previous buy signals (only one active at a time) ---
-        if not na(ultBuyZone)
-            box.set_bgcolor(ultBuyZone, grayBox)
-            box.set_border_color(ultBuyZone, grayBoxBorder)
-            box.set_text_color(ultBuyZone, grayTxt)
-        if not na(ultBuyEntryLine)
-            line.set_color(ultBuyEntryLine, grayLine)
-            label.set_color(ultBuyEntryLabel, grayLabel)
-            label.set_textcolor(ultBuyEntryLabel, grayTxt)
-        if not na(ultBuySLLine)
-            line.set_color(ultBuySLLine, grayLine)
-            line.set_color(ultBuyTPLine, grayLine)
-            label.set_color(ultBuySLLabel, grayLabel)
-            label.set_textcolor(ultBuySLLabel, grayTxt)
-            label.set_color(ultBuyTPLabel, grayLabel)
-            label.set_textcolor(ultBuyTPLabel, grayTxt)
+        if not na(buyZone)
+            box.set_bgcolor(buyZone, grayBox)
+            box.set_border_color(buyZone, grayBoxBorder)
+            box.set_text_color(buyZone, grayTxt)
+        if not na(buyZoneLabel)
+            label.set_color(buyZoneLabel, grayLabel)
+            label.set_textcolor(buyZoneLabel, grayTxt)
+        if not na(buyEntryLine)
+            line.set_color(buyEntryLine, grayLine)
+            label.set_color(buyEntryLabel, grayLabel)
+            label.set_textcolor(buyEntryLabel, grayTxt)
+        if not na(buySLLine)
+            line.set_color(buySLLine, grayLine)
+            line.set_color(buyTPLine, grayLine)
+            label.set_color(buySLLabel, grayLabel)
+            label.set_textcolor(buySLLabel, grayTxt)
+            label.set_color(buyTPLabel, grayLabel)
+            label.set_textcolor(buyTPLabel, grayTxt)
     else
-        if not na(ultSellZone)
-            box.delete(ultSellZone)
-            ultSellZone := na
-        if not na(ultSellEntryLine)
-            line.delete(ultSellEntryLine)
-            label.delete(ultSellEntryLabel)
-            ultSellEntryLine := na
-            ultSellEntryLabel := na
-        if not na(ultSellSLLine)
-            line.delete(ultSellSLLine)
-            line.delete(ultSellTPLine)
-            label.delete(ultSellSLLabel)
-            label.delete(ultSellTPLabel)
-            ultSellSLLine := na
-            ultSellTPLine := na
-            ultSellSLLabel := na
-            ultSellTPLabel := na
-        if not na(ultBuyZone)
-            box.delete(ultBuyZone)
-            ultBuyZone := na
-        if not na(ultBuyEntryLine)
-            line.delete(ultBuyEntryLine)
-            label.delete(ultBuyEntryLabel)
-            ultBuyEntryLine := na
-            ultBuyEntryLabel := na
-        if not na(ultBuySLLine)
-            line.delete(ultBuySLLine)
-            line.delete(ultBuyTPLine)
-            label.delete(ultBuySLLabel)
-            label.delete(ultBuyTPLabel)
-            ultBuySLLine := na
-            ultBuyTPLine := na
-            ultBuySLLabel := na
-            ultBuyTPLabel := na
+        if not na(sellZone)
+            box.delete(sellZone)
+            sellZone := na
+        if not na(sellZoneLabel)
+            label.delete(sellZoneLabel)
+            sellZoneLabel := na
+        if not na(sellEntryLine)
+            line.delete(sellEntryLine)
+            label.delete(sellEntryLabel)
+            sellEntryLine := na
+            sellEntryLabel := na
+        if not na(sellSLLine)
+            line.delete(sellSLLine)
+            line.delete(sellTPLine)
+            label.delete(sellSLLabel)
+            label.delete(sellTPLabel)
+            sellSLLine := na
+            sellTPLine := na
+            sellSLLabel := na
+            sellTPLabel := na
+        if not na(sellRiskZone)
+            box.delete(sellRiskZone)
+            sellRiskZone := na
+        if not na(sellRewardZone)
+            box.delete(sellRewardZone)
+            sellRewardZone := na
+        if not na(buyZone)
+            box.delete(buyZone)
+            buyZone := na
+        if not na(buyZoneLabel)
+            label.delete(buyZoneLabel)
+            buyZoneLabel := na
+        if not na(buyEntryLine)
+            line.delete(buyEntryLine)
+            label.delete(buyEntryLabel)
+            buyEntryLine := na
+            buyEntryLabel := na
+        if not na(buySLLine)
+            line.delete(buySLLine)
+            line.delete(buyTPLine)
+            label.delete(buySLLabel)
+            label.delete(buyTPLabel)
+            buySLLine := na
+            buyTPLine := na
+            buySLLabel := na
+            buyTPLabel := na
+        if not na(buyRiskZone)
+            box.delete(buyRiskZone)
+            buyRiskZone := na
+        if not na(buyRewardZone)
+            box.delete(buyRewardZone)
+            buyRewardZone := na
 
     // --- New sell zone (body-anchored, ATR-scaled) ---
-    sellZoneHalfH = atrPrev * 0.8
-    bodyHigh = math.max(open, close)
-    sellZoneHigh = bodyHigh + sellZoneHalfH * 0.3
-    sellZoneLow = bodyHigh - sellZoneHalfH
-    sellZoneForward = finalSellScore >= 80 ? 5 : 3
-    sellZoneBg = finalSellScore >= 80 ? color.new(bearPrimary, 78) : color.new(bearSecondary, 82)
-    sellZoneBorder = finalSellScore >= 80 ? color.new(bearPrimary, 35) : color.new(bearSecondary, 50)
-    ultSellZone := box.new(bar_index - 1, sellZoneHigh, bar_index + sellZoneForward, sellZoneLow, border_color=sellZoneBorder, bgcolor=sellZoneBg, border_width=1, text="SELL " + str.tostring(finalSellScore, "#"), text_color=color.white, text_size=size.small, text_halign=text.align_center, text_valign=text.align_center)
-    // Small label above for tooltip (boxes don't support tooltips)
-    label.new(bar_index, sellZoneHigh + atr * 0.15, "▼ " + str.tostring(finalSellScore, "#"), style=label.style_label_down, color=sellZoneBorder, textcolor=color.white, size=size.small, tooltip=sellTooltip)
+    if useSignalZone
+        sellZoneHalfH = atrPrev * 0.8
+        bodyHigh = math.max(open, close)
+        sellZoneHigh = bodyHigh + sellZoneHalfH * 0.3
+        sellZoneLow = bodyHigh - sellZoneHalfH
+        sellZoneForward = finalSellScore >= 80 ? 5 : 3
+        sellZoneBg = finalSellScore >= 80 ? color.new(bearPrimary, 78) : color.new(bearSecondary, 82)
+        sellZoneBorder = finalSellScore >= 80 ? color.new(bearPrimary, 35) : color.new(bearSecondary, 50)
+        sellZone := box.new(bar_index - 1, sellZoneHigh, bar_index + sellZoneForward, sellZoneLow, border_color=sellZoneBorder, bgcolor=sellZoneBg, border_width=1, text="SELL " + str.tostring(finalSellScore, "#"), text_color=color.white, text_size=size.small, text_halign=text.align_center, text_valign=text.align_center)
+        sellZoneLabel := label.new(bar_index, sellZoneHigh + atr * 0.15, "▼ " + str.tostring(finalSellScore, "#"), style=label.style_label_down, color=sellZoneBorder, textcolor=color.white, size=size.small, tooltip=sellTooltip)
 
     // --- Entry line ---
-    ultSellEntryLine := line.new(bar_index, close, bar_index + lineLen, close, color=color.new(entryClr, 15), style=line.style_solid, width=2)
-    ultSellEntryLabel := label.new(bar_index + lineLen, close, "ENTRY " + str.tostring(close, "#.##"), style=label.style_label_left, color=color.new(entryClr, 35), textcolor=color.white, size=size.tiny)
+    sellEntryLine := line.new(bar_index, close, bar_index + lineLen, close, color=color.new(entryClr, 15), style=line.style_solid, width=2)
+    sellEntryLabel := label.new(bar_index + lineLen, close, "ENTRY " + str.tostring(close, "#.##"), style=label.style_label_left, color=color.new(entryClr, 35), textcolor=color.white, size=size.tiny)
 
-    // --- SL/TP lines ---
-    if showBuySellSLTP
-        ultSellSLLine := line.new(bar_index, sellSL, bar_index + lineLen, sellSL, color=color.new(bearPrimary, 25), style=line.style_dashed, width=2)
-        ultSellSLLabel := label.new(bar_index + lineLen, sellSL, "SL " + str.tostring(sellSL, "#.##"), style=label.style_label_left, color=color.new(bearPrimary, 45), textcolor=color.white, size=size.tiny)
-        ultSellTPLine := line.new(bar_index, sellTP, bar_index + lineLen, sellTP, color=color.new(bullPrimary, 25), style=line.style_dashed, width=1)
-        ultSellTPLabel := label.new(bar_index + lineLen, sellTP, "TP " + str.tostring(sellTP, "#.##") + " " + sellTPSource + " (1:" + str.tostring(sellActualRR, "#.#") + ")", style=label.style_label_left, color=color.new(bullPrimary, 45), textcolor=color.white, size=size.tiny)
+    // --- SL/TP lines and/or zones ---
+    if useBuySellSLTP
+        if slTpDisplayMode == "Zones"
+            sellRewardZone := box.new(bar_index, close, bar_index + lineLen, sellTP, border_color=color.new(bullPrimary, 40), bgcolor=color.new(bullPrimary, 85), border_width=1)
+            sellRiskZone := box.new(bar_index, sellSL, bar_index + lineLen, close, border_color=color.new(bearPrimary, 40), bgcolor=color.new(bearPrimary, 85), border_width=1)
+        sellSLLine := line.new(bar_index, sellSL, bar_index + lineLen, sellSL, color=color.new(bearPrimary, 25), style=line.style_dashed, width=2)
+        sellSLLabel := label.new(bar_index + lineLen, sellSL, "SL " + str.tostring(sellSL, "#.##"), style=label.style_label_left, color=color.new(bearPrimary, 45), textcolor=color.white, size=size.tiny)
+        sellTPLine := line.new(bar_index, sellTP, bar_index + lineLen, sellTP, color=color.new(bullPrimary, 25), style=line.style_dashed, width=1)
+        sellTPLabel := label.new(bar_index + lineLen, sellTP, "TP " + str.tostring(sellTP, "#.##") + " " + sellTPSource + " (1:" + str.tostring(sellActualRR, "#.#") + ")", style=label.style_label_left, color=color.new(bullPrimary, 45), textcolor=color.white, size=size.tiny)
 
     // Track active signal for dashboard
     activeRR := sellActualRR
-    activeSLType := structSLSellOk ? "Swing" : structSLSellOk2 ? "Swing2" : "ATR"
+    activeSLType := structSLSellOk ? "Swing" : structSLSellOk2 ? "SwingMomentum" : "ATR"
     activeTP := sellTP
     activeSL := sellSL
+
+// --- Hide signal zones when checkbox is off (runs every bar) ---
+if not useSignalZone
+    if not na(buyZone)
+        box.delete(buyZone)
+        buyZone := na
+    if not na(buyZoneLabel)
+        label.delete(buyZoneLabel)
+        buyZoneLabel := na
+    if not na(sellZone)
+        box.delete(sellZone)
+        sellZone := na
+    if not na(sellZoneLabel)
+        label.delete(sellZoneLabel)
+        sellZoneLabel := na
 
 // ==================================================================================
 // DASHBOARD functions
@@ -2030,7 +2088,7 @@ f_sparkline(series float src, lookback) =>
     result
 
 rsiSparkline = f_sparkline(rsiValue, 8)
-if showDashboard and barstate.islast
+if useDashboard and barstate.islast
     var table dash = table.new(position.top_right, 5, 61, border_width=0, frame_width=0)
 
     // Dashboard theme
@@ -2262,9 +2320,9 @@ if showDashboard and barstate.islast
 
     table.cell(dash, 0, 36, "Mass Idx", bgcolor=f_rowBg(36), text_color=txtLabel, text_size=txtSm)
     table.cell(dash, 1, 36, str.tostring(massValue[1], "#.#") + (massBulge ? " Bulge" : ""), bgcolor=massBulge ? color.new(warningColor, 50) : f_condColor(true), text_color=txtValue, text_size=txtSm)
-    table.cell(dash, 2, 36, "StdDev", bgcolor=f_rowBg(36), text_color=txtLabel, text_size=txtSm)
-    table.cell(dash, 3, 36, stdDevBullish ? ">Basis" : "<Basis", bgcolor=f_condColor(stdDevBullish), text_color=txtValue, text_size=txtSm)
-    table.cell(dash, 4, 36, f_condSym(not massBulge and stdDevBullish), bgcolor=f_condColor(not massBulge and stdDevBullish), text_color=txtValue, text_size=txtSm)
+    table.cell(dash, 2, 36, "BB", bgcolor=f_rowBg(36), text_color=txtLabel, text_size=txtSm)
+    table.cell(dash, 3, 36, bbBullish ? ">Basis" : "<Basis", bgcolor=f_condColor(bbBullish), text_color=txtValue, text_size=txtSm)
+    table.cell(dash, 4, 36, f_condSym(not massBulge and bbBullish), bgcolor=f_condColor(not massBulge and bbBullish), text_color=txtValue, text_size=txtSm)
 
     // --- Table Section 5: REGIME ---
     table.cell(dash, 0, 37, " REGIME", bgcolor=color.new(accentRegime, 30), text_color=color.white, text_size=txtSm, text_font_family=font.family_monospace, text_halign=text.align_left)
@@ -2333,7 +2391,7 @@ if showDashboard and barstate.islast
     table.cell(dash, 4, 46, "", bgcolor=f_rowBg(46))
 
     // --- Table Section 8: MTF HEATMAP ---
-    if showMTFHeatmap
+    if useMTFHeatmap
         table.cell(dash, 0, 47, " MTF HEATMAP", bgcolor=color.new(accentMeta, 30), text_color=color.white, text_size=txtSm, text_font_family=font.family_monospace, text_halign=text.align_left)
         table.cell(dash, 1, 47, "", bgcolor=color.new(accentMeta, 75))
         table.cell(dash, 2, 47, "", bgcolor=color.new(accentMeta, 75))
@@ -2348,7 +2406,7 @@ if showDashboard and barstate.islast
         table.cell(dash, 4, 48, "D", bgcolor=mtfD ? color.new(bullPrimary, 40) : color.new(bearPrimary, 40), text_color=txtValue, text_size=txtSm)
 
     // --- BUY/SELL SIGNAL ---
-    if showBuySellSignal
+    if useBuySellSignal
         table.cell(dash, 0, 49, " BUY/SELL SIGNAL", bgcolor=color.new(accentSignal, 30), text_color=color.rgb(20, 20, 35), text_size=txtSm, text_font_family=font.family_monospace, text_halign=text.align_left)
         table.cell(dash, 1, 49, "", bgcolor=color.new(accentSignal, 75))
         table.cell(dash, 2, 49, "", bgcolor=color.new(accentSignal, 75))
@@ -2433,7 +2491,7 @@ dataWindowOutput =
      " | TEMA=" + str.tostring(temaVal, "#.####") +
      " | Pivot_P=" + str.tostring(pivotP, "#.####") +
      " | Fib_0.5=" + str.tostring(fib50, "#.####") +
-     " | StdDev_Basis=" + str.tostring(stdDevBasis, "#.####") +
+     " | BB_Basis=" + str.tostring(bbBasis, "#.####") +
      " | Z_Score=" + str.tostring(zScore, "#.####")
 
 // ==================================================================================
