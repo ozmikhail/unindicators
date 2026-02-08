@@ -105,11 +105,6 @@ useATRFilter = input.bool(false, "Use ATR Range Filter", group=g13)
 atrMinPct = input.float(0, "ATR Min (% of avg, 0=off)", minval=0, step=0.1, group=g13)
 atrMaxPct = input.float(0, "ATR Max (% of avg, 0=off)", minval=0, step=0.1, group=g13)
 
-// === Confluence Protocol ===
-var gConfluence = "Confluence Protocol"
-useConfluenceScore = input.bool(true, "Use 6-Pillar Confluence Score (0-100)", group=gConfluence, tooltip="Trend+Momentum+Volume+Structure+Volatility+Regime, 100 pts total.")
-confluenceMinScore = input.int(70, "Min Confluence Score to Signal", minval=0, maxval=100, group=gConfluence)
-
 // === Premium/Discount ===
 var gPD = "Premium / Discount"
 usePremiumDiscount = input.bool(false, "Filter by Premium/Discount", group=gPD)
@@ -279,6 +274,167 @@ var gDisp = "Displacement"
 useDisplacement = input.bool(true, "Enable Displacement Detection", group=gDisp)
 dispBodyMult = input.float(1.5, "Displacement Body Mult", minval=1.0, step=0.1, group=gDisp)
 
+// === Donchian Channel ===
+var gDonch = "Donchian Channel"
+useDonchian = input.bool(true, "Enable Donchian Channel", group=gDonch)
+donchianLength = input.int(20, "Donchian Length", minval=1, group=gDonch)
+
+// === McGinley Dynamic ===
+var gMcGinley = "McGinley Dynamic"
+useMcGinley = input.bool(true, "Enable McGinley Dynamic", group=gMcGinley)
+mcginleyLength = input.int(14, "McGinley Length", minval=1, group=gMcGinley)
+
+// === DEMA / TEMA ===
+useDEMA = input.bool(true, "Enable DEMA", group=gDEMA)
+demaLength = input.int(14, "DEMA Length", minval=1, group=gDEMA)
+useTEMA = input.bool(true, "Enable TEMA", group=gDEMA)
+temaLength = input.int(14, "TEMA Length", minval=1, group=gDEMA)
+
+// === GMMA ===
+var gGMMA = "GMMA"
+useGMMA = input.bool(true, "Enable GMMA", group=gGMMA)
+gmmaShort = input.string("3,5,8,10,12,15", "Short EMA Periods", group=gGMMA)
+gmmaLong = input.string("30,35,40,45,50,60", "Long EMA Periods", group=gGMMA)
+
+// === Williams Alligator ===
+var gAlligator = "Williams Alligator"
+useAlligator = input.bool(true, "Enable Alligator", group=gAlligator)
+alligatorJaw = input.int(13, "Jaw Period", minval=1, group=gAlligator)
+alligatorTeeth = input.int(8, "Teeth Period", minval=1, group=gAlligator)
+alligatorLips = input.int(5, "Lips Period", minval=1, group=gAlligator)
+useGator = input.bool(true, "Enable Gator Oscillator", group=gAlligator)
+
+// === TRIX ===
+var gTRIX = "TRIX"
+useTRIX = input.bool(true, "Enable TRIX", group=gTRIX)
+trixLength = input.int(14, "TRIX Length", minval=1, group=gTRIX)
+trixSignalLen = input.int(9, "TRIX Signal Length", minval=1, group=gTRIX)
+
+// === Oscillator ===
+var gUO = "Oscillator"
+useUO = input.bool(true, "Enable Oscillator", group=gUO)
+uoPeriod1 = input.int(7, "UO Period 1", minval=1, group=gUO)
+uoPeriod2 = input.int(14, "UO Period 2", minval=1, group=gUO)
+uoPeriod3 = input.int(28, "UO Period 3", minval=1, group=gUO)
+
+// === Know Sure Thing ===
+var gKST = "Know Sure Thing"
+useKST = input.bool(true, "Enable KST", group=gKST)
+kstRoc1 = input.int(10, "KST ROC 1", minval=1, group=gKST)
+kstRoc2 = input.int(15, "KST ROC 2", minval=1, group=gKST)
+kstRoc3 = input.int(20, "KST ROC 3", minval=1, group=gKST)
+kstRoc4 = input.int(30, "KST ROC 4", minval=1, group=gKST)
+kstSmaLen = input.int(10, "KST Signal SMA", minval=1, group=gKST)
+
+// === DPO ===
+var gDPO = "Detrended Price Oscillator"
+useDPO = input.bool(true, "Enable DPO", group=gDPO)
+dpoLength = input.int(20, "DPO Length", minval=5, group=gDPO)
+
+// === RVI ===
+var gRVI = "Relative Vigor Index"
+useRVI = input.bool(true, "Enable RVI", group=gRVI)
+rviLength = input.int(14, "RVI Length", minval=1, group=gRVI)
+
+// === Schaff Trend Cycle ===
+var gSchaff = "Schaff Trend Cycle"
+useSchaff = input.bool(true, "Enable Schaff Trend Cycle", group=gSchaff)
+schaffCycle = input.int(10, "Schaff Cycle", minval=1, group=gSchaff)
+schaffSmooth1 = input.int(23, "Schaff Smooth 1", minval=1, group=gSchaff)
+schaffSmooth2 = input.int(50, "Schaff Smooth 2", minval=1, group=gSchaff)
+
+// === Pretty Good Oscillator ===
+var gPGO = "Pretty Good Oscillator"
+usePGO = input.bool(true, "Enable PGO", group=gPGO)
+pgoLength = input.int(14, "PGO Length", minval=1, group=gPGO)
+
+// === Coppock Curve ===
+var gCoppock = "Coppock Curve"
+useCoppock = input.bool(true, "Enable Coppock", group=gCoppock)
+coppockRoc1 = input.int(11, "Coppock ROC 1", minval=1, group=gCoppock)
+coppockRoc2 = input.int(14, "Coppock ROC 2", minval=1, group=gCoppock)
+coppockSma = input.int(10, "Coppock SMA", minval=1, group=gCoppock)
+
+// === Mass Index ===
+var gMass = "Mass Index"
+useMassIndex = input.bool(true, "Enable Mass Index", group=gMass)
+massSingle = input.int(9, "Mass Single EMA", minval=1, group=gMass)
+massSum = input.int(25, "Mass Sum Period", minval=1, group=gMass)
+massThreshold = input.float(27, "Mass Bulge Threshold", minval=20, step=0.5, group=gMass)
+
+// === StdDev Bands ===
+var gStdDev = "StdDev Bands"
+useStdDevBands = input.bool(true, "Enable StdDev Bands", group=gStdDev)
+stdDevLength = input.int(20, "StdDev Length", minval=1, group=gStdDev)
+stdDevMult = input.float(2.0, "StdDev Multiplier", minval=0.5, step=0.1, group=gStdDev)
+
+// === Klinger Volume ===
+var gKlinger = "Klinger Volume"
+useKlinger = input.bool(true, "Enable Klinger", group=gKlinger)
+kvoFast = input.int(34, "KVO Fast", minval=1, group=gKlinger)
+kvoSlow = input.int(55, "KVO Slow", minval=1, group=gKlinger)
+kvoSignal = input.int(13, "KVO Signal", minval=1, group=gKlinger)
+
+// === Ease of Movement ===
+var gEOM = "Ease of Movement"
+useEOM = input.bool(true, "Enable EOM", group=gEOM)
+eomLength = input.int(14, "EOM Length", minval=1, group=gEOM)
+
+// === NVI / PVI ===
+var gNVI = "NVI / PVI"
+useNVI = input.bool(true, "Enable NVI", group=gNVI)
+usePVI = input.bool(true, "Enable PVI", group=gNVI)
+nviPviMALen = input.int(255, "NVI/PVI MA Length", minval=20, group=gNVI)
+
+// === Intraday Intensity ===
+var gIII = "Intraday Intensity"
+useIII = input.bool(true, "Enable III", group=gIII)
+iiiLength = input.int(14, "III Smooth Length", minval=1, group=gIII)
+
+// === Market Facilitation Index (Bill Williams) ===
+var gMFI_BW = "MFI (Bill Williams)"
+useMFI_BW = input.bool(true, "Enable MFI Bill Williams", group=gMFI_BW)
+
+// === Pivot Points ===
+var gPivot = "Pivot Points"
+usePivots = input.bool(true, "Enable Pivot Points", group=gPivot)
+pivotTimeframe = input.timeframe("D", "Pivot Timeframe", group=gPivot)
+
+// === Fibonacci ===
+var gFib = "Fibonacci Retracement"
+useFib = input.bool(true, "Enable Auto Fib", group=gFib)
+fibLookback = input.int(20, "Fib Swing Lookback", minval=5, group=gFib)
+
+// === Support/Resistance ===
+var gSR = "Support/Resistance"
+useSR = input.bool(true, "Enable S/R Levels", group=gSR)
+srPivotCount = input.int(3, "S/R Pivot Count", minval=2, group=gSR)
+
+// === Gap Detection ===
+var gGap = "Gap Detection"
+useGap = input.bool(true, "Enable Gap Detection", group=gGap)
+gapMinATR = input.float(0, "Gap Min ATR (0=any)", minval=0, step=0.1, group=gGap)
+
+// === Vortex ===
+var gVortex = "Vortex Indicator"
+useVortex = input.bool(true, "Enable Vortex", group=gVortex)
+vortexLength = input.int(14, "Vortex Length", minval=1, group=gVortex)
+
+// === Elder Impulse ===
+var gElder = "Elder Impulse"
+useElderImpulse = input.bool(true, "Enable Elder Impulse", group=gElder)
+elderEmaLen = input.int(13, "Elder EMA Length", minval=1, group=gElder)
+
+// === VW-RSI ===
+var gVWRSI = "Volume-Weighted RSI"
+useVWRSI = input.bool(true, "Enable VW-RSI", group=gVWRSI)
+vwRsiLength = input.int(14, "VW-RSI Length", minval=1, group=gVWRSI)
+
+// === Twiggs Money Flow ===
+var gTwiggs = "Twiggs Money Flow"
+useTwiggs = input.bool(true, "Enable Twiggs MF", group=gTwiggs)
+twiggsLength = input.int(21, "Twiggs Length", minval=1, group=gTwiggs)
+
 // === Display Settings ===
 var g6 = "Display"
 showDashboard = input.bool(true, "Show Dashboard", group=g6)
@@ -289,23 +445,39 @@ showBackground = input.bool(true, "Show Trend Background", group=g6)
 showMTFHeatmap = input.bool(true, "Show MTF Trend Heatmap", group=g6)
 showBB = input.bool(true, "Show Bollinger Bands", group=g6)
 showPatternMarkers = input.bool(true, "Show Candlestick Pattern Markers", group=g6)
-showIchimokuCloud = input.bool(false, "Show Ichimoku Cloud", group=g6)
-showSARDots = input.bool(false, "Show Parabolic SAR Dots", group=g6)
-showKeltner = input.bool(false, "Show Keltner Channels", group=g6)
-useProfessionalPalette = input.bool(true, "Professional Palette (Dark Mode)", group=g6)
-useAsciiSymbols = input.bool(true, "Use ASCII symbols (no Unicode)", group=g6, tooltip="Use plain text instead of Unicode in dashboard when fonts don't render symbols.")
+showIchimokuCloud = input.bool(true, "Show Ichimoku Cloud", group=g6)
+showSARDots = input.bool(true, "Show Parabolic SAR Dots", group=g6)
+showKeltner = input.bool(true, "Show Keltner Channels", group=g6)
+showDonchian = input.bool(true, "Show Donchian Channel", group=g6)
+showMcGinley = input.bool(true, "Show McGinley Dynamic", group=g6)
+showAlligator = input.bool(true, "Show Alligator", group=g6)
+showPivots = input.bool(true, "Show Pivot Lines", group=g6)
+showFibLevels = input.bool(true, "Show Fib Levels", group=g6)
+showStdDevBands = input.bool(true, "Show StdDev Bands", group=g6)
+showGMMA = input.bool(true, "Show GMMA", group=g6)
+
+// === Buy/Sell Signal ===
+var gBuySell = "Buy/Sell Signal"
+showBuySellSignal = input.bool(false, "Enable Buy/Sell Signal", group=gBuySell, tooltip="Master toggle for the Buy/Sell signal system. Uses all 62+ indicators with weighted category scoring.")
+buySellThreshold = input.float(55, "Signal Threshold (0-100)", minval=30, maxval=95, step=5, group=gBuySell, tooltip="Minimum composite score to generate a signal. Higher = fewer but more confident signals.")
+buySellCooldown = input.int(5, "Signal Cooldown (bars)", minval=1, maxval=50, group=gBuySell, tooltip="Minimum bars between signals to prevent spam.")
+showBuySellSLTP = input.bool(true, "Show SL/TP Levels", group=gBuySell)
+buySellRR = input.float(2.0, "Risk:Reward Ratio", minval=1.0, maxval=5.0, step=0.5, group=gBuySell, tooltip="Target R:R ratio for TP calculation. SL is ATR-based + structure.")
+buySellConfidenceFilter = input.string("All", "Min Confidence Level", options=["All", "Medium+", "High Only"], group=gBuySell, tooltip="All: show score >= threshold. Medium+: score >= 65. High Only: score >= 80.")
+showPrevSignals = input.bool(true, "Show Previous Signals", group=gBuySell, tooltip="Show grayed-out previous signal zones and levels. Disable for a cleaner chart.")
+prevSignalTransparency = input.int(80, "Previous Signal Transparency (%)", minval=50, maxval=98, step=5, group=gBuySell, tooltip="How transparent previous signals appear. Higher = more faded.")
 
 // ==================================================================================
 // COLOR PALETTE
 // ==================================================================================
-bullPrimary   = useProfessionalPalette ? color.rgb(0, 229, 255) : color.green
-bearPrimary   = useProfessionalPalette ? color.rgb(255, 64, 129) : color.red
-bullSecondary = useProfessionalPalette ? color.rgb(0, 200, 83) : color.lime
-bearSecondary = useProfessionalPalette ? color.rgb(255, 23, 68) : color.maroon
-neutralColor  = useProfessionalPalette ? color.rgb(176, 190, 197) : color.gray
-warningColor  = useProfessionalPalette ? color.rgb(255, 214, 0) : color.orange
-structureClr  = useProfessionalPalette ? color.rgb(124, 77, 255) : color.purple
-volumeClr     = useProfessionalPalette ? color.rgb(68, 138, 255) : color.blue
+bullPrimary   = color.green
+bearPrimary   = color.red
+bullSecondary = color.lime
+bearSecondary = color.maroon
+neutralColor  = color.gray
+warningColor  = color.orange
+structureClr  = color.purple
+volumeClr     = color.blue
 
 // ==================================================================================
 // FUNCTIONS
@@ -412,6 +584,97 @@ f_ehlersSineWave() =>
     sine := math.sin(dcPhase * math.acos(1) / 180)
     leadSine := math.sin((dcPhase + 45) * math.acos(1) / 180)
     [sine, leadSine, smoothPeriod]
+
+f_mcginley(src, length) =>
+    var float mg = na
+    mg := na(mg) ? src : mg[1] + (src - mg[1]) / math.max(length * math.pow(src / math.max(mg[1], 1e-10), 4), 1e-10)
+    mg
+
+f_trix(src, length, signalLen) =>
+    e1 = ta.ema(src, length)
+    e2 = ta.ema(e1, length)
+    e3 = ta.ema(e2, length)
+    trixVal = ta.roc(e3, 1)
+    trixSignal = ta.sma(trixVal, signalLen)
+    [trixVal, trixSignal]
+
+f_oscillator(period1, period2, period3) =>
+    bp = close - math.min(low, low[1])
+    tr_uo = math.max(high, high[1]) - math.min(low, low[1])
+    avg1 = ta.rma(bp, period1) / math.max(ta.rma(tr_uo, period1), 1e-10)
+    avg2 = ta.rma(bp, period2) / math.max(ta.rma(tr_uo, period2), 1e-10)
+    avg3 = ta.rma(bp, period3) / math.max(ta.rma(tr_uo, period3), 1e-10)
+    uo = 100 * (4 * avg1 + 2 * avg2 + avg3) / 7
+    uo
+
+f_dpo(src, length) =>
+    halfLen = math.round(length / 2) + 1
+    smaVal = ta.sma(src, halfLen)
+    dpoVal = src[halfLen] - smaVal[halfLen]
+    dpoVal
+
+f_rvi(length) =>
+    rviRaw = (close - open) / math.max(high - low, 1e-10)
+    rviSmooth = ta.sma(rviRaw, length)
+    rviSignal = ta.sma(rviSmooth, 4)
+    [rviSmooth, rviSignal]
+
+f_schaffTrendCycle(cycleLen, smooth1, smooth2) =>
+    var float xmac = 0.0
+    var float xmacd = 0.0
+    var float stc = 0.0
+    xmac := ta.ema(close - ta.ema(close, cycleLen), smooth1)
+    xmacd := ta.ema(xmac, smooth2)
+    v1 = ta.lowest(xmacd, smooth2) - ta.highest(xmacd, smooth2)
+    v2 = v1 != 0 ? (xmacd - ta.lowest(xmacd, smooth2)) / v1 : 0.0
+    stc := 0.0
+    if not na(v2)
+        var float stcPrev = 50.0
+        stcPrev := 0.5 * (stcPrev + 100 * (v2 - 0.5))
+        stc := math.max(0, math.min(100, stcPrev))
+    [xmacd, stc]
+
+f_smma(src, length) =>
+    var float sum = na
+    sum := na(sum) ? ta.sma(src, length) : (sum[1] * (length - 1) + src) / length
+    sum
+
+f_massIndex(singleLen, sumLen) =>
+    hlRange = high - low
+    hlEma = ta.ema(hlRange, singleLen)
+    ratio = hlEma > 0 ? hlRange / hlEma : 0.0
+    massSumVal = math.sum(ratio, sumLen)
+    massSumVal
+
+f_klinger(fastLen, slowLen, signalLen) =>
+    trend = ta.ema(high - low, 5) > ta.ema(high - low, 34) ? 1 : -1
+    dm = high - low
+    cm = 0.0
+    if trend == trend[1]
+        cm := nz(cm[1]) + dm
+    else
+        cm := nz(cm[1]) + dm
+    vf = volume * math.abs(2 * dm / math.max(cm, 1e-10) - 1) * trend * 100
+    kvo = ta.ema(ta.sma(vf, math.min(fastLen, slowLen)), math.max(fastLen, slowLen) - math.min(fastLen, slowLen) + 1)
+    kvoSigLine = ta.ema(kvo, signalLen)
+    [kvo, kvoSigLine]
+
+f_eom(length) =>
+    dm = (high + low) / 2 - (high[1] + low[1]) / 2
+    br = volume / math.max(high - low, 1e-10)
+    eomRaw = br != 0 ? dm / br : 0.0
+    eomSmooth = ta.sma(eomRaw * 1000000, length)
+    eomSmooth
+
+f_vortex(len) =>
+    plusVM = math.abs(high - low[1])
+    minusVM = math.abs(low - high[1])
+    plusDM = high - high[1] > low[1] - low ? math.max(high - high[1], 0) : 0
+    minusDM = low[1] - low > high - high[1] ? math.max(low[1] - low, 0) : 0
+    trV = ta.atr(len)
+    viPlus = trV != 0 ? ta.rma(plusVM, len) / trV : 0.0
+    viMinus = trV != 0 ? ta.rma(minusVM, len) / trV : 0.0
+    [viPlus, viMinus]
 
 // ==================================================================================
 // CALCULATIONS - EXISTING FACTORS
@@ -821,134 +1084,415 @@ avgBody = ta.sma(math.abs(close - open), 20)
 bullDisplacement = useDisplacement ? (close[1] > open[1] and math.abs(close[1] - open[1]) > avgBody[1] * dispBodyMult and volume[1] > volumeMA[1]) : false
 bearDisplacement = useDisplacement ? (close[1] < open[1] and math.abs(close[1] - open[1]) > avgBody[1] * dispBodyMult and volume[1] > volumeMA[1]) : false
 
+// === 32. Donchian Channel ===
+donchianUpper = useDonchian ? ta.highest(high, donchianLength) : high
+donchianLower = useDonchian ? ta.lowest(low, donchianLength) : low
+donchianMid = (donchianUpper + donchianLower) / 2
+donchianBullish = useDonchian ? close[1] > donchianMid[1] : true
+donchianBearish = useDonchian ? close[1] < donchianMid[1] : true
+
+// === 33. McGinley Dynamic ===
+mcginleyVal = useMcGinley ? f_mcginley(close, mcginleyLength) : close
+mcginleyBullish = useMcGinley ? close[1] > mcginleyVal[1] : true
+mcginleyBearish = useMcGinley ? close[1] < mcginleyVal[1] : true
+
+// === 34. DEMA ===
+demaEma1 = ta.ema(close, demaLength)
+demaVal = 2 * demaEma1 - ta.ema(demaEma1, demaLength)
+demaBullish = useDEMA ? close[1] > demaVal[1] : true
+demaBearish = useDEMA ? close[1] < demaVal[1] : true
+
+// === 35. TEMA ===
+temaE1 = ta.ema(close, temaLength)
+temaE2 = ta.ema(temaE1, temaLength)
+temaE3 = ta.ema(temaE2, temaLength)
+temaVal = 3 * temaE1 - 3 * temaE2 + temaE3
+temaBullish = useTEMA ? close[1] > temaVal[1] : true
+temaBearish = useTEMA ? close[1] < temaVal[1] : true
+
+// === 36. GMMA (fixed periods: 3,5,8,10,12,15 and 30,35,40,45,50,60) ===
+gmmaS1 = ta.ema(close, 3)
+gmmaS2 = ta.ema(close, 5)
+gmmaS3 = ta.ema(close, 8)
+gmmaS4 = ta.ema(close, 10)
+gmmaS5 = ta.ema(close, 12)
+gmmaS6 = ta.ema(close, 15)
+gmmaL1 = ta.ema(close, 30)
+gmmaL2 = ta.ema(close, 35)
+gmmaL3 = ta.ema(close, 40)
+gmmaL4 = ta.ema(close, 45)
+gmmaL5 = ta.ema(close, 50)
+gmmaL6 = ta.ema(close, 60)
+gmmaShortAvg = (gmmaS1 + gmmaS2 + gmmaS3 + gmmaS4 + gmmaS5 + gmmaS6) / 6
+gmmaLongAvg = (gmmaL1 + gmmaL2 + gmmaL3 + gmmaL4 + gmmaL5 + gmmaL6) / 6
+gmmaBullish = useGMMA ? gmmaShortAvg[1] > gmmaLongAvg[1] : true
+gmmaBearish = useGMMA ? gmmaShortAvg[1] < gmmaLongAvg[1] : true
+
+// === 37. Williams Alligator ===
+alligatorMed = (high + low) / 2
+alligatorJawVal = f_smma(alligatorMed, alligatorJaw)
+alligatorTeethVal = f_smma(alligatorMed, alligatorTeeth)
+alligatorLipsVal = f_smma(alligatorMed, alligatorLips)
+alligatorJawPlot = alligatorJawVal[8]
+alligatorTeethPlot = alligatorTeethVal[5]
+alligatorLipsPlot = alligatorLipsVal[3]
+alligatorBullish = useAlligator ? (alligatorLipsPlot > alligatorTeethPlot and alligatorTeethPlot > alligatorJawPlot) : true
+alligatorBearish = useAlligator ? (alligatorLipsPlot < alligatorTeethPlot and alligatorTeethPlot < alligatorJawPlot) : true
+
+// === 38. Gator Oscillator ===
+gatorUpper = math.abs(alligatorJawPlot - alligatorTeethPlot)
+gatorLower = math.abs(alligatorTeethPlot - alligatorLipsPlot)
+gatorExpanding = useGator ? (gatorUpper > gatorUpper[1] or gatorLower > gatorLower[1]) : false
+
+// === 39. TRIX ===
+[trixVal, trixSignalVal] = f_trix(close, trixLength, trixSignalLen)
+trixBullish = useTRIX ? trixVal[1] > trixSignalVal[1] : true
+trixBearish = useTRIX ? trixVal[1] < trixSignalVal[1] : true
+
+// === 40. Oscillator ===
+uoValue = useUO ? f_oscillator(uoPeriod1, uoPeriod2, uoPeriod3) : 50.0
+uoBullish = useUO ? uoValue[1] > 50 : true
+uoBearish = useUO ? uoValue[1] < 50 : true
+
+// === 41. Know Sure Thing ===
+kstR1 = ta.roc(close, kstRoc1)
+kstR2 = ta.roc(close, kstRoc2)
+kstR3 = ta.roc(close, kstRoc3)
+kstR4 = ta.roc(close, kstRoc4)
+kstValue = useKST ? ta.sma(kstR1 * 1 + kstR2 * 2 + kstR3 * 3 + kstR4 * 4, 10) : 0.0
+kstSignalVal = ta.sma(kstValue, kstSmaLen)
+kstBullish = useKST ? kstValue[1] > kstSignalVal[1] : true
+kstBearish = useKST ? kstValue[1] < kstSignalVal[1] : true
+
+// === 42. DPO ===
+dpoValue = useDPO ? f_dpo(close, dpoLength) : 0.0
+dpoBullish = useDPO ? dpoValue[1] > 0 : true
+dpoBearish = useDPO ? dpoValue[1] < 0 : true
+
+// === 43. RVI ===
+[rviValue, rviSignalVal] = f_rvi(rviLength)
+rviBullish = useRVI ? rviValue[1] > rviSignalVal[1] : true
+rviBearish = useRVI ? rviValue[1] < rviSignalVal[1] : true
+
+// === 44. Schaff Trend Cycle ===
+[_, schaffVal] = f_schaffTrendCycle(schaffCycle, schaffSmooth1, schaffSmooth2)
+schaffBullish = useSchaff ? (schaffVal[1] > 25 and schaffVal[2] <= 25) or schaffVal[1] > 75 : true
+schaffBearish = useSchaff ? (schaffVal[1] < 75 and schaffVal[2] >= 75) or schaffVal[1] < 25 : true
+
+// === 45. Pretty Good Oscillator ===
+pgoValue = usePGO ? (close - ta.ema(close, pgoLength)) / math.max(ta.atr(pgoLength), 1e-10) : 0.0
+pgoBullish = usePGO ? pgoValue[1] > 0 : true
+pgoBearish = usePGO ? pgoValue[1] < 0 : true
+
+// === 46. Coppock Curve ===
+coppockRaw = ta.roc(close, coppockRoc1) + ta.roc(close, coppockRoc2)
+coppockValue = useCoppock ? ta.sma(coppockRaw, coppockSma) : 0.0
+coppockBullish = useCoppock ? coppockValue[1] > 0 : true
+coppockBearish = useCoppock ? coppockValue[1] < 0 : true
+
+// === 47. Mass Index ===
+massValue = useMassIndex ? f_massIndex(massSingle, massSum) : 0.0
+massBulge = useMassIndex ? (massValue[1] > massThreshold and massValue[1] < massValue[2]) : false
+
+// === 48. StdDev Bands ===
+stdDevBasis = useStdDevBands ? ta.sma(close, stdDevLength) : close
+stdDevUp = stdDevBasis + stdDevMult * ta.stdev(close, stdDevLength)
+stdDevDn = stdDevBasis - stdDevMult * ta.stdev(close, stdDevLength)
+stdDevBullish = useStdDevBands ? close[1] > stdDevBasis[1] : true
+stdDevBearish = useStdDevBands ? close[1] < stdDevBasis[1] : true
+
+// === 49. Klinger Volume ===
+[kvoValue, kvoSignalLine] = f_klinger(kvoFast, kvoSlow, kvoSignal)
+klingerBullish = useKlinger ? kvoValue[1] > kvoSignalLine[1] : true
+klingerBearish = useKlinger ? kvoValue[1] < kvoSignalLine[1] : true
+
+// === 50. Ease of Movement ===
+eomValue = useEOM ? f_eom(eomLength) : 0.0
+eomBullish = useEOM ? eomValue[1] > 0 : true
+eomBearish = useEOM ? eomValue[1] < 0 : true
+
+// === 51. NVI ===
+var float nviVal = 1000.0
+nviVal := volume < volume[1] ? nviVal[1] * (close / math.max(close[1], 1e-10)) : nviVal[1]
+nviMA = ta.sma(nviVal, nviPviMALen)
+nviBullish = useNVI ? nviVal[1] > nviMA[1] : true
+nviBearish = useNVI ? nviVal[1] < nviMA[1] : true
+
+// === 52. PVI ===
+var float pviVal = 1000.0
+pviVal := volume > volume[1] ? pviVal[1] * (close / math.max(close[1], 1e-10)) : pviVal[1]
+pviMA = ta.sma(pviVal, nviPviMALen)
+pviBullish = usePVI ? pviVal[1] > pviMA[1] : true
+pviBearish = usePVI ? pviVal[1] < pviMA[1] : true
+
+// === 53. Intraday Intensity Index ===
+iiiRaw = (high - low) > 0 ? (2 * close - high - low) / (high - low) * volume : 0.0
+iiiValue = useIII ? ta.sma(iiiRaw, iiiLength) : 0.0
+iiiCum = ta.cum(iiiRaw)
+iiiBullish = useIII ? iiiValue[1] > 0 : true
+iiiBearish = useIII ? iiiValue[1] < 0 : true
+
+// === 54. Market Facilitation Index (Bill Williams) ===
+mfiBWValue = useMFI_BW ? (high - low) / math.max(volume, 1) : 0.0
+mfiBWUp = close > close[1]
+mfiBWVolUp = volume > volume[1]
+mfiBWBullish = useMFI_BW ? (mfiBWUp and mfiBWVolUp) : true
+mfiBWBearish = useMFI_BW ? (not mfiBWUp and mfiBWVolUp) : true
+
+// === 55. Pivot Points (HTF) ===
+[pivotHighHTF, pivotLowHTF, pivotCloseHTF] = request.security(syminfo.tickerid, pivotTimeframe, [high[1], low[1], close[1]], lookahead=barmerge.lookahead_off)
+pivotP = usePivots ? (pivotHighHTF + pivotLowHTF + pivotCloseHTF) / 3 : close
+pivotR1 = 2 * pivotP - pivotLowHTF
+pivotR2 = pivotP + (pivotHighHTF - pivotLowHTF)
+pivotS1 = 2 * pivotP - pivotHighHTF
+pivotS2 = pivotP - (pivotHighHTF - pivotLowHTF)
+nearPivotR1 = usePivots and close[1] >= pivotR1[1] * 0.998 and close[1] <= pivotR1[1] * 1.002
+nearPivotS1 = usePivots and close[1] >= pivotS1[1] * 0.998 and close[1] <= pivotS1[1] * 1.002
+pivotBreak = ta.crossover(close, pivotR1) or ta.crossunder(close, pivotS1)
+
+// === 56. Auto Fibonacci ===
+fibSwingHigh = ta.highest(high, fibLookback)
+fibSwingLow = ta.lowest(low, fibLookback)
+fibRange = fibSwingHigh - fibSwingLow
+fib236 = fibSwingHigh - 0.236 * fibRange
+fib382 = fibSwingHigh - 0.382 * fibRange
+fib50 = fibSwingHigh - 0.5 * fibRange
+fib618 = fibSwingHigh - 0.618 * fibRange
+fib786 = fibSwingHigh - 0.786 * fibRange
+
+// === 57. Support/Resistance (from pivots) ===
+srSwingHigh = ta.pivothigh(high, swingLookback, swingLookback)
+srSwingLow = ta.pivotlow(low, swingLookback, swingLookback)
+srResistance = ta.valuewhen(not na(srSwingHigh), srSwingHigh, 0)
+srSupport = ta.valuewhen(not na(srSwingLow), srSwingLow, 0)
+
+// === 58. Gap Detection ===
+gapUp = useGap and open > high[1]
+gapDown = useGap and open < low[1]
+gapSize = gapUp ? open - high[1] : gapDown ? low[1] - open : 0.0
+gapValid = (gapMinATR <= 0 or gapSize >= atr * gapMinATR) and (gapUp or gapDown)
+
+// === 59. Vortex ===
+[viPlus, viMinus] = f_vortex(vortexLength)
+vortexBullish = useVortex ? viPlus[1] > viMinus[1] : true
+vortexBearish = useVortex ? viMinus[1] > viPlus[1] : true
+
+// === 60. Elder Impulse ===
+elderEma = ta.ema(close, elderEmaLen)
+elderEmaRising = elderEma > elderEma[1]
+elderImpulseBull = useElderImpulse ? (elderEmaRising[1] and macdHist[1] > 0) : true
+elderImpulseBear = useElderImpulse ? (not elderEmaRising[1] and macdHist[1] < 0) : true
+
+// === 61. Volume-Weighted RSI ===
+vwPrice = ta.vwma(close, vwRsiLength)
+vwRsiValue = useVWRSI ? ta.rsi(vwPrice, vwRsiLength) : 50.0
+vwRsiBullish = useVWRSI ? vwRsiValue[1] > 50 : true
+vwRsiBearish = useVWRSI ? vwRsiValue[1] < 50 : true
+
+// === 62. Twiggs Money Flow ===
+twiggsRaw = ((close - low) - (high - close)) / math.max(high - low, 1e-10) * volume
+twiggsValue = useTwiggs ? ta.sma(twiggsRaw, twiggsLength) : 0.0
+twiggsBullish = useTwiggs ? twiggsValue[1] > 0 : true
+twiggsBearish = useTwiggs ? twiggsValue[1] < 0 : true
+
 // ==================================================================================
-// 6-PILLAR CONFLUENCE SCORING SYSTEM
+// BUY/SELL SIGNAL — REVERSAL-BASED SCORING ENGINE
+// Philosophy: Detect exhaustion + reversal confirmation, NOT lagging trend stacking
 // ==================================================================================
 
-// --- Trend Pillar (18 pts max) ---
-buyTrend = (trendUp ? 2 : 0) + (htfTrendUp ? 2 : 0) + (adxStrong ? 2 : 0) + (stBullish ? 2 : 0) + (sarBullish ? 2 : 0) + (ichBullish ? 2 : 0) + (aroonBullish ? 2 : 0) + (linRegBullish ? 2 : 0) + (vwmaBullish ? 2 : 0)
-sellTrend = (trendDown ? 2 : 0) + (not htfTrendUp ? 2 : 0) + (adxStrong ? 2 : 0) + (stBearish ? 2 : 0) + (sarBearish ? 2 : 0) + (ichBearish ? 2 : 0) + (aroonBearish ? 2 : 0) + (linRegBearish ? 2 : 0) + (vwmaBearish ? 2 : 0)
+// --- New reversal-specific variables ---
+stochCrossUp = ta.crossover(stochKVal, stochDVal)
+stochCrossDown = ta.crossunder(stochKVal, stochDVal)
+macdHistTurningUp = macdHist[1] > macdHist[2] and macdHist[2] < 0
+macdHistTurningDown = macdHist[1] < macdHist[2] and macdHist[2] > 0
+// Decaying freshness scores — bar 1 ago = full credit, bar 2 = partial, bar 3 = minimal
+macdCrossUpFresh = macdCrossUp[1] ? 2.0 : macdCrossUp[2] ? 1.2 : macdCrossUp[3] ? 0.5 : 0.0
+macdCrossDownFresh = macdCrossDown[1] ? 2.0 : macdCrossDown[2] ? 1.2 : macdCrossDown[3] ? 0.5 : 0.0
+rsiCrossUpFresh = rsiOversoldCross[1] ? 2.0 : rsiOversoldCross[2] ? 1.2 : rsiOversoldCross[3] ? 0.5 : 0.0
+rsiCrossDownFresh = rsiOverboughtCross[1] ? 2.0 : rsiOverboughtCross[2] ? 1.2 : rsiOverboughtCross[3] ? 0.5 : 0.0
+stochCrossUpFresh = stochCrossUp[1] ? 1.5 : stochCrossUp[2] ? 0.9 : stochCrossUp[3] ? 0.4 : 0.0
+stochCrossDownFresh = stochCrossDown[1] ? 1.5 : stochCrossDown[2] ? 0.9 : stochCrossDown[3] ? 0.4 : 0.0
 
-// --- Momentum Pillar (18 pts max) ---
-buyMomentum = (rsiBullish ? 2 : 0) + (macdBullish ? 2 : 0) + (macdHistBullish ? 1 : 0) + (stochBullish ? 2 : 0) + (rocBullish ? 1 : 0) + (cciBullish ? 2 : 0) + (wrBullish ? 1 : 0) + (cmoBullish ? 1 : 0) + (fisherBullish ? 2 : 0) + (efiBullish ? 1 : 0) + (sineBullish ? 1 : 0) + (mfiBullish ? 2 : 0)
-sellMomentum = (rsiBearish ? 2 : 0) + (macdBearish ? 2 : 0) + (macdHistBearish ? 1 : 0) + (stochBearish ? 2 : 0) + (rocBearish ? 1 : 0) + (cciBearish ? 2 : 0) + (wrBearish ? 1 : 0) + (cmoBearish ? 1 : 0) + (fisherBearish ? 2 : 0) + (efiBearish ? 1 : 0) + (sineBearish ? 1 : 0) + (mfiBearish ? 2 : 0)
+// Lagging indicator count — when too many align, that's exhaustion not confirmation
+lagBuyCount = (trendUp ? 1 : 0) + (maStackUp ? 1 : 0) + (stBullish ? 1 : 0) + (sarBullish ? 1 : 0) + (ichBullish ? 1 : 0) + (aroonBullish ? 1 : 0) + (linRegBullish ? 1 : 0) + (donchianBullish ? 1 : 0) + (mcginleyBullish ? 1 : 0) + (alligatorBullish ? 1 : 0) + (vortexBullish ? 1 : 0) + (demaBullish ? 1 : 0) + (temaBullish ? 1 : 0) + (gmmaBullish ? 1 : 0) + (macdBullish ? 1 : 0) + (rsiBullish ? 1 : 0) + (rocBullish ? 1 : 0)
+lagSellCount = (trendDown ? 1 : 0) + (maStackDown ? 1 : 0) + (stBearish ? 1 : 0) + (sarBearish ? 1 : 0) + (ichBearish ? 1 : 0) + (aroonBearish ? 1 : 0) + (linRegBearish ? 1 : 0) + (donchianBearish ? 1 : 0) + (mcginleyBearish ? 1 : 0) + (alligatorBearish ? 1 : 0) + (vortexBearish ? 1 : 0) + (demaBearish ? 1 : 0) + (temaBearish ? 1 : 0) + (gmmaBearish ? 1 : 0) + (macdBearish ? 1 : 0) + (rsiBearish ? 1 : 0) + (rocBearish ? 1 : 0)
 
-// --- Volume Pillar (18 pts max) ---
-buyVolume = (volumeConfirm ? 3 : 0) + (volumeRising ? 2 : 0) + (obvBullish ? 2 : 0) + (vwapBullish ? 3 : 0) + (cmfBullish ? 2 : 0) + (adLineBullish ? 2 : 0) + (pvtBullish ? 2 : 0) + (pressureBullish ? 2 : 0)
-sellVolume = (volumeConfirm ? 3 : 0) + (volumeRising ? 2 : 0) + (obvBearish ? 2 : 0) + (vwapBearish ? 3 : 0) + (cmfBearish ? 2 : 0) + (adLineBearish ? 2 : 0) + (pvtBearish ? 2 : 0) + (pressureBearish ? 2 : 0)
+// --- 1. EXHAUSTION category (weight 0.30) ---
+// For BUY: detect bearish exhaustion (oversold conditions)
+// For SELL: detect bullish exhaustion (overbought conditions)
+exhWtTotal = 5.0
+exhBuyRaw = (rsiPrev < 35 ? 2.0 : rsiPrev < 45 ? 1.0 : 0.0) + (stochKVal[1] < 25 ? 1.5 : 0.0) + (mfiValue[1] < 30 ? 1.0 : 0.0) + (wrValue[1] < -75 ? 1.0 : 0.0) + (bbPercent < 0.15 ? 1.5 : 0.0) + (zScore[1] < -1.5 ? 2.0 : 0.0) + (cciValue[1] < -100 ? 1.0 : 0.0) + (schaffVal[1] < 20 ? 0.8 : 0.0) + (uoValue[1] < 30 ? 0.8 : 0.0)
+exhSellRaw = (rsiPrev > 65 ? 2.0 : rsiPrev > 55 ? 1.0 : 0.0) + (stochKVal[1] > 75 ? 1.5 : 0.0) + (mfiValue[1] > 70 ? 1.0 : 0.0) + (wrValue[1] > -25 ? 1.0 : 0.0) + (bbPercent > 0.85 ? 1.5 : 0.0) + (zScore[1] > 1.5 ? 2.0 : 0.0) + (cciValue[1] > 100 ? 1.0 : 0.0) + (schaffVal[1] > 80 ? 0.8 : 0.0) + (uoValue[1] > 70 ? 0.8 : 0.0)
+exhBuyScore = math.min(exhBuyRaw / exhWtTotal, 1.0)
+exhSellScore = math.min(exhSellRaw / exhWtTotal, 1.0)
 
-// --- Structure Pillar (18 pts max) ---
-buyStructure = (maStackUp ? 2 : 0) + (structureBull ? 3 : 0) + (not chochBlockBuy ? 2 : 0) + (nearBullOB ? 3 : 0) + (bullEngulfing ? 2 : 0) + (hammerBull ? 1 : 0) + (morningStar ? 2 : 0) + (bullDisplacement ? 1 : 0) + (bullishDivergence ? 2 : 0) + (bullHarami ? 1 : 0) + (threeWhiteSoldiers ? 1 : 0) + (tweezerBottom ? 1 : 0) + (piercingLine ? 1 : 0)
-sellStructure = (maStackDown ? 2 : 0) + (structureBear ? 3 : 0) + (not chochBlockSell ? 2 : 0) + (nearBearOB ? 3 : 0) + (bearEngulfing ? 2 : 0) + (shootingStar ? 1 : 0) + (eveningStar ? 2 : 0) + (bearDisplacement ? 1 : 0) + (bearishDivergence ? 2 : 0) + (bearHarami ? 1 : 0) + (threeBlackCrows ? 1 : 0) + (tweezerTop ? 1 : 0) + (darkCloudCover ? 1 : 0)
+// --- 2. REVERSAL TRIGGERS category (weight 0.25) ---
+// Fresh momentum shifts — events that JUST happened (crossovers within 3 bars)
+revWtTotal = 5.0
+revBuyRaw = macdCrossUpFresh + rsiCrossUpFresh + stochCrossUpFresh + (macdHistTurningUp ? 1.5 : 0.0) + (fisherBullish ? 1.0 : 0.0) + (trixBullish ? 1.0 : 0.0) + (kstBullish ? 1.0 : 0.0) + (sineBullish ? 0.8 : 0.0) + (coppockBullish ? 0.8 : 0.0) + (rviBullish ? 0.7 : 0.0) + (elderImpulseBull ? 0.8 : 0.0) + (dpoBullish ? 0.6 : 0.0)
+revSellRaw = macdCrossDownFresh + rsiCrossDownFresh + stochCrossDownFresh + (macdHistTurningDown ? 1.5 : 0.0) + (fisherBearish ? 1.0 : 0.0) + (trixBearish ? 1.0 : 0.0) + (kstBearish ? 1.0 : 0.0) + (sineBearish ? 0.8 : 0.0) + (coppockBearish ? 0.8 : 0.0) + (rviBearish ? 0.7 : 0.0) + (elderImpulseBear ? 0.8 : 0.0) + (dpoBearish ? 0.6 : 0.0)
+revBuyScore = math.min(revBuyRaw / revWtTotal, 1.0)
+revSellScore = math.min(revSellRaw / revWtTotal, 1.0)
 
-// --- Volatility Pillar (14 pts max) ---
-buyVolatility = (bbNotExtremes ? 2 : 0) + (noSqueeze or ttmFirBull ? 3 : 0) + (ttmFirBull ? 3 : 0) + (kcBullish ? 2 : 0) + (chandBullish ? 2 : 0) + (atrInRange ? 2 : 0)
-sellVolatility = (bbNotExtremes ? 2 : 0) + (noSqueeze or ttmFirBear ? 3 : 0) + (ttmFirBear ? 3 : 0) + (kcBearish ? 2 : 0) + (chandBearish ? 2 : 0) + (atrInRange ? 2 : 0)
+// --- 3. STRUCTURE category (weight 0.20) ---
+// Price at meaningful reversal levels + pattern confirmation
+structWtTotal = 5.5
+structBuyRaw = (nearSupport ? 2.0 : 0.0) + (wyckSpring ? 2.5 : 0.0) + (bullishDivergence ? 2.5 : 0.0) + (bosBull ? 1.5 : 0.0) + (chochBullish ? 2.0 : 0.0) + (sfpBull ? 1.5 : 0.0) + (bullFVG ? 1.0 : 0.0) + (bullEngulfing ? 1.5 : 0.0) + (hammerBull ? 1.5 : 0.0) + (morningStar ? 1.5 : 0.0) + (piercingLine ? 1.0 : 0.0) + (tweezerBottom ? 1.0 : 0.0) + (threeWhiteSoldiers ? 1.0 : 0.0) + (doji and rsiPrev < 40 ? 0.5 : 0.0)
+structSellRaw = (nearResistance ? 2.0 : 0.0) + (wyckUpthrust ? 2.5 : 0.0) + (bearishDivergence ? 2.5 : 0.0) + (bosBear ? 1.5 : 0.0) + (chochBearish ? 2.0 : 0.0) + (sfpBear ? 1.5 : 0.0) + (bearFVG ? 1.0 : 0.0) + (bearEngulfing ? 1.5 : 0.0) + (shootingStar ? 1.5 : 0.0) + (eveningStar ? 1.5 : 0.0) + (darkCloudCover ? 1.0 : 0.0) + (tweezerTop ? 1.0 : 0.0) + (threeBlackCrows ? 1.0 : 0.0) + (doji and rsiPrev > 60 ? 0.5 : 0.0)
+structBuyScore = math.min(structBuyRaw / structWtTotal, 1.0)
+structSellScore = math.min(structSellRaw / structWtTotal, 1.0)
 
-// --- Regime Pillar (14 pts max) ---
-buyRegime = (premiumDiscountOkBuy ? 3 : 0) + (htfRsiOkBuy ? 3 : 0) + (rsBullish ? 2 : 0) + (corrBullish ? 2 : 0) + (not hvHigh ? 2 : 0) + (wyckSpring ? 2 : 0)
-sellRegime = (premiumDiscountOkSell ? 3 : 0) + (htfRsiOkSell ? 3 : 0) + (rsBearish ? 2 : 0) + (corrBearish ? 2 : 0) + (not hvHigh ? 2 : 0) + (wyckUpthrust ? 2 : 0)
+// --- 4. VOLUME CONFIRMATION category (weight 0.15) ---
+// Smart money supporting the reversal
+volWtTotal = 4.0
+// Directional volume — only credit volume when it supports the signal direction
+volConfirmBuy = volumeConfirm and close[1] > open[1]
+volConfirmSell = volumeConfirm and close[1] < open[1]
+volRisingBuy = volumeRising and pressureRatio[1] > 0.55
+volRisingSell = volumeRising and pressureRatio[1] < 0.45
+volBuyRaw = (volConfirmBuy ? 1.2 : 0.0) + (volRisingBuy ? 1.0 : 0.0) + (obvBullish ? 1.0 : 0.0) + (cmfBullish ? 1.0 : 0.0) + (pressureBullish ? 1.2 : 0.0) + (klingerBullish ? 0.8 : 0.0) + (twiggsBullish ? 0.7 : 0.0) + (iiiBullish ? 0.5 : 0.0) + (eomBullish ? 0.5 : 0.0)
+volSellRaw = (volConfirmSell ? 1.2 : 0.0) + (volRisingSell ? 1.0 : 0.0) + (obvBearish ? 1.0 : 0.0) + (cmfBearish ? 1.0 : 0.0) + (pressureBearish ? 1.2 : 0.0) + (klingerBearish ? 0.8 : 0.0) + (twiggsBearish ? 0.7 : 0.0) + (iiiBearish ? 0.5 : 0.0) + (eomBearish ? 0.5 : 0.0)
+volBuyScore = math.min(volBuyRaw / volWtTotal, 1.0)
+volSellScore = math.min(volSellRaw / volWtTotal, 1.0)
 
-// --- Raw Pillar Scores (capped) ---
-buyTrendCapped = math.min(buyTrend, 18)
-buyMomentumCapped = math.min(buyMomentum, 18)
-buyVolumeCapped = math.min(buyVolume, 18)
-buyStructureCapped = math.min(buyStructure, 18)
-buyVolatilityCapped = math.min(buyVolatility, 14)
-buyRegimeCapped = math.min(buyRegime, 14)
+// --- 5. TREND ALIGNMENT category (weight 0.10) ---
+// Trade reversals WITH the higher timeframe direction
+trendAlignWtTotal = 5.0
+trendAlignBuyRaw = (mtfD ? 2.5 : 0.0) + (mtf240 ? 2.0 : 0.0) + (htfTrendUp ? 2.0 : 0.0) + (mtf60 ? 1.0 : 0.0) + (adxStrong ? 0.5 : 0.0)
+trendAlignSellRaw = (not mtfD ? 2.5 : 0.0) + (not mtf240 ? 2.0 : 0.0) + (not htfTrendUp ? 2.0 : 0.0) + (not mtf60 ? 1.0 : 0.0) + (adxStrong ? 0.5 : 0.0)
+trendAlignBuyScore = math.min(trendAlignBuyRaw / trendAlignWtTotal, 1.0)
+trendAlignSellScore = math.min(trendAlignSellRaw / trendAlignWtTotal, 1.0)
 
-sellTrendCapped = math.min(sellTrend, 18)
-sellMomentumCapped = math.min(sellMomentum, 18)
-sellVolumeCapped = math.min(sellVolume, 18)
-sellStructureCapped = math.min(sellStructure, 18)
-sellVolatilityCapped = math.min(sellVolatility, 14)
-sellRegimeCapped = math.min(sellRegime, 14)
+// --- COMPOSITE SCORE ---
+rawBuyScore = (exhBuyScore * 0.30 + revBuyScore * 0.25 + structBuyScore * 0.20 + volBuyScore * 0.15 + trendAlignBuyScore * 0.10) * 100.0
+rawSellScore = (exhSellScore * 0.30 + revSellScore * 0.25 + structSellScore * 0.20 + volSellScore * 0.15 + trendAlignSellScore * 0.10) * 100.0
 
-// --- Meta-Modifiers ---
-// R-Squared: boosts/reduces trend pillar
-rSqTrendMult = useRSquared ? (rSqValue > 0.5 ? 1.1 : rSqValue < 0.2 ? 0.8 : 1.0) : 1.0
+// --- META-MODIFIER MULTIPLIERS ---
+// Z-Score: BOOST signals when price is overextended in the right direction
+zScoreBuyMult = zScore[1] < -2.0 ? 1.15 : zScore[1] > 2.0 ? 0.50 : 1.0
+zScoreSellMult = zScore[1] > 2.0 ? 1.15 : zScore[1] < -2.0 ? 0.50 : 1.0
 
-// Z-Score: reduce score when overextended
-zScorePenaltyBuy = useZScore and zScoreOverextBull ? 0.85 : 1.0
-zScorePenaltySell = useZScore and zScoreOverextBear ? 0.85 : 1.0
+// R² — much stronger gradient: choppy markets get heavy penalty
+rSqMult = rSqValue > 0.7 ? 1.08 : rSqValue > 0.5 ? 1.03 : rSqValue > 0.3 ? 0.90 : rSqValue > 0.15 ? 0.70 : 0.55
 
-// Apply meta-modifiers
-buyTrendFinal = math.round(buyTrendCapped * rSqTrendMult)
-sellTrendFinal = math.round(sellTrendCapped * rSqTrendMult)
+// Volatility spike filter using existing hvRank — extreme volatility = unreliable signals
+volSpikeMult = hvRank[1] > 90 ? 0.65 : hvRank[1] > 80 ? 0.85 : 1.0
 
-// --- Total Confluence Score ---
-buyConfluenceScore = math.min(100, math.round((buyTrendFinal + buyMomentumCapped + buyVolumeCapped + buyStructureCapped + buyVolatilityCapped + buyRegimeCapped) * zScorePenaltyBuy))
-sellConfluenceScore = math.min(100, math.round((sellTrendFinal + sellMomentumCapped + sellVolumeCapped + sellStructureCapped + sellVolatilityCapped + sellRegimeCapped) * zScorePenaltySell))
+// Over-alignment penalty: too many lagging indicators aligned = exhaustion in THAT direction
+// For BUY: if too many lagging bearish signals → bears are exhausted → BOOST buy
+// For BUY: if too many lagging bullish signals → buying at top → PENALIZE buy
+exhaustionBoostBuy = lagSellCount >= 14 ? 1.15 : lagSellCount >= 11 ? 1.08 : 1.0
+exhaustionPenaltyBuy = lagBuyCount >= 14 ? 0.55 : lagBuyCount >= 11 ? 0.75 : 1.0
+exhaustionBoostSell = lagBuyCount >= 14 ? 1.15 : lagBuyCount >= 11 ? 1.08 : 1.0
+exhaustionPenaltySell = lagSellCount >= 14 ? 0.55 : lagSellCount >= 11 ? 0.75 : 1.0
 
-buyConditions = array.new_bool(21)
-array.set(buyConditions, 0, trendUp)
-array.set(buyConditions, 1, adxStrong)
-array.set(buyConditions, 2, rsiBullish)
-array.set(buyConditions, 3, macdBullish)
-array.set(buyConditions, 4, volumeConfirm)
-array.set(buyConditions, 5, useHTF ? htfTrendUp : true)
-array.set(buyConditions, 6, diBullish)
-array.set(buyConditions, 7, bbNotExtremes)
-array.set(buyConditions, 8, noSqueeze)
-array.set(buyConditions, 9, volumeRising)
-array.set(buyConditions, 10, obvBullish)
-array.set(buyConditions, 11, maStackUp)
-array.set(buyConditions, 12, structureBull)
-array.set(buyConditions, 13, stochBullish)
-array.set(buyConditions, 14, rocBullish)
-array.set(buyConditions, 15, macdHistBullish)
-array.set(buyConditions, 16, bullishCandle)
-array.set(buyConditions, 17, inSession)
-array.set(buyConditions, 18, htfRsiOkBuy)
-array.set(buyConditions, 19, atrInRange)
-array.set(buyConditions, 20, bullishDivergence or true)
+// Category agreement
+buyCatAgree = (exhBuyScore > 0.35 ? 1 : 0) + (revBuyScore > 0.25 ? 1 : 0) + (structBuyScore > 0.15 ? 1 : 0) + (volBuyScore > 0.3 ? 1 : 0) + (trendAlignBuyScore > 0.35 ? 1 : 0)
+sellCatAgree = (exhSellScore > 0.35 ? 1 : 0) + (revSellScore > 0.25 ? 1 : 0) + (structSellScore > 0.15 ? 1 : 0) + (volSellScore > 0.3 ? 1 : 0) + (trendAlignSellScore > 0.35 ? 1 : 0)
+agreeMult = buyCatAgree >= 4 ? 1.12 : buyCatAgree >= 3 ? 1.06 : 1.0
+agreeMultSell = sellCatAgree >= 4 ? 1.12 : sellCatAgree >= 3 ? 1.06 : 1.0
 
-buyScore = 0.0
-for i = 0 to 19
-    if array.get(buyConditions, i)
-        buyScore += 5.0
-if bullishDivergence
-    buyScore := math.min(buyScore + 10, 100)
-else
-    buyScore := math.min(buyScore, 100)
+// Divergence mega-bonus (most reliable reversal signal)
+divBonusBuy = bullishDivergence ? 8.0 : 0.0
+divBonusSell = bearishDivergence ? 8.0 : 0.0
 
-sellConditions = array.new_bool(21)
-array.set(sellConditions, 0, trendDown)
-array.set(sellConditions, 1, adxStrong)
-array.set(sellConditions, 2, rsiBearish)
-array.set(sellConditions, 3, macdBearish)
-array.set(sellConditions, 4, volumeConfirm)
-array.set(sellConditions, 5, useHTF ? not htfTrendUp : true)
-array.set(sellConditions, 6, diBearish)
-array.set(sellConditions, 7, bbNotExtremes)
-array.set(sellConditions, 8, noSqueeze)
-array.set(sellConditions, 9, volumeRising)
-array.set(sellConditions, 10, obvBearish)
-array.set(sellConditions, 11, maStackDown)
-array.set(sellConditions, 12, structureBear)
-array.set(sellConditions, 13, stochBearish)
-array.set(sellConditions, 14, rocBearish)
-array.set(sellConditions, 15, macdHistBearish)
-array.set(sellConditions, 16, bearishCandle)
-array.set(sellConditions, 17, inSession)
-array.set(sellConditions, 18, htfRsiOkSell)
-array.set(sellConditions, 19, atrInRange)
-array.set(sellConditions, 20, bearishDivergence or true)
+// Wyckoff event bonus
+wyckBonusBuy = wyckSpring ? 8.0 : 0.0
+wyckBonusSell = wyckUpthrust ? 8.0 : 0.0
 
-sellScore = 0.0
-for i = 0 to 19
-    if array.get(sellConditions, i)
-        sellScore += 5.0
-if bearishDivergence
-    sellScore := math.min(sellScore + 10, 100)
-else
-    sellScore := math.min(sellScore, 100)
+// CHoCH confirmation bonus (change of character = confirmed reversal)
+chochBonusBuy = chochBullish ? 5.0 : 0.0
+chochBonusSell = chochBearish ? 5.0 : 0.0
+
+sessionMult = inSession ? 1.0 : 0.95
+
+finalBuyScore = math.min(rawBuyScore * rSqMult * zScoreBuyMult * exhaustionBoostBuy * exhaustionPenaltyBuy * agreeMult * sessionMult * volSpikeMult + divBonusBuy + wyckBonusBuy + chochBonusBuy, 100.0)
+finalSellScore = math.min(rawSellScore * rSqMult * zScoreSellMult * exhaustionBoostSell * exhaustionPenaltySell * agreeMultSell * sessionMult * volSpikeMult + divBonusSell + wyckBonusSell + chochBonusSell, 100.0)
+
+// --- SIGNAL GENERATION ---
+var int barsSinceLastBuy = 999
+var int barsSinceLastSell = 999
+barsSinceLastBuy := barsSinceLastBuy + 1
+barsSinceLastSell := barsSinceLastSell + 1
+
+buyConfidence = finalBuyScore >= 80 ? "HIGH" : finalBuyScore >= 65 ? "MEDIUM" : "LOW"
+sellConfidence = finalSellScore >= 80 ? "HIGH" : finalSellScore >= 65 ? "MEDIUM" : "LOW"
+
+confFilterBuy = buySellConfidenceFilter == "All" ? true : buySellConfidenceFilter == "Medium+" ? finalBuyScore >= 65 : finalBuyScore >= 80
+confFilterSell = buySellConfidenceFilter == "All" ? true : buySellConfidenceFilter == "Medium+" ? finalSellScore >= 65 : finalSellScore >= 80
+
+// Opposing signal suppression — buy must dominate sell by ≥10 pts, and candle must confirm direction
+buyDominance = finalBuyScore - finalSellScore
+sellDominance = finalSellScore - finalBuyScore
+signalBarBullish = close > open
+signalBarBearish = close < open
+
+signalBuy = showBuySellSignal and barstate.isconfirmed and finalBuyScore >= buySellThreshold and barsSinceLastBuy >= buySellCooldown and confFilterBuy and buyDominance >= 10.0 and signalBarBullish
+signalSell = showBuySellSignal and barstate.isconfirmed and finalSellScore >= buySellThreshold and barsSinceLastSell >= buySellCooldown and confFilterSell and sellDominance >= 10.0 and signalBarBearish
+
+if signalBuy
+    barsSinceLastBuy := 0
+if signalSell
+    barsSinceLastSell := 0
+
+// --- SL/TP CALCULATION (Structure-First with Recency Validation) ---
+atrSLDist = atrPrev * atrMultiplierSL
+
+// Only use swing point if recent (≤30 bars) and reasonable distance (0.8-3.5 ATR)
+swingAgeBuy = bar_index - ta.valuewhen(not na(swingLow), bar_index, 0)
+swingAgeSell = bar_index - ta.valuewhen(not na(swingHigh), bar_index, 0)
+
+structDistBuy = close - lastSwingLow
+structSLBuyOk = not na(lastSwingLow) and lastSwingLow > 0 and swingAgeBuy <= 30 and structDistBuy >= atrPrev * 0.8 and structDistBuy <= atrPrev * 3.5
+
+structDistSell = lastSwingHigh - close
+structSLSellOk = not na(lastSwingHigh) and lastSwingHigh > 0 and swingAgeSell <= 30 and structDistSell >= atrPrev * 0.8 and structDistSell <= atrPrev * 3.5
+
+// Use structure if valid, else ATR fallback
+buySL = structSLBuyOk ? (lastSwingLow - atrPrev * 0.15) : (close - atrSLDist)
+sellSL = structSLSellOk ? (lastSwingHigh + atrPrev * 0.15) : (close + atrSLDist)
+
+// Floor: 1.0 ATR min (was 0.5 — too tight, noise eats it)
+buySL := math.min(buySL, close - atrPrev * 1.0)
+sellSL := math.max(sellSL, close + atrPrev * 1.0)
+
+// --- TP CALCULATION (Structure-Aware Targeting) ---
+fixedBuyTP = close + (close - buySL) * buySellRR
+fixedSellTP = close - (sellSL - close) * buySellRR
+
+// Find nearest structural target above close for BUY
+buyRisk = close - buySL
+nearBuyTarget = fixedBuyTP
+buyTPSource = "R:R"
+if srResistance > close * 1.003 and (srResistance - close) / buyRisk >= 1.5
+    nearBuyTarget := math.min(nearBuyTarget, srResistance)
+    if nearBuyTarget == srResistance
+        buyTPSource := "S/R"
+if pivotR1 > close * 1.003 and (pivotR1 - close) / buyRisk >= 1.5
+    nearBuyTarget := math.min(nearBuyTarget, pivotR1)
+    if nearBuyTarget == pivotR1
+        buyTPSource := "R1"
+buyTP = nearBuyTarget
+buyActualRR = buyRisk > 0 ? (buyTP - close) / buyRisk : buySellRR
+
+// Find nearest structural target below close for SELL
+sellRisk = sellSL - close
+nearSellTarget = fixedSellTP
+sellTPSource = "R:R"
+if srSupport < close * 0.997 and (close - srSupport) / sellRisk >= 1.5
+    nearSellTarget := math.max(nearSellTarget, srSupport)
+    if nearSellTarget == srSupport
+        sellTPSource := "S/R"
+if pivotS1 < close * 0.997 and (close - pivotS1) / sellRisk >= 1.5
+    nearSellTarget := math.max(nearSellTarget, pivotS1)
+    if nearSellTarget == pivotS1
+        sellTPSource := "S1"
+sellTP = nearSellTarget
+sellActualRR = sellRisk > 0 ? (close - sellTP) / sellRisk : buySellRR
 
 // ==================================================================================
 // SCORE THRESHOLD
 // ==================================================================================
-bool buyConditionMet = useConfluenceScore ? (buyConfluenceScore >= confluenceMinScore and not chochBlockBuy) : (buyScore >= minSignalScore)
-bool sellConditionMet = useConfluenceScore ? (sellConfluenceScore >= confluenceMinScore and not chochBlockSell) : (sellScore >= minSignalScore)
 
 regime = adxStrong ? (trendUp ? "STRONG UPTREND" : trendDown ? "STRONG DOWNTREND" : "STRONG TREND") : "RANGING/WEAK"
 regimeShort = adxStrong ? (trendUp ? "Uptrend" : trendDown ? "Downtrend" : "Trend") : "Ranging"
@@ -1006,8 +1550,8 @@ plot(useMAStack ? emaSlower : na, "EMA Slower", color=color.new(warningColor, 70
 plot(showVWAPLine and useVWAP ? vwapValue : na, "VWAP", color=color.new(volumeClr, 30), linewidth=1, style=plot.style_circles)
 
 // Hull MA with ADX-based gradient intensity
-hmaGradientBull = color.from_gradient(adxValue, 15, 50, color.new(bullPrimary, 60), color.new(bullPrimary, 0))
-hmaGradientBear = color.from_gradient(adxValue, 15, 50, color.new(bearPrimary, 60), color.new(bearPrimary, 0))
+hmaGradientBull = color.from_gradient(adxValue, 15, 35, color.new(bullPrimary, 60), color.new(bullPrimary, 0))
+hmaGradientBear = color.from_gradient(adxValue, 15, 35, color.new(bearPrimary, 60), color.new(bearPrimary, 0))
 hmaColor = hullTrend ? hmaGradientBull : hmaGradientBear
 plot(showHullMA ? hullMA : na, "Hull MA", color=hmaColor, linewidth=2)
 
@@ -1018,10 +1562,6 @@ plot(showSuperTrendLine and useSuperTrend ? stValue : na, "SuperTrend", color=co
 
 // Parabolic SAR dots
 plotshape(showSARDots and useSAR ? sarValue : na, "SAR", shape.cross, location.absolute, color=color.new(neutralColor, 40), size=size.tiny)
-
-// Barcolor: confluence gradient on every candle
-candleScore = buyConfluenceScore > sellConfluenceScore ? buyConfluenceScore : -sellConfluenceScore
-barcolor(color.from_gradient(candleScore, -80, 80, bearPrimary, bullPrimary), title="Confluence Candle Color")
 
 // Candlestick pattern markers
 if showPatternMarkers and bullEngulfing
@@ -1055,8 +1595,318 @@ if showPatternMarkers and piercingLine
 if showPatternMarkers and darkCloudCover
     label.new(bar_index, high + atr * 0.2, "DCC", style=label.style_label_down, color=color.new(bearSecondary, 30), textcolor=color.white, size=size.tiny, tooltip="Dark Cloud Cover")
 
+// --- Layer 5: New indicator overlays ---
+// Donchian Channel
+plot(showDonchian and useDonchian ? donchianUpper : na, "Donchian Upper", color=color.new(volumeClr, 75), linewidth=1)
+plot(showDonchian and useDonchian ? donchianLower : na, "Donchian Lower", color=color.new(volumeClr, 75), linewidth=1)
+plot(showDonchian and useDonchian ? donchianMid : na, "Donchian Mid", color=color.new(neutralColor, 70), linewidth=1)
+
+// McGinley Dynamic
+plot(showMcGinley and useMcGinley ? mcginleyVal : na, "McGinley", color=color.new(structureClr, 50), linewidth=1)
+
+// DEMA / TEMA
+plot(useDEMA and showMcGinley ? demaVal : na, "DEMA", color=color.new(warningColor, 60), linewidth=1)
+plot(useTEMA and showMcGinley ? temaVal : na, "TEMA", color=color.new(warningColor, 70), linewidth=1)
+
+// GMMA bands (short avg and long avg)
+plot(showGMMA and useGMMA ? gmmaShortAvg : na, "GMMA Short", color=color.new(bullSecondary, 70), linewidth=1)
+plot(showGMMA and useGMMA ? gmmaLongAvg : na, "GMMA Long", color=color.new(bearSecondary, 70), linewidth=1)
+
+// Williams Alligator
+plot(showAlligator and useAlligator ? alligatorJawPlot : na, "Alligator Jaw", color=color.new(color.blue, 50), linewidth=2)
+plot(showAlligator and useAlligator ? alligatorTeethPlot : na, "Alligator Teeth", color=color.new(color.red, 50), linewidth=2)
+plot(showAlligator and useAlligator ? alligatorLipsPlot : na, "Alligator Lips", color=color.new(color.green, 50), linewidth=2)
+
+// StdDev Bands
+plot(showStdDevBands and useStdDevBands ? stdDevUp : na, "StdDev Upper", color=color.new(volumeClr, 75), linewidth=1)
+plot(showStdDevBands and useStdDevBands ? stdDevDn : na, "StdDev Lower", color=color.new(volumeClr, 75), linewidth=1)
+plot(showStdDevBands and useStdDevBands ? stdDevBasis : na, "StdDev Basis", color=color.new(neutralColor, 60), linewidth=1)
+
+// Pivot lines (horizontal)
+plot(showPivots and usePivots ? pivotP : na, "Pivot P", color=color.new(neutralColor, 60), linewidth=1)
+plot(showPivots and usePivots ? pivotR1 : na, "Pivot R1", color=color.new(bearPrimary, 75), linewidth=1)
+plot(showPivots and usePivots ? pivotR2 : na, "Pivot R2", color=color.new(bearPrimary, 80), linewidth=1)
+plot(showPivots and usePivots ? pivotS1 : na, "Pivot S1", color=color.new(bullPrimary, 75), linewidth=1)
+plot(showPivots and usePivots ? pivotS2 : na, "Pivot S2", color=color.new(bullPrimary, 80), linewidth=1)
+
+// Fibonacci levels
+plot(showFibLevels and useFib ? fib50 : na, "Fib 0.5", color=color.new(structureClr, 70), linewidth=1)
+plot(showFibLevels and useFib ? fib382 : na, "Fib 0.382", color=color.new(structureClr, 80), linewidth=1)
+plot(showFibLevels and useFib ? fib618 : na, "Fib 0.618", color=color.new(structureClr, 80), linewidth=1)
+
+// Gap labels
+if gapValid and gapUp
+    label.new(bar_index, low, "Gap Up", style=label.style_label_up, color=color.new(bullPrimary, 30), textcolor=color.white, size=size.tiny)
+if gapValid and gapDown
+    label.new(bar_index, high, "Gap Dn", style=label.style_label_down, color=color.new(bearPrimary, 30), textcolor=color.white, size=size.tiny)
+
+// Elder Impulse background
+elderBgColor = useElderImpulse ? (elderImpulseBull ? color.new(bullPrimary, 92) : elderImpulseBear ? color.new(bearPrimary, 92) : color.new(neutralColor, 97)) : na
+bgcolor(showBackground and useElderImpulse ? elderBgColor : na, title="Elder Impulse")
+
+// --- Buy/Sell Signal: Labels, SL/TP lines, Tooltips ---
+var line ultBuySLLine = na
+var line ultBuyTPLine = na
+var label ultBuySLLabel = na
+var label ultBuyTPLabel = na
+var line ultSellSLLine = na
+var line ultSellTPLine = na
+var label ultSellSLLabel = na
+var label ultSellTPLabel = na
+var box ultBuyZone = na
+var box ultSellZone = na
+var line ultBuyEntryLine = na
+var label ultBuyEntryLabel = na
+var line ultSellEntryLine = na
+var label ultSellEntryLabel = na
+
+if signalBuy
+    // Build key reasons
+    buyReasons = ""
+    if exhBuyScore > 0.4
+        buyReasons += "Bearish exhaustion detected\n"
+    if revBuyScore > 0.3
+        buyReasons += "Reversal triggers firing\n"
+    if structBuyScore > 0.15
+        buyReasons += "Structure supports reversal\n"
+    if volBuyScore > 0.4
+        buyReasons += "Volume confirming\n"
+    if trendAlignBuyScore > 0.5
+        buyReasons += "HTF trend aligned\n"
+    if bullishDivergence
+        buyReasons += "Bullish divergence (+8)\n"
+    if wyckSpring
+        buyReasons += "Wyckoff Spring (+8)\n"
+    if chochBullish
+        buyReasons += "CHoCH confirmed (+5)\n"
+    if lagSellCount >= 11
+        buyReasons += "Bears overextended (" + str.tostring(lagSellCount) + "/17 lag)\n"
+    if volSpikeMult < 1.0
+        buyReasons += "⚠ Vol spike penalty (" + str.tostring(volSpikeMult, "#.##") + "x)\n"
+
+    buyTooltip = "BUY SIGNAL\n" + "Score: " + str.tostring(finalBuyScore, "#.#") + "/100 (" + buyConfidence + ")\n" + "Dominance: +" + str.tostring(buyDominance, "#.#") + " vs sell\n" + "━━━━━━━━━━━━━━━━━━━━\n" + "Exhaustion:  " + str.tostring(exhBuyScore * 100, "#") + "% (wt 30%)\n" + "Reversal:    " + str.tostring(revBuyScore * 100, "#") + "% (wt 25%)\n" + "Structure:   " + str.tostring(structBuyScore * 100, "#") + "% (wt 20%)\n" + "Volume:      " + str.tostring(volBuyScore * 100, "#") + "% (wt 15%)\n" + "Trend Align: " + str.tostring(trendAlignBuyScore * 100, "#") + "% (wt 10%)\n" + "━━━━━━━━━━━━━━━━━━━━\n" + "Categories agree: " + str.tostring(buyCatAgree) + "/5\n" + "R²: " + str.tostring(rSqValue, "#.##") + " (×" + str.tostring(rSqMult, "#.##") + ")" + " | Z: " + str.tostring(zScore[1], "#.#") + "\n" + "HV Rank: " + str.tostring(hvRank[1], "#") + "%" + (volSpikeMult < 1.0 ? " ⚠" : "") + "\n" + "Lagging bull/bear: " + str.tostring(lagBuyCount) + "/" + str.tostring(lagSellCount) + "\n" + "Divergence: " + (bullishDivergence ? "YES (+8)" : "No") + "\n" + "━━━━━━━━━━━━━━━━━━━━\n" + "KEY REASONS:\n" + buyReasons + "━━━━━━━━━━━━━━━━━━━━\n" + "Entry: " + str.tostring(close, "#.##") + "\n" + "SL: " + str.tostring(buySL, "#.##") + " (-" + str.tostring((close - buySL) / close * 100, "#.#") + "%) " + (structSLBuyOk ? "[Swing]" : "[ATR]") + "\n" + "TP: " + str.tostring(buyTP, "#.##") + " (+" + str.tostring((buyTP - close) / close * 100, "#.#") + "%) at " + buyTPSource + "\n" + "R:R = 1:" + str.tostring(buyActualRR, "#.#")
+
+    // --- Handle previous buy signals ---
+    if showPrevSignals
+        grayLine = color.new(color.gray, prevSignalTransparency)
+        grayLabel = color.new(color.gray, math.min(prevSignalTransparency + 10, 99))
+        grayTxt = color.new(color.gray, math.max(prevSignalTransparency - 20, 30))
+        grayBox = color.new(color.gray, math.min(prevSignalTransparency + 8, 99))
+        grayBoxBorder = color.new(color.gray, prevSignalTransparency)
+        if not na(ultBuyZone)
+            box.set_bgcolor(ultBuyZone, grayBox)
+            box.set_border_color(ultBuyZone, grayBoxBorder)
+            box.set_text_color(ultBuyZone, grayTxt)
+        if not na(ultBuyEntryLine)
+            line.set_color(ultBuyEntryLine, grayLine)
+            label.set_color(ultBuyEntryLabel, grayLabel)
+            label.set_textcolor(ultBuyEntryLabel, grayTxt)
+        if not na(ultBuySLLine)
+            line.set_color(ultBuySLLine, grayLine)
+            line.set_color(ultBuyTPLine, grayLine)
+            label.set_color(ultBuySLLabel, grayLabel)
+            label.set_textcolor(ultBuySLLabel, grayTxt)
+            label.set_color(ultBuyTPLabel, grayLabel)
+            label.set_textcolor(ultBuyTPLabel, grayTxt)
+        // --- Gray out previous sell signals (only one active at a time) ---
+        if not na(ultSellZone)
+            box.set_bgcolor(ultSellZone, grayBox)
+            box.set_border_color(ultSellZone, grayBoxBorder)
+            box.set_text_color(ultSellZone, grayTxt)
+        if not na(ultSellEntryLine)
+            line.set_color(ultSellEntryLine, grayLine)
+            label.set_color(ultSellEntryLabel, grayLabel)
+            label.set_textcolor(ultSellEntryLabel, grayTxt)
+        if not na(ultSellSLLine)
+            line.set_color(ultSellSLLine, grayLine)
+            line.set_color(ultSellTPLine, grayLine)
+            label.set_color(ultSellSLLabel, grayLabel)
+            label.set_textcolor(ultSellSLLabel, grayTxt)
+            label.set_color(ultSellTPLabel, grayLabel)
+            label.set_textcolor(ultSellTPLabel, grayTxt)
+    else
+        if not na(ultBuyZone)
+            box.delete(ultBuyZone)
+            ultBuyZone := na
+        if not na(ultBuyEntryLine)
+            line.delete(ultBuyEntryLine)
+            label.delete(ultBuyEntryLabel)
+            ultBuyEntryLine := na
+            ultBuyEntryLabel := na
+        if not na(ultBuySLLine)
+            line.delete(ultBuySLLine)
+            line.delete(ultBuyTPLine)
+            label.delete(ultBuySLLabel)
+            label.delete(ultBuyTPLabel)
+            ultBuySLLine := na
+            ultBuyTPLine := na
+            ultBuySLLabel := na
+            ultBuyTPLabel := na
+        if not na(ultSellZone)
+            box.delete(ultSellZone)
+            ultSellZone := na
+        if not na(ultSellEntryLine)
+            line.delete(ultSellEntryLine)
+            label.delete(ultSellEntryLabel)
+            ultSellEntryLine := na
+            ultSellEntryLabel := na
+        if not na(ultSellSLLine)
+            line.delete(ultSellSLLine)
+            line.delete(ultSellTPLine)
+            label.delete(ultSellSLLabel)
+            label.delete(ultSellTPLabel)
+            ultSellSLLine := na
+            ultSellTPLine := na
+            ultSellSLLabel := na
+            ultSellTPLabel := na
+
+    // --- New buy zone (ATR-adaptive) ---
+    zoneHalfH = atrPrev * 1.0
+    zoneMid = (open + close) / 2
+    buyZoneLow = zoneMid - zoneHalfH
+    buyZoneHigh = zoneMid + zoneHalfH * 0.5
+    zoneForward = finalBuyScore >= 80 ? 5 : 3
+    buyZoneBg = finalBuyScore >= 80 ? color.new(bullPrimary, 75) : color.new(bullSecondary, 80)
+    buyZoneBorder = finalBuyScore >= 80 ? color.new(bullPrimary, 40) : color.new(bullSecondary, 50)
+    ultBuyZone := box.new(bar_index - 1, buyZoneHigh, bar_index + zoneForward, buyZoneLow, border_color=buyZoneBorder, bgcolor=buyZoneBg, border_width=2, text="BUY " + str.tostring(finalBuyScore, "#"), text_color=color.white, text_size=size.small, text_halign=text.align_center, text_valign=text.align_center)
+    // Small label below for tooltip (boxes don't support tooltips)
+    label.new(bar_index, buyZoneLow - atr * 0.3, "▲ " + str.tostring(finalBuyScore, "#"), style=label.style_label_up, color=buyZoneBorder, textcolor=color.white, size=size.small, tooltip=buyTooltip)
+
+    // --- Blue entry line ---
+    ultBuyEntryLine := line.new(bar_index, close, bar_index + 20, close, color=color.new(color.blue, 20), style=line.style_solid, width=2)
+    ultBuyEntryLabel := label.new(bar_index + 20, close, "ENTRY " + str.tostring(close, "#.##"), style=label.style_label_left, color=color.new(color.blue, 40), textcolor=color.white, size=size.tiny)
+
+    // --- SL/TP lines ---
+    if showBuySellSLTP
+        ultBuySLLine := line.new(bar_index, buySL, bar_index + 20, buySL, color=color.new(bearPrimary, 30), style=line.style_dashed, width=1)
+        ultBuySLLabel := label.new(bar_index + 20, buySL, "SL " + str.tostring(buySL, "#.##"), style=label.style_label_left, color=color.new(bearPrimary, 50), textcolor=color.white, size=size.tiny)
+        ultBuyTPLine := line.new(bar_index, buyTP, bar_index + 20, buyTP, color=color.new(bullPrimary, 30), style=line.style_dashed, width=1)
+        ultBuyTPLabel := label.new(bar_index + 20, buyTP, "TP " + str.tostring(buyTP, "#.##") + " " + buyTPSource + " (1:" + str.tostring(buyActualRR, "#.#") + ")", style=label.style_label_left, color=color.new(bullPrimary, 50), textcolor=color.white, size=size.tiny)
+
+if signalSell
+    sellReasons = ""
+    if exhSellScore > 0.4
+        sellReasons += "Bullish exhaustion detected\n"
+    if revSellScore > 0.3
+        sellReasons += "Reversal triggers firing\n"
+    if structSellScore > 0.15
+        sellReasons += "Structure supports reversal\n"
+    if volSellScore > 0.4
+        sellReasons += "Volume confirming\n"
+    if trendAlignSellScore > 0.5
+        sellReasons += "HTF trend aligned\n"
+    if bearishDivergence
+        sellReasons += "Bearish divergence (+8)\n"
+    if wyckUpthrust
+        sellReasons += "Wyckoff Upthrust (+8)\n"
+    if chochBearish
+        sellReasons += "CHoCH confirmed (+5)\n"
+    if lagBuyCount >= 11
+        sellReasons += "Bulls overextended (" + str.tostring(lagBuyCount) + "/17 lag)\n"
+    if volSpikeMult < 1.0
+        sellReasons += "⚠ Vol spike penalty (" + str.tostring(volSpikeMult, "#.##") + "x)\n"
+
+    sellTooltip = "SELL SIGNAL\n" + "Score: " + str.tostring(finalSellScore, "#.#") + "/100 (" + sellConfidence + ")\n" + "Dominance: +" + str.tostring(sellDominance, "#.#") + " vs buy\n" + "━━━━━━━━━━━━━━━━━━━━\n" + "Exhaustion:  " + str.tostring(exhSellScore * 100, "#") + "% (wt 30%)\n" + "Reversal:    " + str.tostring(revSellScore * 100, "#") + "% (wt 25%)\n" + "Structure:   " + str.tostring(structSellScore * 100, "#") + "% (wt 20%)\n" + "Volume:      " + str.tostring(volSellScore * 100, "#") + "% (wt 15%)\n" + "Trend Align: " + str.tostring(trendAlignSellScore * 100, "#") + "% (wt 10%)\n" + "━━━━━━━━━━━━━━━━━━━━\n" + "Categories agree: " + str.tostring(sellCatAgree) + "/5\n" + "R²: " + str.tostring(rSqValue, "#.##") + " (×" + str.tostring(rSqMult, "#.##") + ")" + " | Z: " + str.tostring(zScore[1], "#.#") + "\n" + "HV Rank: " + str.tostring(hvRank[1], "#") + "%" + (volSpikeMult < 1.0 ? " ⚠" : "") + "\n" + "Lagging bull/bear: " + str.tostring(lagBuyCount) + "/" + str.tostring(lagSellCount) + "\n" + "Divergence: " + (bearishDivergence ? "YES (+8)" : "No") + "\n" + "━━━━━━━━━━━━━━━━━━━━\n" + "KEY REASONS:\n" + sellReasons + "━━━━━━━━━━━━━━━━━━━━\n" + "Entry: " + str.tostring(close, "#.##") + "\n" + "SL: " + str.tostring(sellSL, "#.##") + " (+" + str.tostring((sellSL - close) / close * 100, "#.#") + "%) " + (structSLSellOk ? "[Swing]" : "[ATR]") + "\n" + "TP: " + str.tostring(sellTP, "#.##") + " (-" + str.tostring((close - sellTP) / close * 100, "#.#") + "%) at " + sellTPSource + "\n" + "R:R = 1:" + str.tostring(sellActualRR, "#.#")
+
+    // --- Handle previous sell signals ---
+    if showPrevSignals
+        grayLine = color.new(color.gray, prevSignalTransparency)
+        grayLabel = color.new(color.gray, math.min(prevSignalTransparency + 10, 99))
+        grayTxt = color.new(color.gray, math.max(prevSignalTransparency - 20, 30))
+        grayBox = color.new(color.gray, math.min(prevSignalTransparency + 8, 99))
+        grayBoxBorder = color.new(color.gray, prevSignalTransparency)
+        if not na(ultSellZone)
+            box.set_bgcolor(ultSellZone, grayBox)
+            box.set_border_color(ultSellZone, grayBoxBorder)
+            box.set_text_color(ultSellZone, grayTxt)
+        if not na(ultSellEntryLine)
+            line.set_color(ultSellEntryLine, grayLine)
+            label.set_color(ultSellEntryLabel, grayLabel)
+            label.set_textcolor(ultSellEntryLabel, grayTxt)
+        if not na(ultSellSLLine)
+            line.set_color(ultSellSLLine, grayLine)
+            line.set_color(ultSellTPLine, grayLine)
+            label.set_color(ultSellSLLabel, grayLabel)
+            label.set_textcolor(ultSellSLLabel, grayTxt)
+            label.set_color(ultSellTPLabel, grayLabel)
+            label.set_textcolor(ultSellTPLabel, grayTxt)
+        // --- Gray out previous buy signals (only one active at a time) ---
+        if not na(ultBuyZone)
+            box.set_bgcolor(ultBuyZone, grayBox)
+            box.set_border_color(ultBuyZone, grayBoxBorder)
+            box.set_text_color(ultBuyZone, grayTxt)
+        if not na(ultBuyEntryLine)
+            line.set_color(ultBuyEntryLine, grayLine)
+            label.set_color(ultBuyEntryLabel, grayLabel)
+            label.set_textcolor(ultBuyEntryLabel, grayTxt)
+        if not na(ultBuySLLine)
+            line.set_color(ultBuySLLine, grayLine)
+            line.set_color(ultBuyTPLine, grayLine)
+            label.set_color(ultBuySLLabel, grayLabel)
+            label.set_textcolor(ultBuySLLabel, grayTxt)
+            label.set_color(ultBuyTPLabel, grayLabel)
+            label.set_textcolor(ultBuyTPLabel, grayTxt)
+    else
+        if not na(ultSellZone)
+            box.delete(ultSellZone)
+            ultSellZone := na
+        if not na(ultSellEntryLine)
+            line.delete(ultSellEntryLine)
+            label.delete(ultSellEntryLabel)
+            ultSellEntryLine := na
+            ultSellEntryLabel := na
+        if not na(ultSellSLLine)
+            line.delete(ultSellSLLine)
+            line.delete(ultSellTPLine)
+            label.delete(ultSellSLLabel)
+            label.delete(ultSellTPLabel)
+            ultSellSLLine := na
+            ultSellTPLine := na
+            ultSellSLLabel := na
+            ultSellTPLabel := na
+        if not na(ultBuyZone)
+            box.delete(ultBuyZone)
+            ultBuyZone := na
+        if not na(ultBuyEntryLine)
+            line.delete(ultBuyEntryLine)
+            label.delete(ultBuyEntryLabel)
+            ultBuyEntryLine := na
+            ultBuyEntryLabel := na
+        if not na(ultBuySLLine)
+            line.delete(ultBuySLLine)
+            line.delete(ultBuyTPLine)
+            label.delete(ultBuySLLabel)
+            label.delete(ultBuyTPLabel)
+            ultBuySLLine := na
+            ultBuyTPLine := na
+            ultBuySLLabel := na
+            ultBuyTPLabel := na
+
+    // --- New sell zone (ATR-adaptive) ---
+    sellZoneHalfH = atrPrev * 1.0
+    sellZoneMid = (open + close) / 2
+    sellZoneHigh = sellZoneMid + sellZoneHalfH * 0.5
+    sellZoneLow = sellZoneMid - sellZoneHalfH
+    sellZoneForward = finalSellScore >= 80 ? 5 : 3
+    sellZoneBg = finalSellScore >= 80 ? color.new(bearPrimary, 75) : color.new(bearSecondary, 80)
+    sellZoneBorder = finalSellScore >= 80 ? color.new(bearPrimary, 40) : color.new(bearSecondary, 50)
+    ultSellZone := box.new(bar_index - 1, sellZoneHigh, bar_index + sellZoneForward, sellZoneLow, border_color=sellZoneBorder, bgcolor=sellZoneBg, border_width=2, text="SELL " + str.tostring(finalSellScore, "#"), text_color=color.white, text_size=size.small, text_halign=text.align_center, text_valign=text.align_center)
+    // Small label above for tooltip (boxes don't support tooltips)
+    label.new(bar_index, sellZoneHigh + atr * 0.3, "▼ " + str.tostring(finalSellScore, "#"), style=label.style_label_down, color=sellZoneBorder, textcolor=color.white, size=size.small, tooltip=sellTooltip)
+
+    // --- Blue entry line ---
+    ultSellEntryLine := line.new(bar_index, close, bar_index + 20, close, color=color.new(color.blue, 20), style=line.style_solid, width=2)
+    ultSellEntryLabel := label.new(bar_index + 20, close, "ENTRY " + str.tostring(close, "#.##"), style=label.style_label_left, color=color.new(color.blue, 40), textcolor=color.white, size=size.tiny)
+
+    // --- SL/TP lines ---
+    if showBuySellSLTP
+        ultSellSLLine := line.new(bar_index, sellSL, bar_index + 20, sellSL, color=color.new(bearPrimary, 30), style=line.style_dashed, width=1)
+        ultSellSLLabel := label.new(bar_index + 20, sellSL, "SL " + str.tostring(sellSL, "#.##"), style=label.style_label_left, color=color.new(bearPrimary, 50), textcolor=color.white, size=size.tiny)
+        ultSellTPLine := line.new(bar_index, sellTP, bar_index + 20, sellTP, color=color.new(bullPrimary, 30), style=line.style_dashed, width=1)
+        ultSellTPLabel := label.new(bar_index + 20, sellTP, "TP " + str.tostring(sellTP, "#.##") + " " + sellTPSource + " (1:" + str.tostring(sellActualRR, "#.#") + ")", style=label.style_label_left, color=color.new(bullPrimary, 50), textcolor=color.white, size=size.tiny)
+
 // ==================================================================================
-// DASHBOARD (5-column, categorized sections)
+// DASHBOARD functions
 // ==================================================================================
 
 f_condColor(met) =>
@@ -1066,11 +1916,10 @@ f_condColor3(bullish, bearish) =>
     bullish ? color.new(color.rgb(0, 200, 83), 60) : bearish ? color.new(color.rgb(255, 23, 68), 60) : color.new(neutralColor, 50)
 
 f_condSym(met) =>
-    useAsciiSymbols ? (met ? "+" : "-") : (met ? "\u2713" : "\u2717")
+    met ? "+" : "-"
 
 f_sparkline(series float src, lookback) =>
     asciiLadder = " .:-=+#"
-    blocks = array.from("\u2581", "\u2582", "\u2583", "\u2584", "\u2585", "\u2586", "\u2587", "\u2588")
     result = ""
     maxVal = ta.highest(src, lookback)
     minVal = ta.lowest(src, lookback)
@@ -1078,12 +1927,12 @@ f_sparkline(series float src, lookback) =>
     for i = lookback - 1 to 0
         idx = math.round((nz(src[i]) - minVal) / rangeVal * 7)
         idx := math.max(0, math.min(7, idx))
-        result += useAsciiSymbols ? str.substring(asciiLadder, idx, idx + 1) : array.get(blocks, idx)
+        result += str.substring(asciiLadder, idx, idx + 1)
     result
 
 rsiSparkline = f_sparkline(rsiValue, 8)
 if showDashboard and barstate.islast
-    var table dash = table.new(position.top_right, 5, 46, border_width=0, frame_width=0)
+    var table dash = table.new(position.top_right, 5, 61, border_width=0, frame_width=0)
 
     headerBg = color.rgb(30, 30, 46)
     sectionTrend = color.new(structureClr, 60)
@@ -1098,7 +1947,7 @@ if showDashboard and barstate.islast
     txtClr = color.rgb(220, 220, 230)
     txtSm = size.tiny
 
-    // --- Row 0: Title ---
+    // --- Table Section 1: Title ---
     table.cell(dash, 0, 0, "Technical Indicators", bgcolor=headerBg, text_color=bullPrimary, text_size=size.small, text_font_family=font.family_monospace)
     table.cell(dash, 1, 0, "", bgcolor=headerBg)
     table.cell(dash, 2, 0, "", bgcolor=headerBg)
@@ -1106,326 +1955,388 @@ if showDashboard and barstate.islast
     table.cell(dash, 4, 0, "", bgcolor=headerBg)
     table.merge_cells(dash, 0, 0, 4, 0)
 
-    // --- Row 1: Score ---
-    dScore = buyConfluenceScore > sellConfluenceScore ? buyConfluenceScore : sellConfluenceScore
-    dDir = buyConfluenceScore > sellConfluenceScore ? "BUY" : "SELL"
-    scoreBg = buyConfluenceScore > sellConfluenceScore ? (buyConditionMet ? color.new(bullPrimary, 40) : color.new(warningColor, 50)) : (sellConditionMet ? color.new(bearPrimary, 40) : color.new(warningColor, 50))
-    table.cell(dash, 0, 1, str.tostring(dScore) + "/100", bgcolor=scoreBg, text_color=color.white, text_size=size.small, text_font_family=font.family_monospace)
-    table.cell(dash, 1, 1, "", bgcolor=scoreBg)
-    table.cell(dash, 2, 1, "", bgcolor=scoreBg)
-    table.cell(dash, 3, 1, dDir + (chochBlockBuy or chochBlockSell ? (useAsciiSymbols ? "" : " \U0001F512") : "") + (not (buyConditionMet or sellConditionMet) and not useAsciiSymbols ? " (no trig)" : ""), bgcolor=scoreBg, text_color=color.white, text_size=size.small)
-    table.cell(dash, 4, 1, buyConditionMet or sellConditionMet ? (useAsciiSymbols ? "OK" : "\u2705") : (useAsciiSymbols ? "X" : "\u274C"), bgcolor=scoreBg, text_size=txtSm)
-    table.merge_cells(dash, 0, 1, 2, 1)
-
-    // --- Row 2: TREND Header ---
-    table.cell(dash, 0, 2, "  TREND " + str.tostring(buyConfluenceScore > sellConfluenceScore ? buyTrendFinal : sellTrendFinal) + "/18", bgcolor=sectionTrend, text_color=color.white, text_size=txtSm, text_font_family=font.family_monospace)
+    // --- Table Section 2: TREND ---
+    table.cell(dash, 0, 2, "  TREND", bgcolor=sectionTrend, text_color=color.white, text_size=txtSm, text_font_family=font.family_monospace)
     table.cell(dash, 1, 2, "", bgcolor=sectionTrend)
     table.cell(dash, 2, 2, "", bgcolor=sectionTrend)
     table.cell(dash, 3, 2, "", bgcolor=sectionTrend)
     table.cell(dash, 4, 2, "", bgcolor=sectionTrend)
     table.merge_cells(dash, 0, 2, 4, 2)
 
-    // Row 3
     table.cell(dash, 0, 3, "Hull MA", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
     table.cell(dash, 1, 3, hullTrend ? "Rising" : "Falling", bgcolor=f_condColor(hullTrend), text_color=color.white, text_size=txtSm)
     table.cell(dash, 2, 3, "SuperTrnd", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
     table.cell(dash, 3, 3, stBullish ? "Above" : "Below", bgcolor=f_condColor(stBullish), text_color=color.white, text_size=txtSm)
     table.cell(dash, 4, 3, f_condSym(hullTrend and stBullish), bgcolor=f_condColor(hullTrend and stBullish), text_color=color.white, text_size=txtSm)
 
-    // Row 4
     table.cell(dash, 0, 4, "ADX", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
     table.cell(dash, 1, 4, str.tostring(adxValue[1], "#.#") + ">" + str.tostring(adxThreshold, "#"), bgcolor=f_condColor(adxStrong), text_color=color.white, text_size=txtSm)
     table.cell(dash, 2, 4, "SAR", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
     table.cell(dash, 3, 4, sarBullish ? "Below" : "Above", bgcolor=f_condColor(sarBullish), text_color=color.white, text_size=txtSm)
     table.cell(dash, 4, 4, f_condSym(adxStrong and sarBullish), bgcolor=f_condColor(adxStrong and sarBullish), text_color=color.white, text_size=txtSm)
 
-    // Row 5
     table.cell(dash, 0, 5, "Ichimoku", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
     table.cell(dash, 1, 5, ichBullish ? "Aligned" : ichBearish ? "Bear" : "Mixed", bgcolor=f_condColor(ichBullish), text_color=color.white, text_size=txtSm)
     table.cell(dash, 2, 5, "Aroon", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
     table.cell(dash, 3, 5, "U" + str.tostring(math.round(math.max(0, math.min(100, aroonUp[1]))), "#") + "/D" + str.tostring(math.round(math.max(0, math.min(100, aroonDown[1]))), "#"), bgcolor=f_condColor(aroonBullish), text_color=color.white, text_size=txtSm)
     table.cell(dash, 4, 5, f_condSym(ichBullish and aroonBullish), bgcolor=f_condColor(ichBullish and aroonBullish), text_color=color.white, text_size=txtSm)
 
-    // Row 6
     table.cell(dash, 0, 6, "LinReg", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
     table.cell(dash, 1, 6, linRegSlope[1] > 0 ? "+slope" : "-slope", bgcolor=f_condColor(linRegBullish), text_color=color.white, text_size=txtSm)
     table.cell(dash, 2, 6, "VWMA", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
     table.cell(dash, 3, 6, vwmaBullish ? ">SMA" : "<SMA", bgcolor=f_condColor(vwmaBullish), text_color=color.white, text_size=txtSm)
     table.cell(dash, 4, 6, f_condSym(linRegBullish and vwmaBullish), bgcolor=f_condColor(linRegBullish and vwmaBullish), text_color=color.white, text_size=txtSm)
 
-    // Row 7
     table.cell(dash, 0, 7, "HTF EMA", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
     table.cell(dash, 1, 7, htfTrendUp ? "Above" : "Below", bgcolor=f_condColor(htfTrendUp), text_color=color.white, text_size=txtSm)
     table.cell(dash, 2, 7, "MA Stack", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
     table.cell(dash, 3, 7, maStackUp ? "9>21>50" : maStackDown ? "9<21<50" : "Mixed", bgcolor=f_condColor(maStackUp), text_color=color.white, text_size=txtSm)
     table.cell(dash, 4, 7, f_condSym(htfTrendUp and maStackUp), bgcolor=f_condColor(htfTrendUp and maStackUp), text_color=color.white, text_size=txtSm)
 
-    // --- Row 8: MOMENTUM Header ---
-    table.cell(dash, 0, 8, "  MOMENTUM " + str.tostring(buyConfluenceScore > sellConfluenceScore ? buyMomentumCapped : sellMomentumCapped) + "/18", bgcolor=sectionMomentum, text_color=color.white, text_size=txtSm, text_font_family=font.family_monospace)
-    table.cell(dash, 1, 8, "", bgcolor=sectionMomentum)
-    table.cell(dash, 2, 8, "", bgcolor=sectionMomentum)
-    table.cell(dash, 3, 8, "", bgcolor=sectionMomentum)
-    table.cell(dash, 4, 8, "", bgcolor=sectionMomentum)
-    table.merge_cells(dash, 0, 8, 4, 8)
+    table.cell(dash, 0, 8, "Donchian", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 8, donchianBullish ? ">Mid" : "<Mid", bgcolor=f_condColor(donchianBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 8, "McGinley", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 8, mcginleyBullish ? "Above" : "Below", bgcolor=f_condColor(mcginleyBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 8, f_condSym(donchianBullish and mcginleyBullish), bgcolor=f_condColor(donchianBullish and mcginleyBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 0, 9, "DEMA", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 9, demaBullish ? "Above" : "Below", bgcolor=f_condColor(demaBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 9, "GMMA", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 9, gmmaBullish ? "Short>Long" : "Short<Long", bgcolor=f_condColor(gmmaBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 9, f_condSym(demaBullish and gmmaBullish), bgcolor=f_condColor(demaBullish and gmmaBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 0, 10, "Alligator", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 10, alligatorBullish ? "Aligned^" : alligatorBearish ? "Alignedv" : "Mixed", bgcolor=f_condColor(alligatorBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 10, "Vortex", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 10, vortexBullish ? "VI+>VI-" : "VI-<VI+", bgcolor=f_condColor(vortexBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 10, f_condSym(alligatorBullish and vortexBullish), bgcolor=f_condColor(alligatorBullish and vortexBullish), text_color=color.white, text_size=txtSm)
 
-    // Row 9
-    table.cell(dash, 0, 9, "RSI", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 1, 9, str.tostring(rsiPrev, "#.#") + " " + rsiSparkline, bgcolor=f_condColor(rsiBullish), text_color=color.white, text_size=txtSm, text_font_family=font.family_monospace)
-    table.cell(dash, 2, 9, "Stoch", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 3, 9, str.tostring(stochKVal[1], "#") + "/" + str.tostring(stochDVal[1], "#"), bgcolor=f_condColor(stochBullish), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 4, 9, f_condSym(rsiBullish and stochBullish), bgcolor=f_condColor(rsiBullish and stochBullish), text_color=color.white, text_size=txtSm)
+    // --- Table Section 2: MOMENTUM ---
+    table.cell(dash, 0, 11, "  MOMENTUM", bgcolor=sectionMomentum, text_color=color.white, text_size=txtSm, text_font_family=font.family_monospace)
+    table.cell(dash, 1, 11, "", bgcolor=sectionMomentum)
+    table.cell(dash, 2, 11, "", bgcolor=sectionMomentum)
+    table.cell(dash, 3, 11, "", bgcolor=sectionMomentum)
+    table.cell(dash, 4, 11, "", bgcolor=sectionMomentum)
+    table.merge_cells(dash, 0, 11, 4, 11)
 
-    // Row 10
-    table.cell(dash, 0, 10, "MACD", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 1, 10, macdBullish ? ">Sig" : "<Sig", bgcolor=f_condColor(macdBullish), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 2, 10, "Hist", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 3, 10, str.tostring(macdHist[1], "#.###"), bgcolor=f_condColor(macdHistBullish), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 4, 10, f_condSym(macdBullish and macdHistBullish), bgcolor=f_condColor(macdBullish and macdHistBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 0, 12, "RSI", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 12, str.tostring(rsiPrev, "#.#") + " " + rsiSparkline, bgcolor=f_condColor(rsiBullish), text_color=color.white, text_size=txtSm, text_font_family=font.family_monospace)
+    table.cell(dash, 2, 12, "Stoch", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 12, str.tostring(stochKVal[1], "#") + "/" + str.tostring(stochDVal[1], "#"), bgcolor=f_condColor(stochBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 12, f_condSym(rsiBullish and stochBullish), bgcolor=f_condColor(rsiBullish and stochBullish), text_color=color.white, text_size=txtSm)
 
-    // Row 11
-    table.cell(dash, 0, 11, "CCI", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 1, 11, str.tostring(cciValue[1], "#"), bgcolor=f_condColor(cciBullish), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 2, 11, "W%R", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 3, 11, str.tostring(wrValue[1], "#"), bgcolor=f_condColor(wrBullish), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 4, 11, f_condSym(cciBullish and wrBullish), bgcolor=f_condColor(cciBullish and wrBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 0, 13, "MACD", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 13, macdBullish ? ">Sig" : "<Sig", bgcolor=f_condColor(macdBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 13, "Hist", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 13, str.tostring(macdHist[1], "#.###"), bgcolor=f_condColor(macdHistBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 13, f_condSym(macdBullish and macdHistBullish), bgcolor=f_condColor(macdBullish and macdHistBullish), text_color=color.white, text_size=txtSm)
 
-    // Row 12
-    table.cell(dash, 0, 12, "CMO", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 1, 12, str.tostring(cmoValue[1], "#"), bgcolor=f_condColor(cmoBullish), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 2, 12, "Fisher", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 3, 12, fisherBullish ? (useAsciiSymbols ? "Cross^" : "Cross\u2191") : (useAsciiSymbols ? "Crossv" : "Cross\u2193"), bgcolor=f_condColor(fisherBullish), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 4, 12, f_condSym(cmoBullish and fisherBullish), bgcolor=f_condColor(cmoBullish and fisherBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 0, 14, "CCI", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 14, str.tostring(cciValue[1], "#"), bgcolor=f_condColor(cciBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 14, "W%R", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 14, str.tostring(wrValue[1], "#"), bgcolor=f_condColor(wrBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 14, f_condSym(cciBullish and wrBullish), bgcolor=f_condColor(cciBullish and wrBullish), text_color=color.white, text_size=txtSm)
 
-    // Row 13
-    table.cell(dash, 0, 13, "EFI", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 1, 13, efiBullish ? ">0" : "<0", bgcolor=f_condColor(efiBullish), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 2, 13, "ROC", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 3, 13, str.tostring(roc[1], "#.##") + "%", bgcolor=f_condColor(rocBullish), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 4, 13, f_condSym(efiBullish and rocBullish), bgcolor=f_condColor(efiBullish and rocBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 0, 15, "CMO", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 15, str.tostring(cmoValue[1], "#"), bgcolor=f_condColor(cmoBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 15, "Fisher", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 15, fisherBullish ? "Cross^" : "Crossv", bgcolor=f_condColor(fisherBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 15, f_condSym(cmoBullish and fisherBullish), bgcolor=f_condColor(cmoBullish and fisherBullish), text_color=color.white, text_size=txtSm)
 
-    // Row 14
-    table.cell(dash, 0, 14, "MFI", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 1, 14, str.tostring(mfiValue[1], "#"), bgcolor=f_condColor(mfiBullish), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 2, 14, "Sine", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 3, 14, sineBullish ? "Bull" : "Bear", bgcolor=f_condColor(sineBullish), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 4, 14, f_condSym(mfiBullish and sineBullish), bgcolor=f_condColor(mfiBullish and sineBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 0, 16, "EFI", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 16, efiBullish ? ">0" : "<0", bgcolor=f_condColor(efiBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 16, "ROC", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 16, str.tostring(roc[1], "#.##") + "%", bgcolor=f_condColor(rocBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 16, f_condSym(efiBullish and rocBullish), bgcolor=f_condColor(efiBullish and rocBullish), text_color=color.white, text_size=txtSm)
 
-    // --- Row 15: VOLUME Header ---
-    table.cell(dash, 0, 15, "  VOLUME " + str.tostring(buyConfluenceScore > sellConfluenceScore ? buyVolumeCapped : sellVolumeCapped) + "/18", bgcolor=sectionVolume, text_color=color.white, text_size=txtSm, text_font_family=font.family_monospace)
-    table.cell(dash, 1, 15, "", bgcolor=sectionVolume)
-    table.cell(dash, 2, 15, "", bgcolor=sectionVolume)
-    table.cell(dash, 3, 15, "", bgcolor=sectionVolume)
-    table.cell(dash, 4, 15, "", bgcolor=sectionVolume)
-    table.merge_cells(dash, 0, 15, 4, 15)
+    table.cell(dash, 0, 17, "MFI", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 17, str.tostring(mfiValue[1], "#"), bgcolor=f_condColor(mfiBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 17, "Sine", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 17, sineBullish ? "Bull" : "Bear", bgcolor=f_condColor(sineBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 17, f_condSym(mfiBullish and sineBullish), bgcolor=f_condColor(mfiBullish and sineBullish), text_color=color.white, text_size=txtSm)
 
-    // Row 16
-    table.cell(dash, 0, 16, "Vol/MA", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 1, 16, str.tostring(volume[1] / math.max(volumeMA[1], 1), "#.#") + "x", bgcolor=f_condColor(volumeConfirm), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 2, 16, "VWAP", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 3, 16, vwapBullish ? "Above" : "Below", bgcolor=f_condColor(vwapBullish), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 4, 16, f_condSym(volumeConfirm and vwapBullish), bgcolor=f_condColor(volumeConfirm and vwapBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 0, 18, "TRIX", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 18, str.tostring(trixVal[1], "#.####"), bgcolor=f_condColor(trixBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 18, "UO", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 18, str.tostring(uoValue[1], "#"), bgcolor=f_condColor(uoBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 18, f_condSym(trixBullish and uoBullish), bgcolor=f_condColor(trixBullish and uoBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 0, 19, "KST", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 19, str.tostring(kstValue[1], "#.#"), bgcolor=f_condColor(kstBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 19, "DPO", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 19, str.tostring(dpoValue[1], "#.##"), bgcolor=f_condColor(dpoBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 19, f_condSym(kstBullish and dpoBullish), bgcolor=f_condColor(kstBullish and dpoBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 0, 20, "RVI", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 20, str.tostring(rviValue[1], "#.##"), bgcolor=f_condColor(rviBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 20, "Schaff", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 20, str.tostring(schaffVal[1], "#"), bgcolor=f_condColor(schaffBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 20, f_condSym(rviBullish and schaffBullish), bgcolor=f_condColor(rviBullish and schaffBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 0, 21, "PGO", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 21, str.tostring(pgoValue[1], "#.##"), bgcolor=f_condColor(pgoBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 21, "Coppock", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 21, str.tostring(coppockValue[1], "#.#"), bgcolor=f_condColor(coppockBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 21, f_condSym(pgoBullish and coppockBullish), bgcolor=f_condColor(pgoBullish and coppockBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 0, 22, "Elder Imp", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 22, elderImpulseBull ? "Bull" : elderImpulseBear ? "Bear" : "Neutral", bgcolor=f_condColor3(elderImpulseBull, elderImpulseBear), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 22, "VW-RSI", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 22, str.tostring(vwRsiValue[1], "#"), bgcolor=f_condColor(vwRsiBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 22, f_condSym(elderImpulseBull and vwRsiBullish), bgcolor=f_condColor(elderImpulseBull and vwRsiBullish), text_color=color.white, text_size=txtSm)
 
-    // Row 17
-    table.cell(dash, 0, 17, "OBV", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 1, 17, obvBullish ? ">MA" : "<MA", bgcolor=f_condColor(obvBullish), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 2, 17, "CMF", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 3, 17, str.tostring(cmfValue[1], "#.##"), bgcolor=f_condColor(cmfBullish), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 4, 17, f_condSym(obvBullish and cmfBullish), bgcolor=f_condColor(obvBullish and cmfBullish), text_color=color.white, text_size=txtSm)
+    // --- Table Section 3: VOLUME ---
+    table.cell(dash, 0, 23, "  VOLUME", bgcolor=sectionVolume, text_color=color.white, text_size=txtSm, text_font_family=font.family_monospace)
+    table.cell(dash, 1, 23, "", bgcolor=sectionVolume)
+    table.cell(dash, 2, 23, "", bgcolor=sectionVolume)
+    table.cell(dash, 3, 23, "", bgcolor=sectionVolume)
+    table.cell(dash, 4, 23, "", bgcolor=sectionVolume)
+    table.merge_cells(dash, 0, 23, 4, 23)
 
-    // Row 18
-    table.cell(dash, 0, 18, "A/D", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 1, 18, adLineBullish ? ">MA" : "<MA", bgcolor=f_condColor(adLineBullish), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 2, 18, "PVT", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 3, 18, pvtBullish ? ">MA" : "<MA", bgcolor=f_condColor(pvtBullish), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 4, 18, f_condSym(adLineBullish and pvtBullish), bgcolor=f_condColor(adLineBullish and pvtBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 0, 24, "Vol/MA", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 24, str.tostring(volume[1] / math.max(volumeMA[1], 1), "#.#") + "x", bgcolor=f_condColor(volumeConfirm), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 24, "VWAP", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 24, vwapBullish ? "Above" : "Below", bgcolor=f_condColor(vwapBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 24, f_condSym(volumeConfirm and vwapBullish), bgcolor=f_condColor(volumeConfirm and vwapBullish), text_color=color.white, text_size=txtSm)
 
-    // Row 19
-    table.cell(dash, 0, 19, "VolTrend", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 1, 19, volumeRising ? "Rising" : "Flat", bgcolor=f_condColor(volumeRising), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 2, 19, "B/S Pres", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 3, 19, str.tostring(pressureRatio[1] * 100, "#") + "%", bgcolor=f_condColor3(pressureRatio[1] > 0.55, pressureRatio[1] < 0.45), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 4, 19, f_condSym(volumeRising and pressureBullish), bgcolor=f_condColor(volumeRising and pressureBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 0, 25, "OBV", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 25, obvBullish ? ">MA" : "<MA", bgcolor=f_condColor(obvBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 25, "CMF", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 25, str.tostring(cmfValue[1], "#.##"), bgcolor=f_condColor(cmfBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 25, f_condSym(obvBullish and cmfBullish), bgcolor=f_condColor(obvBullish and cmfBullish), text_color=color.white, text_size=txtSm)
 
-    // --- Row 20: STRUCTURE Header ---
-    table.cell(dash, 0, 20, "  STRUCTURE " + str.tostring(buyConfluenceScore > sellConfluenceScore ? buyStructureCapped : sellStructureCapped) + "/18", bgcolor=sectionStructure, text_color=color.white, text_size=txtSm, text_font_family=font.family_monospace)
-    table.cell(dash, 1, 20, "", bgcolor=sectionStructure)
-    table.cell(dash, 2, 20, "", bgcolor=sectionStructure)
-    table.cell(dash, 3, 20, "", bgcolor=sectionStructure)
-    table.cell(dash, 4, 20, "", bgcolor=sectionStructure)
-    table.merge_cells(dash, 0, 20, 4, 20)
+    table.cell(dash, 0, 26, "A/D", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 26, adLineBullish ? ">MA" : "<MA", bgcolor=f_condColor(adLineBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 26, "PVT", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 26, pvtBullish ? ">MA" : "<MA", bgcolor=f_condColor(pvtBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 26, f_condSym(adLineBullish and pvtBullish), bgcolor=f_condColor(adLineBullish and pvtBullish), text_color=color.white, text_size=txtSm)
 
-    // Row 21
-    table.cell(dash, 0, 21, "BOS", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 1, 21, bosBull ? "Bull" : bosBear ? "Bear" : "None", bgcolor=f_condColor(bosBull), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 2, 21, "OrderBlk", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 3, 21, nearBullOB ? (useAsciiSymbols ? "Near^" : "Near\u2191") : nearBearOB ? (useAsciiSymbols ? "Nearv" : "Near\u2193") : (useAsciiSymbols ? "-" : "\u2014"), bgcolor=f_condColor(nearBullOB), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 4, 21, f_condSym(structureBull), bgcolor=f_condColor(structureBull), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 0, 27, "VolTrend", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 27, volumeRising ? "Rising" : "Flat", bgcolor=f_condColor(volumeRising), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 27, "B/S Pres", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 27, str.tostring(pressureRatio[1] * 100, "#") + "%", bgcolor=f_condColor3(pressureRatio[1] > 0.55, pressureRatio[1] < 0.45), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 27, f_condSym(volumeRising and pressureBullish), bgcolor=f_condColor(volumeRising and pressureBullish), text_color=color.white, text_size=txtSm)
 
-    // Row 22
-    table.cell(dash, 0, 22, "CHoCH", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 1, 22, chochBlockBuy ? (useAsciiSymbols ? "Block^" : "Block\u2191") : chochBlockSell ? (useAsciiSymbols ? "Blockv" : "Block\u2193") : "None", bgcolor=f_condColor(not chochBlockBuy and not chochBlockSell), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 2, 22, "Diverg", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 3, 22, bullishDivergence ? "Bull" : bearishDivergence ? "Bear" : "None", bgcolor=f_condColor3(bullishDivergence, bearishDivergence), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 4, 22, f_condSym(not chochBlockBuy), bgcolor=f_condColor(not chochBlockBuy), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 0, 28, "Klinger", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 28, klingerBullish ? ">Sig" : "<Sig", bgcolor=f_condColor(klingerBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 28, "EOM", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 28, str.tostring(eomValue[1], "#.##"), bgcolor=f_condColor(eomBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 28, f_condSym(klingerBullish and eomBullish), bgcolor=f_condColor(klingerBullish and eomBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 0, 29, "NVI", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 29, nviBullish ? ">MA" : "<MA", bgcolor=f_condColor(nviBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 29, "PVI", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 29, pviBullish ? ">MA" : "<MA", bgcolor=f_condColor(pviBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 29, f_condSym(nviBullish and pviBullish), bgcolor=f_condColor(nviBullish and pviBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 0, 30, "III", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 30, iiiBullish ? ">0" : "<0", bgcolor=f_condColor(iiiBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 30, "MFI(BW)", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 30, mfiBWBullish ? "Up+Vol" : "Dn+Vol", bgcolor=f_condColor(mfiBWBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 30, f_condSym(iiiBullish and mfiBWBullish), bgcolor=f_condColor(iiiBullish and mfiBWBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 0, 31, "Twiggs MF", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 31, twiggsBullish ? ">0" : "<0", bgcolor=f_condColor(twiggsBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 31, "", bgcolor=rowBg)
+    table.cell(dash, 3, 31, "", bgcolor=rowBg)
+    table.cell(dash, 4, 31, "", bgcolor=rowBg)
 
-    // Row 23
-    table.cell(dash, 0, 23, "Engulf", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 1, 23, bullEngulfing ? "Bull" : bearEngulfing ? "Bear" : (useAsciiSymbols ? "-" : "\u2014"), bgcolor=f_condColor(bullEngulfing), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 2, 23, "PinBar", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 3, 23, hammerBull ? "Ham" : shootingStar ? "Star" : (useAsciiSymbols ? "-" : "\u2014"), bgcolor=f_condColor(hammerBull), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 4, 23, f_condSym(bullEngulfing or hammerBull), bgcolor=f_condColor(bullEngulfing or hammerBull), text_color=color.white, text_size=txtSm)
+    // --- Table Section 4: VOLATILITY ---
+    table.cell(dash, 0, 32, "  VOLATILITY", bgcolor=sectionVolatility, text_color=color.white, text_size=txtSm, text_font_family=font.family_monospace)
+    table.cell(dash, 1, 32, "", bgcolor=sectionVolatility)
+    table.cell(dash, 2, 32, "", bgcolor=sectionVolatility)
+    table.cell(dash, 3, 32, "", bgcolor=sectionVolatility)
+    table.cell(dash, 4, 32, "", bgcolor=sectionVolatility)
+    table.merge_cells(dash, 0, 32, 4, 32)
 
-    // Row 24
-    table.cell(dash, 0, 24, "Star", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 1, 24, morningStar ? "Morn" : eveningStar ? "Eve" : (useAsciiSymbols ? "-" : "\u2014"), bgcolor=f_condColor(morningStar), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 2, 24, "Displace", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 3, 24, bullDisplacement ? "Bull" : bearDisplacement ? "Bear" : (useAsciiSymbols ? "-" : "\u2014"), bgcolor=f_condColor(bullDisplacement), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 4, 24, f_condSym(morningStar or bullDisplacement), bgcolor=f_condColor(morningStar or bullDisplacement), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 0, 33, "BB Pos", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 33, str.tostring(bbPercent[1] * 100, "#") + "%", bgcolor=f_condColor(bbNotExtremes), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 33, "Squeeze", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 33, ttmSqueezeOn ? "ON" : "Off", bgcolor=ttmSqueezeOn ? color.new(warningColor, 40) : f_condColor(true), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 33, f_condSym(bbNotExtremes and not ttmSqueezeOn), bgcolor=f_condColor(bbNotExtremes and not ttmSqueezeOn), text_color=color.white, text_size=txtSm)
 
-    // Row 25: Other candlestick patterns
-    otherBull = bullHarami or threeWhiteSoldiers or tweezerBottom or piercingLine
-    otherBear = bearHarami or threeBlackCrows or tweezerTop or darkCloudCover
-    table.cell(dash, 0, 25, "Other", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 1, 25, doji ? "Doji" : bullHarami ? "Ha" : threeWhiteSoldiers ? "3WS" : tweezerBottom ? "TB" : piercingLine ? "PL" : (useAsciiSymbols ? "-" : "\u2014"), bgcolor=f_condColor(otherBull), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 2, 25, "Pat", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 3, 25, bearHarami ? "Ha" : threeBlackCrows ? "3BC" : tweezerTop ? "TT" : darkCloudCover ? "DCC" : (useAsciiSymbols ? "-" : "\u2014"), bgcolor=f_condColor(otherBear), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 4, 25, f_condSym(otherBull or otherBear), bgcolor=f_condColor(otherBull or otherBear), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 0, 34, "TTM", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 34, ttmFirBull ? "Fire^" : ttmFirBear ? "Firev" : "-", bgcolor=f_condColor(ttmFirBull), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 34, "Keltner", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 34, kcBullish ? ">Mid" : "<Mid", bgcolor=f_condColor(kcBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 34, f_condSym(kcBullish), bgcolor=f_condColor(kcBullish), text_color=color.white, text_size=txtSm)
 
-    // --- Row 26: VOLATILITY Header ---
-    table.cell(dash, 0, 26, "  VOLATILITY " + str.tostring(buyConfluenceScore > sellConfluenceScore ? buyVolatilityCapped : sellVolatilityCapped) + "/14", bgcolor=sectionVolatility, text_color=color.white, text_size=txtSm, text_font_family=font.family_monospace)
-    table.cell(dash, 1, 26, "", bgcolor=sectionVolatility)
-    table.cell(dash, 2, 26, "", bgcolor=sectionVolatility)
-    table.cell(dash, 3, 26, "", bgcolor=sectionVolatility)
-    table.cell(dash, 4, 26, "", bgcolor=sectionVolatility)
-    table.merge_cells(dash, 0, 26, 4, 26)
+    table.cell(dash, 0, 35, "Chandlr", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 35, chandBullish ? "Above" : "Below", bgcolor=f_condColor(chandBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 35, "ATR Rng", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 35, atrInRange ? "OK" : "Out", bgcolor=f_condColor(atrInRange), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 35, f_condSym(chandBullish and atrInRange), bgcolor=f_condColor(chandBullish and atrInRange), text_color=color.white, text_size=txtSm)
 
-    // Row 27
-    table.cell(dash, 0, 27, "BB Pos", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 1, 27, str.tostring(bbPercent[1] * 100, "#") + "%", bgcolor=f_condColor(bbNotExtremes), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 2, 27, "Squeeze", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 3, 27, ttmSqueezeOn ? "ON" : "Off", bgcolor=ttmSqueezeOn ? color.new(warningColor, 40) : f_condColor(true), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 4, 27, f_condSym(bbNotExtremes and not ttmSqueezeOn), bgcolor=f_condColor(bbNotExtremes and not ttmSqueezeOn), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 0, 36, "Mass Idx", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 36, str.tostring(massValue[1], "#.#") + (massBulge ? " Bulge" : ""), bgcolor=massBulge ? color.new(warningColor, 50) : f_condColor(true), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 36, "StdDev", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 36, stdDevBullish ? ">Basis" : "<Basis", bgcolor=f_condColor(stdDevBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 36, f_condSym(not massBulge and stdDevBullish), bgcolor=f_condColor(not massBulge and stdDevBullish), text_color=color.white, text_size=txtSm)
 
-    // Row 28
-    table.cell(dash, 0, 28, "TTM", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 1, 28, ttmFirBull ? (useAsciiSymbols ? "Fire^" : "Fire\u2191") : ttmFirBear ? (useAsciiSymbols ? "Firev" : "Fire\u2193") : (useAsciiSymbols ? "-" : "\u2014"), bgcolor=f_condColor(ttmFirBull), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 2, 28, "Keltner", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 3, 28, kcBullish ? ">Mid" : "<Mid", bgcolor=f_condColor(kcBullish), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 4, 28, f_condSym(kcBullish), bgcolor=f_condColor(kcBullish), text_color=color.white, text_size=txtSm)
-
-    // Row 29
-    table.cell(dash, 0, 29, "Chandlr", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 1, 29, chandBullish ? "Above" : "Below", bgcolor=f_condColor(chandBullish), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 2, 29, "ATR Rng", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 3, 29, atrInRange ? "OK" : "Out", bgcolor=f_condColor(atrInRange), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 4, 29, f_condSym(chandBullish and atrInRange), bgcolor=f_condColor(chandBullish and atrInRange), text_color=color.white, text_size=txtSm)
-
-    // --- Row 30: REGIME Header ---
-    table.cell(dash, 0, 30, "  REGIME " + str.tostring(buyConfluenceScore > sellConfluenceScore ? buyRegimeCapped : sellRegimeCapped) + "/14", bgcolor=sectionRegime, text_color=color.white, text_size=txtSm, text_font_family=font.family_monospace)
-    table.cell(dash, 1, 30, "", bgcolor=sectionRegime)
-    table.cell(dash, 2, 30, "", bgcolor=sectionRegime)
-    table.cell(dash, 3, 30, "", bgcolor=sectionRegime)
-    table.cell(dash, 4, 30, "", bgcolor=sectionRegime)
-    table.merge_cells(dash, 0, 30, 4, 30)
-
-    // Row 31
-    table.cell(dash, 0, 31, "P/D Zone", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 1, 31, inDiscount ? "Discount" : "Premium", bgcolor=f_condColor(premiumDiscountOkBuy), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 2, 31, "HTF RSI", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 3, 31, str.tostring(htfRsiPrev, "#.#"), bgcolor=f_condColor3(htfRsiPrev >= 40 and htfRsiPrev <= 70, false), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 4, 31, f_condSym(premiumDiscountOkBuy and htfRsiOkBuy), bgcolor=f_condColor(premiumDiscountOkBuy and htfRsiOkBuy), text_color=color.white, text_size=txtSm)
-
-    // Row 32
-    table.cell(dash, 0, 32, "RelStr", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 1, 32, rsBullish ? ">Bench" : "<Bench", bgcolor=f_condColor(rsBullish), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 2, 32, "Corr", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 3, 32, str.tostring(corrValue[1], "#.##"), bgcolor=f_condColor3(corrBullish, corrBearish), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 4, 32, f_condSym(rsBullish and corrBullish), bgcolor=f_condColor(rsBullish and corrBullish), text_color=color.white, text_size=txtSm)
-
-    // Row 33
-    table.cell(dash, 0, 33, "HV Rank", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 1, 33, str.tostring(hvRank[1], "#") + "%", bgcolor=hvLow ? color.new(bullSecondary, 50) : hvHigh ? color.new(warningColor, 50) : f_condColor(true), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 2, 33, "Wyckoff", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 3, 33, wyckSpring ? "Spring" : wyckUpthrust ? "Upthr" : (useAsciiSymbols ? "-" : "\u2014"), bgcolor=f_condColor(wyckSpring), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 4, 33, f_condSym(not hvHigh), bgcolor=f_condColor(not hvHigh), text_color=color.white, text_size=txtSm)
-
-    // --- Row 34: META Header ---
-    table.cell(dash, 0, 34, "  META-MODIFIERS", bgcolor=sectionMeta, text_color=color.white, text_size=txtSm, text_font_family=font.family_monospace)
-    table.cell(dash, 1, 34, "", bgcolor=sectionMeta)
-    table.cell(dash, 2, 34, "", bgcolor=sectionMeta)
-    table.cell(dash, 3, 34, "", bgcolor=sectionMeta)
-    table.cell(dash, 4, 34, "", bgcolor=sectionMeta)
-    table.merge_cells(dash, 0, 34, 4, 34)
-
-    // Row 35
-    table.cell(dash, 0, 35, "R²", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 1, 35, str.tostring(rSqValue, "#.##") + (rSqValue > 0.5 ? " Trend" : " Chop"), bgcolor=rSqValue > 0.5 ? color.new(bullSecondary, 50) : color.new(warningColor, 50), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 2, 35, "Z-Score", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 3, 35, str.tostring(zScore[1], "#.#"), bgcolor=math.abs(zScore[1]) > 2 ? color.new(warningColor, 40) : f_condColor(true), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 4, 35, "", bgcolor=rowBg)
-
-    // Row 36
-    table.cell(dash, 0, 36, "Cycle", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 1, 36, str.tostring(dominantPeriod, "#") + " bars", bgcolor=color.new(neutralColor, 50), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 2, 36, "Regime", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 3, 36, regimeShort, bgcolor=trendUp and adxStrong ? color.new(bullPrimary, 50) : trendDown and adxStrong ? color.new(bearPrimary, 50) : color.new(warningColor, 50), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 4, 36, "", bgcolor=rowBg)
-
-    // --- Row 37: RISK Header ---
-    table.cell(dash, 0, 37, "  RISK MANAGEMENT", bgcolor=sectionRisk, text_color=color.white, text_size=txtSm, text_font_family=font.family_monospace)
-    table.cell(dash, 1, 37, "", bgcolor=sectionRisk)
-    table.cell(dash, 2, 37, "", bgcolor=sectionRisk)
-    table.cell(dash, 3, 37, "", bgcolor=sectionRisk)
-    table.cell(dash, 4, 37, "", bgcolor=sectionRisk)
+    // --- Table Section 5: REGIME ---
+    table.cell(dash, 0, 37, "  REGIME", bgcolor=sectionRegime, text_color=color.white, text_size=txtSm, text_font_family=font.family_monospace)
+    table.cell(dash, 1, 37, "", bgcolor=sectionRegime)
+    table.cell(dash, 2, 37, "", bgcolor=sectionRegime)
+    table.cell(dash, 3, 37, "", bgcolor=sectionRegime)
+    table.cell(dash, 4, 37, "", bgcolor=sectionRegime)
     table.merge_cells(dash, 0, 37, 4, 37)
 
-    // Row 38
-    table.cell(dash, 0, 38, "ATR", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 1, 38, str.tostring(atrPrev, "#.##"), bgcolor=color.new(neutralColor, 50), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 2, 38, "SL Dist", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 3, 38, str.tostring(atrPrev * atrMultiplierSL, "#.##") + " (" + str.tostring(atrMultiplierSL, "#.#") + "x)", bgcolor=color.new(bearSecondary, 50), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 4, 38, "", bgcolor=rowBg)
+    table.cell(dash, 0, 38, "P/D Zone", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 38, inDiscount ? "Discount" : "Premium", bgcolor=f_condColor(premiumDiscountOkBuy), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 38, "HTF RSI", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 38, str.tostring(htfRsiPrev, "#.#"), bgcolor=f_condColor3(htfRsiPrev >= 40 and htfRsiPrev <= 70, false), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 38, f_condSym(premiumDiscountOkBuy and htfRsiOkBuy), bgcolor=f_condColor(premiumDiscountOkBuy and htfRsiOkBuy), text_color=color.white, text_size=txtSm)
 
-    // Row 39
-    table.cell(dash, 0, 39, "TP Dist", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 1, 39, str.tostring(atrPrev * atrMultiplierTP, "#.##") + " (" + str.tostring(atrMultiplierTP, "#.#") + "x)", bgcolor=color.new(bullSecondary, 50), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 2, 39, "R:R", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
-    table.cell(dash, 3, 39, "1:" + str.tostring(atrMultiplierTP / atrMultiplierSL, "#.#"), bgcolor=color.new(neutralColor, 50), text_color=color.white, text_size=txtSm)
-    table.cell(dash, 4, 39, "", bgcolor=rowBg)
+    table.cell(dash, 0, 39, "RelStr", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 39, rsBullish ? ">Bench" : "<Bench", bgcolor=f_condColor(rsBullish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 39, "Corr", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 39, str.tostring(corrValue[1], "#.##"), bgcolor=f_condColor3(corrBullish, corrBearish), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 39, f_condSym(rsBullish and corrBullish), bgcolor=f_condColor(rsBullish and corrBullish), text_color=color.white, text_size=txtSm)
 
-    // --- Row 40: MTF HEATMAP ---
+    table.cell(dash, 0, 40, "HV Rank", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 40, str.tostring(hvRank[1], "#") + "%", bgcolor=hvLow ? color.new(bullSecondary, 50) : hvHigh ? color.new(warningColor, 50) : f_condColor(true), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 40, "Wyckoff", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 40, wyckSpring ? "Spring" : wyckUpthrust ? "Upthr" : "-", bgcolor=f_condColor(wyckSpring), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 40, f_condSym(not hvHigh), bgcolor=f_condColor(not hvHigh), text_color=color.white, text_size=txtSm)
+
+    // --- Table Section 6: META-MODIFIERS ---
+    table.cell(dash, 0, 41, "  META-MODIFIERS", bgcolor=sectionMeta, text_color=color.white, text_size=txtSm, text_font_family=font.family_monospace)
+    table.cell(dash, 1, 41, "", bgcolor=sectionMeta)
+    table.cell(dash, 2, 41, "", bgcolor=sectionMeta)
+    table.cell(dash, 3, 41, "", bgcolor=sectionMeta)
+    table.cell(dash, 4, 41, "", bgcolor=sectionMeta)
+    table.merge_cells(dash, 0, 41, 4, 41)
+
+    table.cell(dash, 0, 42, "R²", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 42, str.tostring(rSqValue, "#.##") + (rSqValue > 0.5 ? " Trend" : " Chop"), bgcolor=rSqValue > 0.5 ? color.new(bullSecondary, 50) : color.new(warningColor, 50), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 42, "Z-Score", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 42, str.tostring(zScore[1], "#.#"), bgcolor=math.abs(zScore[1]) > 2 ? color.new(warningColor, 40) : f_condColor(true), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 42, "", bgcolor=rowBg)
+
+    table.cell(dash, 0, 43, "Cycle", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 43, str.tostring(dominantPeriod, "#") + " bars", bgcolor=color.new(neutralColor, 50), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 43, "Regime", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 43, regimeShort, bgcolor=trendUp and adxStrong ? color.new(bullPrimary, 50) : trendDown and adxStrong ? color.new(bearPrimary, 50) : color.new(warningColor, 50), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 43, "", bgcolor=rowBg)
+
+    // --- Table Section 7: RISK ---
+    table.cell(dash, 0, 44, "  RISK MANAGEMENT", bgcolor=sectionRisk, text_color=color.white, text_size=txtSm, text_font_family=font.family_monospace)
+    table.cell(dash, 1, 44, "", bgcolor=sectionRisk)
+    table.cell(dash, 2, 44, "", bgcolor=sectionRisk)
+    table.cell(dash, 3, 44, "", bgcolor=sectionRisk)
+    table.cell(dash, 4, 44, "", bgcolor=sectionRisk)
+    table.merge_cells(dash, 0, 44, 4, 44)
+
+    table.cell(dash, 0, 45, "ATR", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 45, str.tostring(atrPrev, "#.##"), bgcolor=color.new(neutralColor, 50), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 45, "SL Dist", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 45, str.tostring(atrPrev * atrMultiplierSL, "#.##") + " (" + str.tostring(atrMultiplierSL, "#.#") + "x)", bgcolor=color.new(bearSecondary, 50), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 45, "", bgcolor=rowBg)
+
+    table.cell(dash, 0, 46, "TP Dist", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 46, str.tostring(atrPrev * atrMultiplierTP, "#.##") + " (" + str.tostring(atrMultiplierTP, "#.#") + "x)", bgcolor=color.new(bullSecondary, 50), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 46, "R:R", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 46, "1:" + str.tostring(atrMultiplierTP / atrMultiplierSL, "#.#"), bgcolor=color.new(neutralColor, 50), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 46, "", bgcolor=rowBg)
+
+    // --- Table Section 8: MTF HEATMAP ---
     if showMTFHeatmap
-        table.cell(dash, 0, 40, "  MTF HEATMAP", bgcolor=color.new(neutralColor, 70), text_color=color.white, text_size=txtSm, text_font_family=font.family_monospace)
-        table.cell(dash, 1, 40, "", bgcolor=color.new(neutralColor, 70))
-        table.cell(dash, 2, 40, "", bgcolor=color.new(neutralColor, 70))
-        table.cell(dash, 3, 40, "", bgcolor=color.new(neutralColor, 70))
-        table.cell(dash, 4, 40, "", bgcolor=color.new(neutralColor, 70))
-        table.merge_cells(dash, 0, 40, 4, 40)
+        table.cell(dash, 0, 47, "  MTF HEATMAP", bgcolor=color.new(neutralColor, 70), text_color=color.white, text_size=txtSm, text_font_family=font.family_monospace)
+        table.cell(dash, 1, 47, "", bgcolor=color.new(neutralColor, 70))
+        table.cell(dash, 2, 47, "", bgcolor=color.new(neutralColor, 70))
+        table.cell(dash, 3, 47, "", bgcolor=color.new(neutralColor, 70))
+        table.cell(dash, 4, 47, "", bgcolor=color.new(neutralColor, 70))
+        table.merge_cells(dash, 0, 47, 4, 47)
 
-        table.cell(dash, 0, 41, "M5", bgcolor=mtf5 ? color.new(bullPrimary, 40) : color.new(bearPrimary, 40), text_color=color.white, text_size=txtSm)
-        table.cell(dash, 1, 41, "M15", bgcolor=mtf15 ? color.new(bullPrimary, 40) : color.new(bearPrimary, 40), text_color=color.white, text_size=txtSm)
-        table.cell(dash, 2, 41, "H1", bgcolor=mtf60 ? color.new(bullPrimary, 40) : color.new(bearPrimary, 40), text_color=color.white, text_size=txtSm)
-        table.cell(dash, 3, 41, "H4", bgcolor=mtf240 ? color.new(bullPrimary, 40) : color.new(bearPrimary, 40), text_color=color.white, text_size=txtSm)
-        table.cell(dash, 4, 41, "D", bgcolor=mtfD ? color.new(bullPrimary, 40) : color.new(bearPrimary, 40), text_color=color.white, text_size=txtSm)
+        table.cell(dash, 0, 48, "M5", bgcolor=mtf5 ? color.new(bullPrimary, 40) : color.new(bearPrimary, 40), text_color=color.white, text_size=txtSm)
+        table.cell(dash, 1, 48, "M15", bgcolor=mtf15 ? color.new(bullPrimary, 40) : color.new(bearPrimary, 40), text_color=color.white, text_size=txtSm)
+        table.cell(dash, 2, 48, "H1", bgcolor=mtf60 ? color.new(bullPrimary, 40) : color.new(bearPrimary, 40), text_color=color.white, text_size=txtSm)
+        table.cell(dash, 3, 48, "H4", bgcolor=mtf240 ? color.new(bullPrimary, 40) : color.new(bearPrimary, 40), text_color=color.white, text_size=txtSm)
+        table.cell(dash, 4, 48, "D", bgcolor=mtfD ? color.new(bullPrimary, 40) : color.new(bearPrimary, 40), text_color=color.white, text_size=txtSm)
+
+    // --- BUY/SELL SIGNAL ---
+    if showBuySellSignal
+        ultSectionBg = color.new(color.rgb(255, 215, 0), 50)
+        table.cell(dash, 0, 49, "  BUY/SELL SIGNAL", bgcolor=ultSectionBg, text_color=color.rgb(20, 20, 35), text_size=txtSm, text_font_family=font.family_monospace)
+        table.cell(dash, 1, 49, "", bgcolor=ultSectionBg)
+        table.cell(dash, 2, 49, "", bgcolor=ultSectionBg)
+        table.cell(dash, 3, 49, "", bgcolor=ultSectionBg)
+        table.cell(dash, 4, 49, "", bgcolor=ultSectionBg)
+        table.merge_cells(dash, 0, 49, 4, 49)
+
+        buyScoreBg = finalBuyScore >= 80 ? color.new(bullPrimary, 30) : finalBuyScore >= 65 ? color.new(bullSecondary, 40) : color.new(neutralColor, 50)
+        sellScoreBg = finalSellScore >= 80 ? color.new(bearPrimary, 30) : finalSellScore >= 65 ? color.new(bearSecondary, 40) : color.new(neutralColor, 50)
+
+        table.cell(dash, 0, 50, "Buy Score", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+        table.cell(dash, 1, 50, str.tostring(finalBuyScore, "#.#") + "/100", bgcolor=buyScoreBg, text_color=color.white, text_size=txtSm)
+        table.cell(dash, 2, 50, "Sell Score", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+        table.cell(dash, 3, 50, str.tostring(finalSellScore, "#.#") + "/100", bgcolor=sellScoreBg, text_color=color.white, text_size=txtSm)
+        table.cell(dash, 4, 50, buyCatAgree > sellCatAgree ? "BUY" : sellCatAgree > buyCatAgree ? "SELL" : "-", bgcolor=buyCatAgree > sellCatAgree ? color.new(bullPrimary, 40) : sellCatAgree > buyCatAgree ? color.new(bearPrimary, 40) : color.new(neutralColor, 50), text_color=color.white, text_size=txtSm)
+
+        table.cell(dash, 0, 51, "Cats Agree", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+        table.cell(dash, 1, 51, str.tostring(buyCatAgree) + "/5 Buy", bgcolor=f_condColor(buyCatAgree >= 4), text_color=color.white, text_size=txtSm)
+        table.cell(dash, 2, 51, "", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+        table.cell(dash, 3, 51, str.tostring(sellCatAgree) + "/5 Sell", bgcolor=f_condColor(sellCatAgree >= 4), text_color=color.white, text_size=txtSm)
+        table.cell(dash, 4, 51, str.tostring(barsSinceLastBuy) + "/" + str.tostring(barsSinceLastSell) + " ago", bgcolor=color.new(neutralColor, 50), text_color=color.white, text_size=txtSm)
+
+    // --- LEVELS ---
+    table.cell(dash, 0, 53, "  LEVELS", bgcolor=sectionStructure, text_color=color.white, text_size=txtSm, text_font_family=font.family_monospace)
+    table.cell(dash, 1, 53, "", bgcolor=sectionStructure)
+    table.cell(dash, 2, 53, "", bgcolor=sectionStructure)
+    table.cell(dash, 3, 53, "", bgcolor=sectionStructure)
+    table.cell(dash, 4, 53, "", bgcolor=sectionStructure)
+    table.merge_cells(dash, 0, 53, 4, 53)
+    table.cell(dash, 0, 54, "Pivot P", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 54, str.tostring(pivotP[1], "#.##"), bgcolor=color.new(neutralColor, 50), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 54, "R1/S1", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 54, nearPivotR1 ? "Near R1" : nearPivotS1 ? "Near S1" : "-", bgcolor=f_condColor3(nearPivotS1, nearPivotR1), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 54, "", bgcolor=rowBg)
+    table.cell(dash, 0, 55, "Fib 0.5", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 1, 55, str.tostring(fib50[1], "#.##"), bgcolor=color.new(neutralColor, 50), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 2, 55, "Gap", bgcolor=rowBg, text_color=txtClr, text_size=txtSm)
+    table.cell(dash, 3, 55, gapUp ? "Up" : gapDown ? "Dn" : "None", bgcolor=f_condColor3(gapUp, gapDown), text_color=color.white, text_size=txtSm)
+    table.cell(dash, 4, 55, "", bgcolor=rowBg)
 
 // ==================================================================================
-// DATA WINDOW OUTPUTS (hidden from chart, visible in Data Window)
+// DATA WINDOW OUTPUTS
 // ==================================================================================
 
-plot(buyConfluenceScore, "Buy Confluence", display=display.data_window)
-plot(sellConfluenceScore, "Sell Confluence", display=display.data_window)
-plot(rsiValue, "RSI", display=display.data_window)
-plot(cciValue, "CCI", display=display.data_window)
-plot(mfiValue, "MFI", display=display.data_window)
-plot(adxValue, "ADX", display=display.data_window)
-plot(stochKVal, "Stoch %K", display=display.data_window)
-plot(macdLine, "MACD Line", display=display.data_window)
-plot(macdHist, "MACD Histogram", display=display.data_window)
-plot(cmfValue, "CMF", display=display.data_window)
-plot(atr, "ATR", display=display.data_window)
-plot(bbPercent, "BB %", display=display.data_window)
-plot(hvRank, "HV Percentile", display=display.data_window)
-plot(pressureRatio, "Buy/Sell Pressure", display=display.data_window)
+// Create a single string containing all indicator values
+dataWindowOutput = 
+     "RSI=" + str.tostring(rsiValue, "#.##") + 
+     " | CCI=" + str.tostring(cciValue, "#.##") +
+     " | MFI=" + str.tostring(mfiValue, "#.##") +
+     " | ADX=" + str.tostring(adxValue, "#.##") +
+     " | Stoch_K=" + str.tostring(stochKVal, "#.##") +
+     " | MACD_Line=" + str.tostring(macdLine, "#.####") +
+     " | MACD_Hist=" + str.tostring(macdHist, "#.####") +
+     " | CMF=" + str.tostring(cmfValue, "#.####") +
+     " | ATR=" + str.tostring(atr, "#.####") +
+     " | BB_Percent=" + str.tostring(bbPercent, "#.##") +
+     " | HV_Rank=" + str.tostring(hvRank, "#.##") +
+     " | Pressure_Ratio=" + str.tostring(pressureRatio, "#.####") +
+     " | TRIX=" + str.tostring(trixVal, "#.####") +
+     " | BuySell_Osc=" + str.tostring(uoValue, "#.##") +
+     " | KST=" + str.tostring(kstValue, "#.####") +
+     " | DPO=" + str.tostring(dpoValue, "#.####") +
+     " | RVI=" + str.tostring(rviValue, "#.####") +
+     " | Schaff_TC=" + str.tostring(schaffVal, "#.##") +
+     " | PGO=" + str.tostring(pgoValue, "#.####") +
+     " | Coppock=" + str.tostring(coppockValue, "#.####") +
+     " | Mass_Index=" + str.tostring(massValue, "#.####") +
+     " | Klinger=" + str.tostring(kvoValue, "#.####") +
+     " | EOM=" + str.tostring(eomValue, "#.####") +
+     " | NVI=" + str.tostring(nviVal, "#.####") +
+     " | PVI=" + str.tostring(pviVal, "#.####") +
+     " | III=" + str.tostring(iiiValue, "#.####") +
+     " | MFI_BW=" + str.tostring(mfiBWValue, "#.##") +
+     " | Vortex_Plus=" + str.tostring(viPlus, "#.####") +
+     " | Vortex_Minus=" + str.tostring(viMinus, "#.####") +
+     " | VW_RSI=" + str.tostring(vwRsiValue, "#.##") +
+     " | Twiggs_MF=" + str.tostring(twiggsValue, "#.####") +
+     " | Donchian_Upper=" + str.tostring(donchianUpper, "#.####") +
+     " | Donchian_Lower=" + str.tostring(donchianLower, "#.####") +
+     " | McGinley=" + str.tostring(mcginleyVal, "#.####") +
+     " | DEMA=" + str.tostring(demaVal, "#.####") +
+     " | TEMA=" + str.tostring(temaVal, "#.####") +
+     " | Pivot_P=" + str.tostring(pivotP, "#.####") +
+     " | Fib_0.5=" + str.tostring(fib50, "#.####") +
+     " | StdDev_Basis=" + str.tostring(stdDevBasis, "#.####") +
+     " | Z_Score=" + str.tostring(zScore, "#.####")
+
+// Single plot output - visible in Data Window only
+plot(0, "All Technical Indicators", color=color.new(color.gray, 100), display=display.data_window)
 
 // ==================================================================================
 // ALERTS
@@ -1444,3 +2355,12 @@ alertcondition(wyckSpring, "Wyckoff Spring", "Wyckoff Spring detected - potentia
 alertcondition(wyckUpthrust, "Wyckoff Upthrust", "Wyckoff Upthrust detected - potential distribution")
 alertcondition(chochBearish or chochBullish, "CHoCH Alert", "Change of Character detected")
 alertcondition(bosBull or bosBear, "BOS Alert", "Break of Structure detected")
+alertcondition(gapValid and gapUp, "Gap Up", "Gap up detected")
+alertcondition(gapValid and gapDown, "Gap Down", "Gap down detected")
+alertcondition(massBulge, "Mass Index Bulge", "Mass Index bulge - potential reversal")
+alertcondition(pivotBreak, "Pivot Break", "Price broke pivot R1 or S1")
+
+// --- Buy/Sell Signal Alerts ---
+alertcondition(signalBuy, "Buy Signal", "Buy/Sell Signal: BUY triggered! Score threshold met with multi-category confirmation.")
+alertcondition(signalSell, "Sell Signal", "Buy/Sell Signal: SELL triggered! Score threshold met with multi-category confirmation.")
+alertcondition(signalBuy or signalSell, "Buy/Sell Signal (Any)", "Signal triggered! Check chart for direction and details.")
