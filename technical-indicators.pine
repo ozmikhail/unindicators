@@ -1267,7 +1267,9 @@ pivotS1 = 2 * pivotP - pivotHighHTF
 pivotS2 = pivotP - (pivotHighHTF - pivotLowHTF)
 nearPivotR1 = usePivots and close[1] >= pivotR1[1] * 0.998 and close[1] <= pivotR1[1] * 1.002
 nearPivotS1 = usePivots and close[1] >= pivotS1[1] * 0.998 and close[1] <= pivotS1[1] * 1.002
-pivotBreak = ta.crossover(close, pivotR1) or ta.crossunder(close, pivotS1)
+pivotCrossUpR1 = ta.crossover(close, pivotR1)
+pivotCrossDownS1 = ta.crossunder(close, pivotS1)
+pivotBreak = pivotCrossUpR1 or pivotCrossDownS1
 
 // === 56. Auto Fibonacci ===
 fibSwingHigh = ta.highest(high, fibLookback)
