@@ -9,16 +9,16 @@ indicator("Universal Indicators", overlay=true, max_bars_back=500, max_lines_cou
 var gDisplayIndicators = "Display Indicators"
 useDashboard = input.bool(true, "Display Dashboard", group=gDisplayIndicators)
 useHullMA = input.bool(false, "Display Hull MA", group=gDisplayIndicators)
-useVWAPLine = input.bool(false, "Display VWAP Line", group=gDisplayIndicators)
+useVWAPLine = input.bool(true, "Display VWAP Line", group=gDisplayIndicators)
 useBackground = input.bool(false, "Display Trend Background", group=gDisplayIndicators)
-useMTFHeatmap = input.bool(false, "Display MTF Trend Heatmap", group=gDisplayIndicators)
-useBB = input.bool(false, "Display Bollinger Bands", group=gDisplayIndicators)
+useMTFHeatmap = input.bool(true, "Display MTF Trend Heatmap", group=gDisplayIndicators)
+useBB = input.bool(true, "Display Bollinger Bands", group=gDisplayIndicators)
 usePatternMarkers = input.bool(false, "Display Candlestick Pattern Markers", group=gDisplayIndicators)
 useKeltner = input.bool(false, "Display Keltner Channels", group=gDisplayIndicators)
 useDonchian = input.bool(false, "Display Donchian Channel", group=gDisplayIndicators)
 useMcGinley = input.bool(false, "Display McGinley Dynamic", group=gDisplayIndicators)
 useAlligator = input.bool(false, "Display Alligator", group=gDisplayIndicators)
-usePivots = input.bool(false, "Display Pivot Points", group=gDisplayIndicators)
+usePivots = input.bool(true, "Display Pivot Points", group=gDisplayIndicators)
 useFibLevels = input.bool(false, "Display Fib Levels", group=gDisplayIndicators)
 useGMMA = input.bool(false, "Display GMMA", group=gDisplayIndicators)
 useMAStackLines = input.bool(false, "Display MA Stack (9/21/50)", group=gDisplayIndicators, tooltip="EMA 9, 21, 50 lines. Filter logic is controlled by MA Alignment > Use MA Stack Filter.")
@@ -33,12 +33,12 @@ var gBuySell = "Buy/Sell Signal"
 useBuySellSignal = input.bool(true, "Display Buy/Sell Signal", group=gBuySell, tooltip="Toggle for the Buy/Sell signal system. Uses all ENABLED indicators with weighted category scoring.")
 buySellThreshold = input.float(55, "Signal Threshold (0-100)", minval=30, maxval=95, step=5, group=gBuySell, tooltip="Minimum composite score to generate a signal. Higher = fewer but more confident signals.")
 buySellCooldown = input.int(5, "Signal Cooldown (bars)", minval=1, maxval=50, group=gBuySell, tooltip="Minimum bars between signals to prevent spam.")
-useBuySellSLTP = input.bool(true, "Display SL/TP Levels", group=gBuySell)
-slTpDisplayMode = input.string("Zones", "SL/TP Display", options=["Lines", "Zones"], group=gBuySell, tooltip="Lines: Entry, SL and TP as lines only. Zones: Colored background ranges between the levels.")
+useBuySellSLTPEntry = input.bool(true, "Display SL/TP Levels", group=gBuySell)
+slTpDisplayMode = input.string("Zones", "SL/TP/Entry Display", options=["Lines", "Zones"], group=gBuySell, tooltip="Lines: Entry, SL and TP as lines only. Zones: Colored background ranges between the levels.")
 buySellRR = input.float(2.0, "Risk:Reward Ratio", minval=1.0, maxval=5.0, step=0.5, group=gBuySell, tooltip="Target R:R ratio for TP calculation. SL is ATR-based + structure.")
-useSignalZone = input.bool(false, "Display signal zone", group=gBuySell, tooltip="Display the BUY/SELL score box on the signal candle.")
 usePrevSignals = input.bool(false, "Display Previous Signals", group=gBuySell, tooltip="Display grayed-out previous signal zones and levels. Disable for a cleaner chart.")
 prevSignalOpacity = input.int(20, "Previous Signal Opacity (%)", minval=5, maxval=50, step=5, group=gBuySell, tooltip="How visible previous signals appear. Higher = more visible.")
+signalAutoExpire = input.bool(true, "Auto-Expire Signals", group=gBuySell, tooltip="Automatically hide signals after expiration or when TP/SL is hit. Expiration is timeframe-adaptive.")
 
 // === Theme ===
 var gTheme = "Theme & Colors"
@@ -132,6 +132,7 @@ divergenceLookback = input.int(5, "Divergence Lookback", minval=2, group=gSignal
 // === Structure ===
 useStructure = input.bool(true, "Use Structure Filter", group=gStructure)
 swingLookback = input.int(5, "Swing Lookback", minval=2, group=gStructure)
+slSwingLookback = input.int(10, "SL Swing Lookback", minval=2, group=gStructure, tooltip="Lookback for SL swing detection. Larger = more significant structural levels for stop placement.")
 useBreakout = input.bool(true, "Require Breakout", group=gStructure)
 swingDisplacementATR = input.float(1.0, "Swing Displacement (ATR mult)", minval=0, step=0.1, group=gStructure)
 swingMinBars = input.int(5, "Min Bars Left/Right of Pivot", minval=2, group=gStructure)
@@ -559,6 +560,7 @@ chochBlockSell = useCHoCHFilter and chochBullish
 emaFast = ta.ema(close, maFastLen)
 emaSlow = ta.ema(close, maSlowLen)
 emaSlower = ta.ema(close, maSlowerLen)
+ema200 = ta.ema(close, 200)
 maStackUp = useMAStack ? (emaFast[1] > emaSlow[1] and emaSlow[1] > emaSlower[1]) : true
 maStackDown = useMAStack ? (emaFast[1] < emaSlow[1] and emaSlow[1] < emaSlower[1]) : true
 
@@ -611,6 +613,7 @@ mtf15 = request.security(syminfo.tickerid, "15", close > ta.ema(close, mtfEmaLen
 mtf60 = request.security(syminfo.tickerid, "60", close > ta.ema(close, mtfEmaLen), lookahead=barmerge.lookahead_off)
 mtf240 = request.security(syminfo.tickerid, "240", close > ta.ema(close, mtfEmaLen), lookahead=barmerge.lookahead_off)
 mtfD  = request.security(syminfo.tickerid, "D",  close > ta.ema(close, mtfEmaLen), lookahead=barmerge.lookahead_off)
+[prevDayHigh, prevDayLow] = request.security(syminfo.tickerid, "D", [high[1], low[1]], lookahead=barmerge.lookahead_off)
 
 // === ATR Range Filter ===
 atrAvg = ta.sma(atr, atrLength * 2)
@@ -623,7 +626,7 @@ bullFVG = low[2] > high[0] and bodyPctBull >= fvgMinBodyPct
 bearFVG = high[2] < low[0] and bodyPctBear >= fvgMinBodyPct
 
 // ==================================================================================
-// CALCULATIONS - NEW FACTORS (36)
+// CALCULATIONS
 // ==================================================================================
 
 // === 1. SuperTrend ===
@@ -860,17 +863,19 @@ avgBody = ta.sma(math.abs(close - open), 20)
 bullDisplacement = (close[1] > open[1] and math.abs(close[1] - open[1]) > avgBody[1] * dispBodyMult and volume[1] > volumeMA[1])
 bearDisplacement = (close[1] < open[1] and math.abs(close[1] - open[1]) > avgBody[1] * dispBodyMult and volume[1] > volumeMA[1])
 
-// === 32. Donchian Channel ===
-donchianUpper = useDonchian ? ta.highest(high, donchianLength) : high
-donchianLower = useDonchian ? ta.lowest(low, donchianLength) : low
+// === 32. Donchian Channel === (always computed for scoring; useDonchian = display only)
+donchianUpper = ta.highest(high, donchianLength)
+donchianLower = ta.lowest(low, donchianLength)
 donchianMid = (donchianUpper + donchianLower) / 2
-donchianBullish = useDonchian ? close[1] > donchianMid[1] : true
-donchianBearish = useDonchian ? close[1] < donchianMid[1] : true
+donchianBullish = close[1] > donchianMid[1]
+donchianBearish = close[1] < donchianMid[1]
+donchianBreakoutUp = ta.crossover(close, donchianUpper)
+donchianBreakoutDown = ta.crossunder(close, donchianLower)
 
-// === 33. McGinley Dynamic ===
-mcginleyVal = useMcGinley ? f_mcginley(close, mcginleyLength) : close
-mcginleyBullish = useMcGinley ? close[1] > mcginleyVal[1] : true
-mcginleyBearish = useMcGinley ? close[1] < mcginleyVal[1] : true
+// === 33. McGinley Dynamic === (always computed for scoring; useMcGinley = display only)
+mcginleyVal = f_mcginley(close, mcginleyLength)
+mcginleyBullish = close[1] > mcginleyVal[1]
+mcginleyBearish = close[1] < mcginleyVal[1]
 
 // === 34. DEMA ===
 demaEma1 = ta.ema(close, demaLength)
@@ -912,8 +917,9 @@ alligatorLipsVal = f_smma(alligatorMed, alligatorLips)
 alligatorJawPlot = alligatorJawVal[8]
 alligatorTeethPlot = alligatorTeethVal[5]
 alligatorLipsPlot = alligatorLipsVal[3]
-alligatorBullish = useAlligator ? (alligatorLipsPlot > alligatorTeethPlot and alligatorTeethPlot > alligatorJawPlot) : true
-alligatorBearish = useAlligator ? (alligatorLipsPlot < alligatorTeethPlot and alligatorTeethPlot < alligatorJawPlot) : true
+// Alligator alignment always computed for scoring; useAlligator = display only
+alligatorBullish = alligatorLipsPlot > alligatorTeethPlot and alligatorTeethPlot > alligatorJawPlot
+alligatorBearish = alligatorLipsPlot < alligatorTeethPlot and alligatorTeethPlot < alligatorJawPlot
 
 // === 38. Gator Oscillator ===
 gatorUpper = math.abs(alligatorJawPlot - alligatorTeethPlot)
@@ -1008,15 +1014,15 @@ mfiBWVolUp = volume > volume[1]
 mfiBWBullish = (mfiBWUp and mfiBWVolUp)
 mfiBWBearish = (not mfiBWUp and mfiBWVolUp)
 
-// === 55. Pivot Points (HTF) ===
+// === 55. Pivot Points (HTF) === (always computed for scoring; usePivots = display only)
 [pivotHighHTF, pivotLowHTF, pivotCloseHTF] = request.security(syminfo.tickerid, pivotTimeframe, [high[1], low[1], close[1]], lookahead=barmerge.lookahead_off)
-pivotP = usePivots ? (pivotHighHTF + pivotLowHTF + pivotCloseHTF) / 3 : close
+pivotP = (pivotHighHTF + pivotLowHTF + pivotCloseHTF) / 3
 pivotR1 = 2 * pivotP - pivotLowHTF
 pivotR2 = pivotP + (pivotHighHTF - pivotLowHTF)
 pivotS1 = 2 * pivotP - pivotHighHTF
 pivotS2 = pivotP - (pivotHighHTF - pivotLowHTF)
-nearPivotR1 = usePivots and close[1] >= pivotR1[1] * 0.998 and close[1] <= pivotR1[1] * 1.002
-nearPivotS1 = usePivots and close[1] >= pivotS1[1] * 0.998 and close[1] <= pivotS1[1] * 1.002
+nearPivotR1 = close[1] >= pivotR1[1] * 0.998 and close[1] <= pivotR1[1] * 1.002
+nearPivotS1 = close[1] >= pivotS1[1] * 0.998 and close[1] <= pivotS1[1] * 1.002
 pivotCrossUpR1 = ta.crossover(close, pivotR1)
 pivotCrossDownS1 = ta.crossunder(close, pivotS1)
 pivotBreak = pivotCrossUpR1 or pivotCrossDownS1
@@ -1032,10 +1038,7 @@ fib618 = fibSwingHigh - 0.618 * fibRange
 fib786 = fibSwingHigh - 0.786 * fibRange
 
 // === 57. Support/Resistance (from pivots) ===
-srSwingHigh = ta.pivothigh(high, swingLookback, swingLookback)
-srSwingLow = ta.pivotlow(low, swingLookback, swingLookback)
-srResistance = ta.valuewhen(not na(srSwingHigh), srSwingHigh, 0)
-srSupport = ta.valuewhen(not na(srSwingLow), srSwingLow, 0)
+// S/R levels reuse lastSwingHigh/lastSwingLow (defined in structure section)
 
 // === 58. Gap Detection ===
 gapUp = useGap and open > high[1]
@@ -1071,12 +1074,10 @@ twiggsBearish = twiggsValue[1] < 0
 // Philosophy: Detect exhaustion + reversal confirmation, NOT lagging trend stacking
 // ==================================================================================
 
-// --- New reversal-specific variables ---
 stochCrossUp = ta.crossover(stochKVal, stochDVal)
 stochCrossDown = ta.crossunder(stochKVal, stochDVal)
 macdHistTurningUp = macdHist[1] > macdHist[2] and macdHist[2] < 0
 macdHistTurningDown = macdHist[1] < macdHist[2] and macdHist[2] > 0
-// Decaying freshness scores — bar 1 ago = full credit, bar 2 = partial, bar 3 = minimal
 macdCrossUpFresh = macdCrossUp[1] ? 2.0 : macdCrossUp[2] ? 1.2 : macdCrossUp[3] ? 0.5 : 0.0
 macdCrossDownFresh = macdCrossDown[1] ? 2.0 : macdCrossDown[2] ? 1.2 : macdCrossDown[3] ? 0.5 : 0.0
 rsiCrossUpFresh = rsiOversoldCross[1] ? 2.0 : rsiOversoldCross[2] ? 1.2 : rsiOversoldCross[3] ? 0.5 : 0.0
@@ -1087,9 +1088,9 @@ rsiVelocity = rsiValue - rsiValue[3]
 rsiAccelBuy = rsiPrev < 40 and rsiVelocity > 8
 rsiAccelSell = rsiPrev > 60 and rsiVelocity < -8
 
-// Lagging indicator count — when too many align, that's exhaustion not confirmation
-lagBuyCount = (trendUp ? 1 : 0) + (maStackUp ? 1 : 0) + (stBullish ? 1 : 0) + (sarBullish ? 1 : 0) + (ichBullish ? 1 : 0) + (aroonBullish ? 1 : 0) + (linRegBullish ? 1 : 0) + (donchianBullish ? 1 : 0) + (mcginleyBullish ? 1 : 0) + (alligatorBullish ? 1 : 0) + (vortexBullish ? 1 : 0) + (demaBullish ? 1 : 0) + (temaBullish ? 1 : 0) + (gmmaBullish ? 1 : 0) + (macdBullish ? 1 : 0) + (rsiBullish ? 1 : 0) + (rocBullish ? 1 : 0)
-lagSellCount = (trendDown ? 1 : 0) + (maStackDown ? 1 : 0) + (stBearish ? 1 : 0) + (sarBearish ? 1 : 0) + (ichBearish ? 1 : 0) + (aroonBearish ? 1 : 0) + (linRegBearish ? 1 : 0) + (donchianBearish ? 1 : 0) + (mcginleyBearish ? 1 : 0) + (alligatorBearish ? 1 : 0) + (vortexBearish ? 1 : 0) + (demaBearish ? 1 : 0) + (temaBearish ? 1 : 0) + (gmmaBearish ? 1 : 0) + (macdBearish ? 1 : 0) + (rsiBearish ? 1 : 0) + (rocBearish ? 1 : 0)
+lagEnabledCount = 8 + (useMAStack ? 1 : 0) + (useSuperTrend ? 1 : 0) + (useSAR ? 1 : 0) + (useIchimoku ? 1 : 0) + 1 + 1 + (useGMMA ? 1 : 0) + 1 + (useROC ? 1 : 0)
+lagBuyCount = (trendUp ? 1 : 0) + (useMAStack and maStackUp ? 1 : 0) + (useSuperTrend and stBullish ? 1 : 0) + (useSAR and sarBullish ? 1 : 0) + (useIchimoku and ichBullish ? 1 : 0) + (aroonBullish ? 1 : 0) + (linRegBullish ? 1 : 0) + (donchianBullish ? 1 : 0) + (mcginleyBullish ? 1 : 0) + (alligatorBullish ? 1 : 0) + (vortexBullish ? 1 : 0) + (demaBullish ? 1 : 0) + (temaBullish ? 1 : 0) + (useGMMA and gmmaBullish ? 1 : 0) + (macdBullish ? 1 : 0) + (rsiBullish ? 1 : 0) + (useROC and rocBullish ? 1 : 0)
+lagSellCount = (trendDown ? 1 : 0) + (useMAStack and maStackDown ? 1 : 0) + (useSuperTrend and stBearish ? 1 : 0) + (useSAR and sarBearish ? 1 : 0) + (useIchimoku and ichBearish ? 1 : 0) + (aroonBearish ? 1 : 0) + (linRegBearish ? 1 : 0) + (donchianBearish ? 1 : 0) + (mcginleyBearish ? 1 : 0) + (alligatorBearish ? 1 : 0) + (vortexBearish ? 1 : 0) + (demaBearish ? 1 : 0) + (temaBearish ? 1 : 0) + (useGMMA and gmmaBearish ? 1 : 0) + (macdBearish ? 1 : 0) + (rsiBearish ? 1 : 0) + (useROC and rocBearish ? 1 : 0)
 
 // ==================================================================================
 // SCORING FUNCTIONS
@@ -1108,6 +1109,8 @@ f_exhaustionScore() =>
          + (uoValue[1] < 30 ? 0.8 : 0.0)
          + (volClimaxBuy ? 2.5 : 0.0)
          + (extendedBearRun ? 1.5 : 0.0)
+         + (massBulge ? 1.5 : 0.0)
+         + (cmoValue[1] < -50 ? 0.8 : 0.0)
     sRaw = (rsiPrev > 65 ? 2.0 : rsiPrev > 55 ? 1.0 : 0.0)
          + (stochKVal[1] > 75 ? 1.5 : 0.0)
          + (mfiValue[1] > 70 ? 1.0 : 0.0)
@@ -1119,6 +1122,8 @@ f_exhaustionScore() =>
          + (uoValue[1] > 70 ? 0.8 : 0.0)
          + (volClimaxSell ? 2.5 : 0.0)
          + (extendedBullRun ? 1.5 : 0.0)
+         + (massBulge ? 1.5 : 0.0)
+         + (cmoValue[1] > 50 ? 0.8 : 0.0)
     [math.min(bRaw / c, 1.0), math.min(sRaw / c, 1.0)]
 
 f_reversalScore() =>
@@ -1134,6 +1139,8 @@ f_reversalScore() =>
          + (elderImpulseBull ? 0.8 : 0.0)
          + (dpoBullish ? 0.6 : 0.0)
          + (rsiAccelBuy ? 1.2 : 0.0)
+         + (chandBullish ? 0.8 : 0.0)
+         + (ttmFirBull ? 1.0 : 0.0)
     sRaw = macdCrossDownFresh + rsiCrossDownFresh + stochCrossDownFresh
          + (macdHistTurningDown ? 1.5 : 0.0)
          + (fisherBearish ? 1.0 : 0.0)
@@ -1145,90 +1152,111 @@ f_reversalScore() =>
          + (elderImpulseBear ? 0.8 : 0.0)
          + (dpoBearish ? 0.6 : 0.0)
          + (rsiAccelSell ? 1.2 : 0.0)
+         + (chandBearish ? 0.8 : 0.0)
+         + (ttmFirBear ? 1.0 : 0.0)
     [math.min(bRaw / c, 1.0), math.min(sRaw / c, 1.0)]
 
 f_structureScore() =>
-    c = 5.5
+    c = 9.5
+    candleBullRaw = (bullEngulfing ? 1.5 : 0.0) + (hammerBull ? 1.5 : 0.0) + (morningStar ? 1.5 : 0.0)
+         + (piercingLine ? 1.0 : 0.0) + (tweezerBottom ? 1.0 : 0.0) + (threeWhiteSoldiers ? 1.0 : 0.0)
+         + (doji and rsiPrev < 40 ? 0.5 : 0.0) + (bullHarami ? 0.8 : 0.0)
+    candleBullCapped = math.min(candleBullRaw, 2.5)
+    candleBearRaw = (bearEngulfing ? 1.5 : 0.0) + (shootingStar ? 1.5 : 0.0) + (eveningStar ? 1.5 : 0.0)
+         + (darkCloudCover ? 1.0 : 0.0) + (tweezerTop ? 1.0 : 0.0) + (threeBlackCrows ? 1.0 : 0.0)
+         + (doji and rsiPrev > 60 ? 0.5 : 0.0) + (bearHarami ? 0.8 : 0.0)
+    candleBearCapped = math.min(candleBearRaw, 2.5)
+    pivotBreakUpFresh = pivotCrossUpR1[1] ? 1.8 : pivotCrossUpR1[2] ? 1.2 : pivotCrossUpR1[3] ? 0.6 : 0.0
+    pivotBreakDownFresh = pivotCrossDownS1[1] ? 1.8 : pivotCrossDownS1[2] ? 1.2 : pivotCrossDownS1[3] ? 0.6 : 0.0
+    donchianBreakoutUpFresh = donchianBreakoutUp[1] ? 1.2 : donchianBreakoutUp[2] ? 0.8 : donchianBreakoutUp[3] ? 0.4 : 0.0
+    donchianBreakoutDownFresh = donchianBreakoutDown[1] ? 1.2 : donchianBreakoutDown[2] ? 0.8 : donchianBreakoutDown[3] ? 0.4 : 0.0
     bRaw = (nearSupport ? 2.0 : 0.0)
          + (wyckSpring ? 2.5 : 0.0)
          + (bullishDivergence ? 2.5 : 0.0)
-         + (bosBull ? 1.5 : 0.0)
-         + (chochBullish ? 2.0 : 0.0)
-         + (sfpBull ? 1.5 : 0.0)
+         + math.max(bosBull ? 1.5 : 0.0, chochBullish ? 2.0 : 0.0)
+         + math.max(sfpBull ? 1.5 : 0.0, liqSweepBuy ? 2.0 : 0.0)
          + (bullFVG ? 1.0 : 0.0)
-         + (bullEngulfing ? 1.5 : 0.0)
-         + (hammerBull ? 1.5 : 0.0)
-         + (morningStar ? 1.5 : 0.0)
-         + (piercingLine ? 1.0 : 0.0)
-         + (tweezerBottom ? 1.0 : 0.0)
-         + (threeWhiteSoldiers ? 1.0 : 0.0)
-         + (doji and rsiPrev < 40 ? 0.5 : 0.0)
+         + candleBullCapped
          + (nearBullOB ? 1.5 : 0.0)
          + (wickRejectionBuy ? 1.0 : 0.0)
-         + (liqSweepBuy ? 2.0 : 0.0)
+         + (bullDisplacement ? 1.2 : 0.0)
+         + pivotBreakUpFresh
+         + (nearPivotS1 ? 0.9 : 0.0)
+         + donchianBreakoutUpFresh
     sRaw = (nearResistance ? 2.0 : 0.0)
          + (wyckUpthrust ? 2.5 : 0.0)
          + (bearishDivergence ? 2.5 : 0.0)
-         + (bosBear ? 1.5 : 0.0)
-         + (chochBearish ? 2.0 : 0.0)
-         + (sfpBear ? 1.5 : 0.0)
+         + math.max(bosBear ? 1.5 : 0.0, chochBearish ? 2.0 : 0.0)
+         + math.max(sfpBear ? 1.5 : 0.0, liqSweepSell ? 2.0 : 0.0)
          + (bearFVG ? 1.0 : 0.0)
-         + (bearEngulfing ? 1.5 : 0.0)
-         + (shootingStar ? 1.5 : 0.0)
-         + (eveningStar ? 1.5 : 0.0)
-         + (darkCloudCover ? 1.0 : 0.0)
-         + (tweezerTop ? 1.0 : 0.0)
-         + (threeBlackCrows ? 1.0 : 0.0)
-         + (doji and rsiPrev > 60 ? 0.5 : 0.0)
+         + candleBearCapped
          + (nearBearOB ? 1.5 : 0.0)
          + (wickRejectionSell ? 1.0 : 0.0)
-         + (liqSweepSell ? 2.0 : 0.0)
+         + (bearDisplacement ? 1.2 : 0.0)
+         + pivotBreakDownFresh
+         + (nearPivotR1 ? 0.9 : 0.0)
+         + donchianBreakoutDownFresh
     [math.min(bRaw / c, 1.0), math.min(sRaw / c, 1.0)]
 
 f_volumeScore() =>
     c = 4.0
     confBuy = volumeConfirm and close[1] > open[1]
     confSell = volumeConfirm and close[1] < open[1]
-    risBuy = volumeRising and pressureRatio[1] > 0.55
-    risSell = volumeRising and pressureRatio[1] < 0.45
+    risBuyOnly = volumeRising and not pressureBullish
+    risSellOnly = volumeRising and not pressureBearish
     bRaw = (confBuy ? 1.2 : 0.0)
-         + (risBuy ? 1.0 : 0.0)
+         + (risBuyOnly ? 0.6 : 0.0)
          + (obvBullish ? 1.0 : 0.0)
          + (cmfBullish ? 1.0 : 0.0)
-         + (pressureBullish ? 1.2 : 0.0)
+         + (pressureBullish ? (volumeRising ? 1.5 : 1.0) : 0.0)
          + (klingerBullish ? 0.8 : 0.0)
          + (twiggsBullish ? 0.7 : 0.0)
          + (iiiBullish ? 0.5 : 0.0)
          + (eomBullish ? 0.5 : 0.0)
+         + (nviBullish ? 0.5 : 0.0)
+         + (pviBullish ? 0.4 : 0.0)
+         + (efiBullish ? 0.6 : 0.0)
+         + (adLineBullish ? 0.5 : 0.0)
     sRaw = (confSell ? 1.2 : 0.0)
-         + (risSell ? 1.0 : 0.0)
+         + (risSellOnly ? 0.6 : 0.0)
          + (obvBearish ? 1.0 : 0.0)
          + (cmfBearish ? 1.0 : 0.0)
-         + (pressureBearish ? 1.2 : 0.0)
+         + (pressureBearish ? (volumeRising ? 1.5 : 1.0) : 0.0)
          + (klingerBearish ? 0.8 : 0.0)
          + (twiggsBearish ? 0.7 : 0.0)
          + (iiiBearish ? 0.5 : 0.0)
          + (eomBearish ? 0.5 : 0.0)
+         + (nviBearish ? 0.5 : 0.0)
+         + (pviBearish ? 0.4 : 0.0)
+         + (efiBearish ? 0.6 : 0.0)
+         + (adLineBearish ? 0.5 : 0.0)
     [math.min(bRaw / c, 1.0), math.min(sRaw / c, 1.0)]
 
 f_trendAlignScore() =>
-    c = 5.0
-    bRaw = (mtfD ? 2.5 : 0.0) + (mtf240 ? 2.0 : 0.0) + (htfTrendUp ? 2.0 : 0.0) + (mtf60 ? 1.0 : 0.0) + (adxStrong ? 0.5 : 0.0)
-    sRaw = (not mtfD ? 2.5 : 0.0) + (not mtf240 ? 2.0 : 0.0) + (not htfTrendUp ? 2.0 : 0.0) + (not mtf60 ? 1.0 : 0.0) + (adxStrong ? 0.5 : 0.0)
+    c = 8.5
+    mtfBuy = (mtfD ? 2.5 : 0.0) + (mtf240 ? 2.0 : 0.0) + (mtf60 ? 1.0 : 0.0) + (mtf15 ? 0.6 : 0.0) + (mtf5 ? 0.4 : 0.0)
+    mtfSell = (not mtfD ? 2.5 : 0.0) + (not mtf240 ? 2.0 : 0.0) + (not mtf60 ? 1.0 : 0.0) + (not mtf15 ? 0.6 : 0.0) + (not mtf5 ? 0.4 : 0.0)
+    bRaw = mtfBuy + (htfTrendUp ? 2.0 : 0.0) + (adxStrong ? 0.5 : 0.0) + (vwRsiBullish ? 0.8 : 0.0) + (vortexBullish ? 0.6 : 0.0) + (vwapBullish ? 0.7 : 0.0) + (mcginleyBullish ? 0.7 : 0.0) + (alligatorBullish ? 0.8 : 0.0)
+    sRaw = mtfSell + (not htfTrendUp ? 2.0 : 0.0) + (adxStrong ? 0.5 : 0.0) + (vwRsiBearish ? 0.8 : 0.0) + (vortexBearish ? 0.6 : 0.0) + (vwapBearish ? 0.7 : 0.0) + (mcginleyBearish ? 0.7 : 0.0) + (alligatorBearish ? 0.8 : 0.0)
     [math.min(bRaw / c, 1.0), math.min(sRaw / c, 1.0)]
 
 f_metaMultipliers(exhB, exhS, revB, revS, strB, strS, volB, volS, trdB, trdS) =>
-    zBuyM = zScore[1] < -2.0 ? 1.15 : zScore[1] > 2.0 ? 0.50 : 1.0
-    zSellM = zScore[1] > 2.0 ? 1.15 : zScore[1] < -2.0 ? 0.50 : 1.0 
-    r2M = rSqValue > 0.7 ? 1.08 : rSqValue > 0.5 ? 1.0 : rSqValue > 0.3 ? 0.80 : rSqValue > 0.15 ? 0.60 : 0.45
-    vsM = hvRank[1] > 95 ? 0.40 : hvRank[1] > 90 ? 0.55 : hvRank[1] > 80 ? 0.80 : 1.0
+    zBuyM = zScore[1] < -2.0 ? 1.15 : zScore[1] < -1.0 ? 1.05 : zScore[1] > 2.0 ? 0.65 : zScore[1] > 1.5 ? 0.85 : 1.0
+    zSellM = zScore[1] > 2.0 ? 1.15 : zScore[1] > 1.0 ? 1.05 : zScore[1] < -2.0 ? 0.65 : zScore[1] < -1.5 ? 0.85 : 1.0
+    r2M = 1.0  
+    exhStrength = math.max(exhB, exhS)
+    vsM = hvRank[1] > 95 ? (exhStrength > 0.5 ? 1.08 : exhStrength > 0.3 ? 0.85 : 0.65) : hvRank[1] > 90 ? (exhStrength > 0.5 ? 1.04 : exhStrength > 0.3 ? 0.88 : 0.75) : hvRank[1] > 80 ? 0.92 : 1.0
     adxFall = adxValue[1] < adxValue[4]
     adxRise = adxValue[1] > adxValue[4] and adxStrong
     adxM = adxFall ? 1.06 : adxRise ? 0.85 : 1.0    
-    exBoostB = lagSellCount >= 14 ? 1.15 : lagSellCount >= 11 ? 1.08 : 1.0
-    exPenB = lagBuyCount >= 14 ? 0.55 : lagBuyCount >= 11 ? 0.75 : 1.0
-    exBoostS = lagBuyCount >= 14 ? 1.15 : lagBuyCount >= 11 ? 1.08 : 1.0
-    exPenS = lagSellCount >= 14 ? 0.55 : lagSellCount >= 11 ? 0.75 : 1.0
+    lagSellRatio = lagSellCount / math.max(lagEnabledCount, 1)
+    lagBuyRatio = lagBuyCount / math.max(lagEnabledCount, 1)
+    lagNetBuy = lagSellRatio - lagBuyRatio
+    lagNetSell = lagBuyRatio - lagSellRatio
+    exBoostB = lagNetBuy >= 0 ? (lagSellRatio >= 0.82 ? 1.15 : lagSellRatio >= 0.65 ? 1.08 : 1.0) : 1.0
+    exPenB = lagNetBuy < 0 ? (lagBuyRatio >= 0.82 ? 0.55 : lagBuyRatio >= 0.65 ? 0.75 : 1.0) : 1.0
+    exBoostS = lagNetSell >= 0 ? (lagBuyRatio >= 0.82 ? 1.15 : lagBuyRatio >= 0.65 ? 1.08 : 1.0) : 1.0
+    exPenS = lagNetSell < 0 ? (lagSellRatio >= 0.82 ? 0.55 : lagSellRatio >= 0.65 ? 0.75 : 1.0) : 1.0
     bAgreeStrong = (exhB > 0.55 ? 1 : 0) + (revB > 0.45 ? 1 : 0) + (strB > 0.35 ? 1 : 0) + (volB > 0.50 ? 1 : 0) + (trdB > 0.55 ? 1 : 0)
     bAgree = (exhB > 0.25 ? 1 : 0) + (revB > 0.15 ? 1 : 0) + (strB > 0.10 ? 1 : 0) + (volB > 0.20 ? 1 : 0) + (trdB > 0.25 ? 1 : 0)
     sAgreeStrong = (exhS > 0.55 ? 1 : 0) + (revS > 0.45 ? 1 : 0) + (strS > 0.35 ? 1 : 0) + (volS > 0.50 ? 1 : 0) + (trdS > 0.55 ? 1 : 0)
@@ -1237,28 +1265,32 @@ f_metaMultipliers(exhB, exhS, revB, revS, strB, strS, volB, volS, trdB, trdS) =>
     agreeS = sAgreeStrong >= 3 ? 1.15 : (sAgreeStrong >= 2 and sAgree >= 4) ? 1.10 : sAgree >= 4 ? 1.06 : sAgree >= 3 ? 1.03 : 1.0
     hod = hour(time, todTimezone)
     midSess = hod >= 10 and hod <= 14
-    sessM = inSession ? (useSessionFilter and midSess ? 1.05 : 1.0) : 0.90
+    sessM = useSessionFilter ? (inSession ? (midSess ? 1.05 : 1.0) : 0.90) : 1.0
     [r2M, zBuyM, zSellM, vsM, adxM, exBoostB, exPenB, exBoostS, exPenS, agreeB, agreeS, sessM, bAgreeStrong, bAgree, sAgreeStrong, sAgree]
 
 // ==================================================================================
 // SCORE COMPUTATION
 // ==================================================================================
 
-// --- CATEGORY SCORES ---
+// === CATEGORY SCORES ===
 [exhBuyScore, exhSellScore] = f_exhaustionScore()
 [revBuyScore, revSellScore] = f_reversalScore()
 [structBuyScore, structSellScore] = f_structureScore()
 [volBuyScore, volSellScore] = f_volumeScore()
 [trendAlignBuyScore, trendAlignSellScore] = f_trendAlignScore()
 
-// --- COMPOSITE ---
-rawBuyScore = (exhBuyScore * 0.30 + revBuyScore * 0.25 + structBuyScore * 0.20 + volBuyScore * 0.15 + trendAlignBuyScore * 0.10) * 100.0
-rawSellScore = (exhSellScore * 0.30 + revSellScore * 0.25 + structSellScore * 0.20 + volSellScore * 0.15 + trendAlignSellScore * 0.10) * 100.0
+// === R² CONTEXT WEIGHTING (per-category instead of global multiplier) ===
+r2Trend = rSqValue > 0.7 ? 1.08 : rSqValue > 0.5 ? 1.0 : rSqValue > 0.3 ? 0.92 : 0.85
+r2Reversal = rSqValue < 0.3 ? 1.10 : rSqValue < 0.5 ? 1.0 : rSqValue < 0.7 ? 0.95 : 0.90
 
-// --- META-MODIFIERS ---
+// === COMPOSITE (R² applied per-category: reversal cats boosted in choppy, trend cat boosted in trending) ===
+rawBuyScore = (exhBuyScore * 0.30 * r2Reversal + revBuyScore * 0.25 * r2Reversal + structBuyScore * 0.20 + volBuyScore * 0.15 + trendAlignBuyScore * 0.10 * r2Trend) * 100.0
+rawSellScore = (exhSellScore * 0.30 * r2Reversal + revSellScore * 0.25 * r2Reversal + structSellScore * 0.20 + volSellScore * 0.15 + trendAlignSellScore * 0.10 * r2Trend) * 100.0
+
+// === META-MODIFIERS ===
 [rSqMult, zScoreBuyMult, zScoreSellMult, volSpikeMult, adxReversalMult, exhaustionBoostBuy, exhaustionPenaltyBuy, exhaustionBoostSell, exhaustionPenaltySell, agreeMult, agreeMsell, sessionMult, buyCatAgreeStrong, buyCatAgree, sellCatAgreeStrong, sellCatAgree] = f_metaMultipliers(exhBuyScore, exhSellScore, revBuyScore, revSellScore, structBuyScore, structSellScore, volBuyScore, volSellScore, trendAlignBuyScore, trendAlignSellScore)
 
-// --- BONUSES ---
+// === BONUSES ===
 divBonusBuy = bullishDivergence ? 8.0 : 0.0
 divBonusSell = bearishDivergence ? 8.0 : 0.0
 wyckBonusBuy = wyckSpring ? 8.0 : 0.0
@@ -1266,17 +1298,17 @@ wyckBonusSell = wyckUpthrust ? 8.0 : 0.0
 chochBonusBuy = chochBullish ? 5.0 : 0.0
 chochBonusSell = chochBearish ? 5.0 : 0.0
 
-// --- MTF DIVERGENCE ---
+// === MTF DIVERGENCE ===
 mtfDivAlignedBuy = bullishDivergence and htfRsiForDiv > htfRsiForDivPrev
 mtfDivAlignedSell = bearishDivergence and htfRsiForDiv < htfRsiForDivPrev
 mtfDivMultBuy = mtfDivAlignedBuy ? 1.20 : 1.0
 mtfDivMultSell = mtfDivAlignedSell ? 1.20 : 1.0
 
-// --- PREMIUM/DISCOUNT ---
+// === PREMIUM/DISCOUNT ===
 pdPenaltyBuy = inPremium ? 0.82 : 1.0
 pdPenaltySell = inDiscount ? 0.82 : 1.0
 
-// --- BODY QUALITY ---
+// === BODY QUALITY ===
 signalBodyPct = math.abs(close - open) / math.max(high - low, 1e-10)
 bodyMult = signalBodyPct > 0.6 ? 1.08 : signalBodyPct < 0.25 ? 0.85 : 1.0
 
@@ -1284,11 +1316,13 @@ bodyMult = signalBodyPct > 0.6 ? 1.08 : signalBodyPct < 0.25 ? 0.85 : 1.0
 adxFalling = adxValue[1] < adxValue[4]
 adxRisingStrong = adxValue[1] > adxValue[4] and adxStrong
 
-// --- FINAL SCORE ---
-finalBuyScore = math.min((rawBuyScore + divBonusBuy + wyckBonusBuy + chochBonusBuy) * rSqMult * zScoreBuyMult * exhaustionBoostBuy * exhaustionPenaltyBuy * agreeMult * sessionMult * volSpikeMult * pdPenaltyBuy * mtfDivMultBuy * bodyMult * adxReversalMult, 100.0)
-finalSellScore = math.min((rawSellScore + divBonusSell + wyckBonusSell + chochBonusSell) * rSqMult * zScoreSellMult * exhaustionBoostSell * exhaustionPenaltySell * agreeMsell * sessionMult * volSpikeMult * pdPenaltySell * mtfDivMultSell * bodyMult * adxReversalMult, 100.0)
+// === FINAL SCORE ===
+multProductBuy = zScoreBuyMult * exhaustionBoostBuy * exhaustionPenaltyBuy * agreeMult * sessionMult * volSpikeMult * pdPenaltyBuy * mtfDivMultBuy * bodyMult * adxReversalMult
+multProductSell = zScoreSellMult * exhaustionBoostSell * exhaustionPenaltySell * agreeMsell * sessionMult * volSpikeMult * pdPenaltySell * mtfDivMultSell * bodyMult * adxReversalMult
+finalBuyScore = math.min((rawBuyScore + divBonusBuy + wyckBonusBuy + chochBonusBuy) * math.min(multProductBuy, 1.80), 100.0)
+finalSellScore = math.min((rawSellScore + divBonusSell + wyckBonusSell + chochBonusSell) * math.min(multProductSell, 1.80), 100.0)
 
-// --- SIGNAL GENERATION ---
+// === SIGNAL GENERATION ===
 var int barsSinceLastBuy = 999
 var int barsSinceLastSell = 999
 barsSinceLastBuy := barsSinceLastBuy + 1
@@ -1297,144 +1331,187 @@ barsSinceLastSell := barsSinceLastSell + 1
 buyConfidence = finalBuyScore >= 80 ? "High" : finalBuyScore >= 65 ? "Medium" : "Low"
 sellConfidence = finalSellScore >= 80 ? "High" : finalSellScore >= 65 ? "Medium" : "Low"
 
-// Opposing signal suppression — ratio-based dominance + flat safety net
+// === OPPOSING SIGNAL SUPPRESSION ===
 buyDominance = finalBuyScore - finalSellScore
 sellDominance = finalSellScore - finalBuyScore
 dominanceRatioBuy = finalBuyScore / math.max(finalSellScore, 1.0)
 dominanceRatioSell = finalSellScore / math.max(finalBuyScore, 1.0)
-signalBarBullish = close > open
-signalBarBearish = close < open
+signalBarBullish = close > open and signalBodyPct > 0.15
+signalBarBearish = close < open and signalBodyPct > 0.15
+signalBarInside = high <= high[1] and low >= low[1]
 
-// Hard exhaustion gate — a reversal system MUST detect exhaustion first
-signalBuy = useBuySellSignal and barstate.isconfirmed and finalBuyScore >= buySellThreshold and barsSinceLastBuy >= buySellCooldown and dominanceRatioBuy >= 1.25 and buyDominance >= 5.0 and signalBarBullish and exhBuyScore > 0.15
-signalSell = useBuySellSignal and barstate.isconfirmed and finalSellScore >= buySellThreshold and barsSinceLastSell >= buySellCooldown and dominanceRatioSell >= 1.25 and sellDominance >= 5.0 and signalBarBearish and exhSellScore > 0.15
+// === HARD EXHAUSTION GATE ===
+signalBuy = useBuySellSignal and barstate.isconfirmed and finalBuyScore >= buySellThreshold and barsSinceLastBuy >= buySellCooldown and dominanceRatioBuy >= 1.25 and buyDominance >= 8.0 and signalBarBullish and not signalBarInside and exhBuyScore > 0.25 and structBuyScore > 0.20
+signalSell = useBuySellSignal and barstate.isconfirmed and finalSellScore >= buySellThreshold and barsSinceLastSell >= buySellCooldown and dominanceRatioSell >= 1.25 and sellDominance >= 8.0 and signalBarBearish and not signalBarInside and exhSellScore > 0.25 and structSellScore > 0.20
 
 if signalBuy
     barsSinceLastBuy := 0
 if signalSell
     barsSinceLastSell := 0
 
-// --- SL/TP CALCULATION (Structure-First with Recency Validation) ---
+// === SL/TP CALCULATION ===
 atrSLDist = atrPrev * atrMultiplierSL
 
-// Primary swing: recent (≤30 bars), reasonable distance (0.5-4.5 ATR)
-swingAgeBuy = bar_index - ta.valuewhen(not na(swingLow), bar_index, 0)
-swingAgeSell = bar_index - ta.valuewhen(not na(swingHigh), bar_index, 0)
+// === SL-specific SWING DETECTION (wider lookback for more significant structural levels) ===
+slSwingHigh = ta.pivothigh(high, slSwingLookback, slSwingLookback)
+slSwingLow = ta.pivotlow(low, slSwingLookback, slSwingLookback)
+slLastSwingHigh = ta.valuewhen(not na(slSwingHigh), slSwingHigh, 0)
+slLastSwingLow = ta.valuewhen(not na(slSwingLow), slSwingLow, 0)
+slSwingAgeBuy = bar_index - ta.valuewhen(not na(slSwingLow), bar_index, 0)
+slSwingAgeSell = bar_index - ta.valuewhen(not na(slSwingHigh), bar_index, 0)
+slLastSwingLow2 = ta.valuewhen(not na(slSwingLow), slSwingLow, 1)
+slSwingAgeBuy2 = bar_index - ta.valuewhen(not na(slSwingLow), bar_index, 1)
+slLastSwingHigh2 = ta.valuewhen(not na(slSwingHigh), slSwingHigh, 1)
+slSwingAgeSell2 = bar_index - ta.valuewhen(not na(slSwingHigh), bar_index, 1)
 
-structDistBuy = close - lastSwingLow
-structSLBuyOk = not na(lastSwingLow) and lastSwingLow > 0 and swingAgeBuy <= 30 and structDistBuy >= atrPrev * 0.5 and structDistBuy <= atrPrev * 4.5
+// === PRIMARY SWING: recent (≤30 bars), reasonable distance (0.5-4.5 ATR) ===
+structDistBuy = close - slLastSwingLow
+structSLBuyOk = not na(slLastSwingLow) and slLastSwingLow > 0 and slSwingAgeBuy <= 30 and structDistBuy >= atrPrev * 0.5 and structDistBuy <= atrPrev * 4.5
 
-// Secondary swing fallback: older occurrence (≤50 bars, same distance range)
-lastSwingLow2 = ta.valuewhen(not na(swingLow), swingLow, 1)
-swingAgeBuy2 = bar_index - ta.valuewhen(not na(swingLow), bar_index, 1)
-structDistBuy2 = close - lastSwingLow2
-structSLBuyOk2 = not na(lastSwingLow2) and lastSwingLow2 > 0 and swingAgeBuy2 <= 50 and structDistBuy2 >= atrPrev * 0.5 and structDistBuy2 <= atrPrev * 4.5
+// === SECONDARY SWING: older occurrence (≤50 bars, same distance range) ===
+structDistBuy2 = close - slLastSwingLow2
+structSLBuyOk2 = not na(slLastSwingLow2) and slLastSwingLow2 > 0 and slSwingAgeBuy2 <= 50 and structDistBuy2 >= atrPrev * 0.5 and structDistBuy2 <= atrPrev * 4.5
 
-structDistSell = lastSwingHigh - close
-structSLSellOk = not na(lastSwingHigh) and lastSwingHigh > 0 and swingAgeSell <= 30 and structDistSell >= atrPrev * 0.5 and structDistSell <= atrPrev * 4.5
+structDistSell = slLastSwingHigh - close
+structSLSellOk = not na(slLastSwingHigh) and slLastSwingHigh > 0 and slSwingAgeSell <= 30 and structDistSell >= atrPrev * 0.5 and structDistSell <= atrPrev * 4.5
 
-lastSwingHigh2 = ta.valuewhen(not na(swingHigh), swingHigh, 1)
-swingAgeSell2 = bar_index - ta.valuewhen(not na(swingHigh), bar_index, 1)
-structDistSell2 = lastSwingHigh2 - close
-structSLSellOk2 = not na(lastSwingHigh2) and lastSwingHigh2 > 0 and swingAgeSell2 <= 50 and structDistSell2 >= atrPrev * 0.5 and structDistSell2 <= atrPrev * 4.5
+structDistSell2 = slLastSwingHigh2 - close
+structSLSellOk2 = not na(slLastSwingHigh2) and slLastSwingHigh2 > 0 and slSwingAgeSell2 <= 50 and structDistSell2 >= atrPrev * 0.5 and structDistSell2 <= atrPrev * 4.5
 
-// Three-tier fallback: primary swing → secondary swing → ATR
-buySL = structSLBuyOk ? (lastSwingLow - atrPrev * 0.15) : structSLBuyOk2 ? (lastSwingLow2 - atrPrev * 0.15) : (close - atrSLDist)
-sellSL = structSLSellOk ? (lastSwingHigh + atrPrev * 0.15) : structSLSellOk2 ? (lastSwingHigh2 + atrPrev * 0.15) : (close + atrSLDist)
+slBufferBuy = finalBuyScore >= 80 ? 0.30 : finalBuyScore >= 65 ? 0.40 : 0.50
+slBufferSell = finalSellScore >= 80 ? 0.30 : finalSellScore >= 65 ? 0.40 : 0.50
+buySL = structSLBuyOk ? (slLastSwingLow - atrPrev * slBufferBuy) : structSLBuyOk2 ? (slLastSwingLow2 - atrPrev * slBufferBuy) : (close - atrSLDist)
+sellSL = structSLSellOk ? (slLastSwingHigh + atrPrev * slBufferSell) : structSLSellOk2 ? (slLastSwingHigh2 + atrPrev * slBufferSell) : (close + atrSLDist)
 
-// Floor: 1.0 ATR min
+// === FLOOR (MIN): 1.0 ===
 buySL := math.min(buySL, close - atrPrev * 1.0)
 sellSL := math.max(sellSL, close + atrPrev * 1.0)
 
-// --- TP CALCULATION (Structure-Aware Targeting) ---
+// === TP CALCULATION ===
 fixedBuyTP = close + (close - buySL) * buySellRR
 fixedSellTP = close - (sellSL - close) * buySellRR
 
-// Find nearest structural target above close for BUY
+// === Precompute entry zone bounds for TP minimum distance enforcement ===
+entryZoneMultPre = finalBuyScore >= 80 ? 0.5 : finalBuyScore >= 65 ? 0.7 : 0.9
+buyZoneHighPre = math.min(open, close) + atrPrev * entryZoneMultPre
+sellZoneLowPre = math.max(open, close) - atrPrev * (finalSellScore >= 80 ? 0.5 : finalSellScore >= 65 ? 0.7 : 0.9)
+
+// === NEAREST STRUCTURAL TARGET ABOVE BUY ===
 buyRisk = close - buySL
 nearBuyTarget = fixedBuyTP
 buyTPSource = "R:R"
-if srResistance > close * 1.003 and (srResistance - close) / buyRisk >= 1.5
-    nearBuyTarget := math.min(nearBuyTarget, srResistance)
-    if nearBuyTarget == srResistance
+if lastSwingHigh > close + atrPrev * 0.15 and (lastSwingHigh - close) / buyRisk >= 1.2
+    nearBuyTarget := math.min(nearBuyTarget, lastSwingHigh)
+    if nearBuyTarget == lastSwingHigh
         buyTPSource := "S/R"
-if pivotR1 > close * 1.003 and (pivotR1 - close) / buyRisk >= 1.5
+if usePivots and pivotR1 > close + atrPrev * 0.15 and (pivotR1 - close) / buyRisk >= 1.2
     nearBuyTarget := math.min(nearBuyTarget, pivotR1)
     if nearBuyTarget == pivotR1
         buyTPSource := "R1"
-buyTP = nearBuyTarget
+if not na(lastBearOBHigh) and lastBearOBHigh > close + atrPrev * 0.15 and (lastBearOBHigh - close) / buyRisk >= 1.2
+    nearBuyTarget := math.min(nearBuyTarget, lastBearOBHigh)
+    if nearBuyTarget == lastBearOBHigh
+        buyTPSource := "OB"
+if fib382 > close + atrPrev * 0.15 and fib382 < close + atrPrev * 6 and (fib382 - close) / buyRisk >= 1.2
+    nearBuyTarget := math.min(nearBuyTarget, fib382)
+    if nearBuyTarget == fib382
+        buyTPSource := "Fib38"
+if fib618 > close + atrPrev * 0.15 and fib618 < close + atrPrev * 6 and (fib618 - close) / buyRisk >= 1.2
+    nearBuyTarget := math.min(nearBuyTarget, fib618)
+    if nearBuyTarget == fib618
+        buyTPSource := "Fib62"
+if vwapValue > close + atrPrev * 0.15 and (vwapValue - close) / buyRisk >= 1.2
+    nearBuyTarget := math.min(nearBuyTarget, vwapValue)
+    if nearBuyTarget == vwapValue
+        buyTPSource := "VWAP"
+if bbUpper > close + atrPrev * 0.15 and (bbUpper - close) / buyRisk >= 1.2
+    nearBuyTarget := math.min(nearBuyTarget, bbUpper)
+    if nearBuyTarget == bbUpper
+        buyTPSource := "BB"
+if ema200 > close + atrPrev * 0.15 and (ema200 - close) / buyRisk >= 1.2
+    nearBuyTarget := math.min(nearBuyTarget, ema200)
+    if nearBuyTarget == ema200
+        buyTPSource := "EMA200"
+if not na(prevDayHigh) and prevDayHigh > close + atrPrev * 0.15 and (prevDayHigh - close) / buyRisk >= 1.2
+    nearBuyTarget := math.min(nearBuyTarget, prevDayHigh)
+    if nearBuyTarget == prevDayHigh
+        buyTPSource := "PDH"
+if usePivots and pivotR2 > close + atrPrev * 0.15 and (pivotR2 - close) / buyRisk >= 1.2
+    nearBuyTarget := math.min(nearBuyTarget, pivotR2)
+    if nearBuyTarget == pivotR2
+        buyTPSource := "R2"
+trendExtendBuy = trendUp and adxStrong and trendAlignBuyScore > 0.5
+buyTP = (trendExtendBuy and nearBuyTarget < fixedBuyTP) ? fixedBuyTP : nearBuyTarget
+if trendExtendBuy and nearBuyTarget < fixedBuyTP
+    buyTPSource := "R:R"
+buyTP := math.max(buyTP, buyZoneHighPre + atrPrev * 0.2)
+buyTP := math.min(buyTP, close + atrPrev * atrMultiplierTP)
 buyActualRR = buyRisk > 0 ? (buyTP - close) / buyRisk : buySellRR
 
-// Find nearest structural target below close for SELL
+// === NEAREST STRUCTURAL TARGET BELOW BUY ===
 sellRisk = sellSL - close
 nearSellTarget = fixedSellTP
 sellTPSource = "R:R"
-if srSupport < close * 0.997 and (close - srSupport) / sellRisk >= 1.5
-    nearSellTarget := math.max(nearSellTarget, srSupport)
-    if nearSellTarget == srSupport
+if lastSwingLow < close - atrPrev * 0.15 and (close - lastSwingLow) / sellRisk >= 1.2
+    nearSellTarget := math.max(nearSellTarget, lastSwingLow)
+    if nearSellTarget == lastSwingLow
         sellTPSource := "S/R"
-if pivotS1 < close * 0.997 and (close - pivotS1) / sellRisk >= 1.5
+if usePivots and pivotS1 < close - atrPrev * 0.15 and (close - pivotS1) / sellRisk >= 1.2
     nearSellTarget := math.max(nearSellTarget, pivotS1)
     if nearSellTarget == pivotS1
         sellTPSource := "S1"
-sellTP = nearSellTarget
+if not na(lastBullOBLow) and lastBullOBLow < close - atrPrev * 0.15 and (close - lastBullOBLow) / sellRisk >= 1.2
+    nearSellTarget := math.max(nearSellTarget, lastBullOBLow)
+    if nearSellTarget == lastBullOBLow
+        sellTPSource := "OB"
+if fib618 < close - atrPrev * 0.15 and fib618 > close - atrPrev * 6 and (close - fib618) / sellRisk >= 1.2
+    nearSellTarget := math.max(nearSellTarget, fib618)
+    if nearSellTarget == fib618
+        sellTPSource := "Fib62"
+if fib382 < close - atrPrev * 0.15 and fib382 > close - atrPrev * 6 and (close - fib382) / sellRisk >= 1.2
+    nearSellTarget := math.max(nearSellTarget, fib382)
+    if nearSellTarget == fib382
+        sellTPSource := "Fib38"
+if vwapValue < close - atrPrev * 0.15 and (close - vwapValue) / sellRisk >= 1.2
+    nearSellTarget := math.max(nearSellTarget, vwapValue)
+    if nearSellTarget == vwapValue
+        sellTPSource := "VWAP"
+if bbLower < close - atrPrev * 0.15 and (close - bbLower) / sellRisk >= 1.2
+    nearSellTarget := math.max(nearSellTarget, bbLower)
+    if nearSellTarget == bbLower
+        sellTPSource := "BB"
+if ema200 < close - atrPrev * 0.15 and (close - ema200) / sellRisk >= 1.2
+    nearSellTarget := math.max(nearSellTarget, ema200)
+    if nearSellTarget == ema200
+        sellTPSource := "EMA200"
+if not na(prevDayLow) and prevDayLow < close - atrPrev * 0.15 and (close - prevDayLow) / sellRisk >= 1.2
+    nearSellTarget := math.max(nearSellTarget, prevDayLow)
+    if nearSellTarget == prevDayLow
+        sellTPSource := "PDL"
+if usePivots and pivotS2 < close - atrPrev * 0.15 and (close - pivotS2) / sellRisk >= 1.2
+    nearSellTarget := math.max(nearSellTarget, pivotS2)
+    if nearSellTarget == pivotS2
+        sellTPSource := "S2"
+trendExtendSell = trendDown and adxStrong and trendAlignSellScore > 0.5
+sellTP = (trendExtendSell and nearSellTarget > fixedSellTP) ? fixedSellTP : nearSellTarget
+if trendExtendSell and nearSellTarget > fixedSellTP
+    sellTPSource := "R:R"
+sellTP := math.min(sellTP, sellZoneLowPre - atrPrev * 0.2)
+sellTP := math.max(sellTP, close - atrPrev * atrMultiplierTP)
 sellActualRR = sellRisk > 0 ? (close - sellTP) / sellRisk : buySellRR
 
-// --- SIGNAL REASONS FUNCTION ---
-f_signalReasons(isBuy) =>
-    r = ""
-    _exhScore = isBuy ? exhBuyScore : exhSellScore
-    _revScore = isBuy ? revBuyScore : revSellScore
-    _strScore = isBuy ? structBuyScore : structSellScore
-    _volScore = isBuy ? volBuyScore : volSellScore
-    _trdScore = isBuy ? trendAlignBuyScore : trendAlignSellScore
-    if _exhScore > 0.4
-        r += (isBuy ? "Bearish" : "Bullish") + " exhaustion detected\n"
-    if _revScore > 0.3
-        r += "Reversal triggers firing\n"
-    if _strScore > 0.15
-        r += "Structure supports reversal\n"
-    if _volScore > 0.4
-        r += "Volume confirming\n"
-    if _trdScore > 0.5
-        r += "HTF trend aligned\n"
-    if isBuy ? bullishDivergence : bearishDivergence
-        r += (isBuy ? "Bullish" : "Bearish") + " divergence (+8)\n"
-    if isBuy ? wyckSpring : wyckUpthrust
-        r += (isBuy ? "Wyckoff Spring" : "Wyckoff Upthrust") + " (+8)\n"
-    if isBuy ? chochBullish : chochBearish
-        r += "CHoCH confirmed (+5)\n"
-    _lagCount = isBuy ? lagSellCount : lagBuyCount
-    if _lagCount >= 11
-        r += (isBuy ? "Bears" : "Bulls") + " overextended (" + str.tostring(_lagCount) + "/17 lag)\n"
-    if volSpikeMult < 1.0
-        r += "⚠ Vol spike penalty (" + str.tostring(volSpikeMult, "#.##") + "x)\n"
-    if isBuy ? inPremium : inDiscount
-        r += "⚠ " + (isBuy ? "Buying in Premium" : "Selling in Discount") + " zone (0.82x)\n"
-    if isBuy ? volClimaxBuy : volClimaxSell
-        r += "Volume climax (+2.5 exh)\n"
-    if isBuy ? extendedBearRun : extendedBullRun
-        r += (isBuy ? "Extended bear run" : "Extended bull run") + " (+1.5 exh)\n"
-    if isBuy ? rsiAccelBuy : rsiAccelSell
-        r += "RSI acceleration (+1.2 rev)\n"
-    if isBuy ? nearBullOB : nearBearOB
-        r += "OB retest (+1.5 struc)\n"
-    if isBuy ? wickRejectionBuy : wickRejectionSell
-        r += "Wick rejection (+1.0 struc)\n"
-    if isBuy ? liqSweepBuy : liqSweepSell
-        r += "Liquidity sweep (+2.0 struc)\n"
-    if isBuy ? mtfDivAlignedBuy : mtfDivAlignedSell
-        r += "MTF div aligned (×1.20)\n"
-    if adxFalling
-        r += "ADX falling (×1.06)\n"
-    if adxRisingStrong
-        r += "⚠ ADX rising strong (×0.85)\n"
-    _combinedM = rSqMult * volSpikeMult * (isBuy ? pdPenaltyBuy : pdPenaltySell) * (isBuy ? zScoreBuyMult : zScoreSellMult) * sessionMult * (isBuy ? mtfDivMultBuy : mtfDivMultSell) * bodyMult * adxReversalMult
-    r += "Combined mult: " + str.tostring(_combinedM, "#.##") + "x\n"
-    r
+// === SPLIT TP WHEN >8%: half-% (TP1) and full (TP2) ===
+buyTPPct = (buyTP - close) / close * 100
+sellTPPct = (close - sellTP) / close * 100
+useTwoTPsBuy = buyTPPct > 8.0
+useTwoTPsSell = sellTPPct > 8.0
+buyTP1 = useTwoTPsBuy ? close + (buyTP - close) * 0.5 : buyTP
+buyTP2 = buyTP
+sellTP1 = useTwoTPsSell ? close - (close - sellTP) * 0.5 : sellTP
+sellTP2 = sellTP
 
-// --- SIGNAL TOOLTIP FUNCTION ---
-f_signalTooltip(isBuy, reasons, slSource) =>
+// === SIGNAL TOOLTIP FUNCTION ===
+f_signalTooltip(isBuy, slSource) =>
     _score = isBuy ? finalBuyScore : finalSellScore
     _conf = isBuy ? buyConfidence : sellConfidence
     _dom = isBuy ? buyDominance : sellDominance
@@ -1455,12 +1532,15 @@ f_signalTooltip(isBuy, reasons, slSource) =>
     _tpPct = isBuy ? str.tostring((_tp - close) / close * 100, "#.#") : str.tostring((close - _tp) / close * 100, "#.#")
     _slSign = isBuy ? "-" : "+"
     _tpSign = isBuy ? "+" : "-"
+    _useTwo = isBuy ? useTwoTPsBuy : useTwoTPsSell
+    _tp1 = isBuy ? buyTP1 : sellTP1
+    _tp2 = isBuy ? buyTP2 : sellTP2
+    _tp1Pct = isBuy ? str.tostring((_tp1 - close) / close * 100, "#.#") : str.tostring((close - _tp1) / close * 100, "#.#")
+    _tp2Pct = isBuy ? str.tostring((_tp2 - close) / close * 100, "#.#") : str.tostring((close - _tp2) / close * 100, "#.#")
     _side = isBuy ? "Buy" : "Sell"
     _pdLabel = isBuy ? (inPremium ? "Premium ⚠" : "Discount ✓") : (inDiscount ? "Discount ⚠" : "Premium ✓")
     t = _side + " Signal\n"
-     + "Score: " + str.tostring(_score, "#.#") + "/100 (" + _conf + ")\n"
      + "Dominance: +" + str.tostring(_dom, "#.#") + " (×" + str.tostring(_domRatio, "#.##") + ")\n"
-     + "━━━━━━━━━━━━━━━━━━━━\n"
      + "Exhaustion:  " + str.tostring(_exh * 100, "#") + "% (wt 30%)\n"
      + "Reversal:    " + str.tostring(_rev * 100, "#") + "% (wt 25%)\n"
      + "Structure:   " + str.tostring(_str * 100, "#") + "% (wt 20%)\n"
@@ -1468,39 +1548,236 @@ f_signalTooltip(isBuy, reasons, slSource) =>
      + "Trend Align: " + str.tostring(_trd * 100, "#") + "% (wt 10%)\n"
      + "━━━━━━━━━━━━━━━━━━━━\n"
      + "Cats agree: " + str.tostring(_catStrong) + " strong + " + str.tostring(_catAny) + "/5 any\n"
-     + "R²: " + str.tostring(rSqValue, "#.##") + " (×" + str.tostring(rSqMult, "#.##") + ")" + " | Z: " + str.tostring(zScore[1], "#.#") + "\n"
+     + "R²: " + str.tostring(rSqValue, "#.##") + " (rev×" + str.tostring(r2Reversal, "#.##") + " trd×" + str.tostring(r2Trend, "#.##") + ") | Z: " + str.tostring(zScore[1], "#.#") + "\n"
      + "HV Rank: " + str.tostring(hvRank[1], "#") + "%" + (volSpikeMult < 1.0 ? " ⚠" : "") + "\n"
      + "P/D Zone: " + _pdLabel + "\n"
-     + "Lagging bull/bear: " + str.tostring(lagBuyCount) + "/" + str.tostring(lagSellCount) + "\n"
-     + "Divergence: " + (_isDivergent ? "YES (+8)" : "No") + "\n"
-     + "━━━━━━━━━━━━━━━━━━━━\n"
-     + "KEY REASONS:\n" + reasons
+     + "Lagging bull/bear: " + str.tostring(lagBuyCount) + "/" + str.tostring(lagSellCount) + " (of " + str.tostring(lagEnabledCount) + ")\n"
+     + "Divergence: " + (_isDivergent ? "Yes (+8)" : "No") + "\n"
      + "━━━━━━━━━━━━━━━━━━━━\n"
      + "Entry: " + str.tostring(close, "#.##") + "\n"
      + "SL: " + str.tostring(_sl, "#.##") + " (" + _slSign + _slPct + "%) " + slSource + "\n"
-     + "TP: " + str.tostring(_tp, "#.##") + " (" + _tpSign + _tpPct + "%) at " + _tpSrc + "\n"
+     + (_useTwo ? "TP1: " + str.tostring(_tp1, "#.##") + " (" + _tpSign + _tp1Pct + "%) | TP2: " + str.tostring(_tp2, "#.##") + " (" + _tpSign + _tp2Pct + "%) at " + _tpSrc + "\n" : "TP: " + str.tostring(_tp, "#.##") + " (" + _tpSign + _tpPct + "%) at " + _tpSrc + "\n")
      + "R:R = 1:" + str.tostring(_rr, "#.#")
     t
+
+// === DELETE BUY SIGNAL HELPER ===
+f_deleteBuySignalDrawings(entryLine, entryLabel, entryZone, zoneLabel, slLine, tpLine, slLabel, tpLabel, riskZone, rewardZone, tp2Line, tp2Label, rewardZone2) =>
+    if not na(entryLine)
+        line.delete(entryLine)
+    if not na(entryLabel)
+        label.delete(entryLabel)
+    if not na(entryZone)
+        box.delete(entryZone)
+    if not na(zoneLabel)
+        label.delete(zoneLabel)
+    if not na(slLine)
+        line.delete(slLine)
+    if not na(tpLine)
+        line.delete(tpLine)
+    if not na(slLabel)
+        label.delete(slLabel)
+    if not na(tpLabel)
+        label.delete(tpLabel)
+    if not na(riskZone)
+        box.delete(riskZone)
+    if not na(rewardZone)
+        box.delete(rewardZone)
+    if not na(tp2Line)
+        line.delete(tp2Line)
+    if not na(tp2Label)
+        label.delete(tp2Label)
+    if not na(rewardZone2)
+        box.delete(rewardZone2)
+
+// === DELETE SELL SIGNAL HELPER ===
+f_deleteSellSignalDrawings(entryLine, entryLabel, entryZone, zoneLabel, slLine, tpLine, slLabel, tpLabel, riskZone, rewardZone, tp2Line, tp2Label, rewardZone2) =>
+    if not na(entryLine)
+        line.delete(entryLine)
+    if not na(entryLabel)
+        label.delete(entryLabel)
+    if not na(entryZone)
+        box.delete(entryZone)
+    if not na(zoneLabel)
+        label.delete(zoneLabel)
+    if not na(slLine)
+        line.delete(slLine)
+    if not na(tpLine)
+        line.delete(tpLine)
+    if not na(slLabel)
+        label.delete(slLabel)
+    if not na(tpLabel)
+        label.delete(tpLabel)
+    if not na(riskZone)
+        box.delete(riskZone)
+    if not na(rewardZone)
+        box.delete(rewardZone)
+    if not na(tp2Line)
+        line.delete(tp2Line)
+    if not na(tp2Label)
+        label.delete(tp2Label)
+    if not na(rewardZone2)
+        box.delete(rewardZone2)
+
+// === EXTEND BUY SIGNAL HELPER ===
+f_extendBuySignalDrawings(slLine, tpLine, entryLine, riskZone, rewardZone, entryZone, slLabel, tpLabel, entryLabel, hasEntryZone, x, tp2Line, tp2Label, rewardZone2) =>
+    if not na(slLine)
+        line.set_x2(slLine, x)
+    if not na(tpLine)
+        line.set_x2(tpLine, x)
+    if not na(entryLine)
+        line.set_x2(entryLine, x)
+    if not na(riskZone)
+        box.set_right(riskZone, x)
+    if not na(rewardZone)
+        box.set_right(rewardZone, x)
+    if not na(entryZone)
+        box.set_right(entryZone, x)
+    if not na(slLabel)
+        label.set_x(slLabel, x)
+    if not na(tpLabel)
+        label.set_x(tpLabel, x)
+    if not na(tp2Line)
+        line.set_x2(tp2Line, x)
+    if not na(tp2Label)
+        label.set_x(tp2Label, x)
+    if not na(rewardZone2)
+        box.set_right(rewardZone2, x)
+    if not na(entryLabel) and not hasEntryZone
+        label.set_x(entryLabel, x)
+
+// === EXTEND SELL SIGNAL HELPER ===
+f_extendSellSignalDrawings(slLine, tpLine, entryLine, riskZone, rewardZone, entryZone, slLabel, tpLabel, entryLabel, hasEntryZone, x, tp2Line, tp2Label, rewardZone2) =>
+    if not na(slLine)
+        line.set_x2(slLine, x)
+    if not na(tpLine)
+        line.set_x2(tpLine, x)
+    if not na(entryLine)
+        line.set_x2(entryLine, x)
+    if not na(riskZone)
+        box.set_right(riskZone, x)
+    if not na(rewardZone)
+        box.set_right(rewardZone, x)
+    if not na(entryZone)
+        box.set_right(entryZone, x)
+    if not na(slLabel)
+        label.set_x(slLabel, x)
+    if not na(tpLabel)
+        label.set_x(tpLabel, x)
+    if not na(tp2Line)
+        line.set_x2(tp2Line, x)
+    if not na(tp2Label)
+        label.set_x(tp2Label, x)
+    if not na(rewardZone2)
+        box.set_right(rewardZone2, x)
+    if not na(entryLabel) and not hasEntryZone
+        label.set_x(entryLabel, x)
+
+// === PREVIOUS GRAY SIGNAL COLORS ===
+f_prevSignalGrayColors(opacity) =>
+    _grayLine = color.new(color.rgb(90, 90, 105), 100 - opacity)
+    _grayLabel = color.new(color.rgb(90, 90, 105), math.min(110 - opacity, 99))
+    _grayTxt = color.new(color.rgb(130, 130, 145), math.max(80 - opacity, 30))
+    _grayBox = color.new(color.rgb(90, 90, 105), math.min(108 - opacity, 99))
+    _grayBoxBorder = color.new(color.rgb(90, 90, 105), 100 - opacity)
+    _grayEntryLine = color.new(color.rgb(90, 90, 105), math.max(0, 80 - opacity))
+    _grayEntryLabel = color.new(color.rgb(90, 90, 105), math.max(0, math.min(90 - opacity, 99)))
+    _grayEntryTxt = color.new(color.rgb(130, 130, 145), math.max(10, 60 - opacity))
+    _grayEntryBox = color.new(color.rgb(90, 90, 105), math.max(0, math.min(88 - opacity, 99)))
+    _grayEntryBoxBorder = color.new(color.rgb(90, 90, 105), math.max(0, 80 - opacity))
+    [_grayLine, _grayLabel, _grayTxt, _grayBox, _grayBoxBorder, _grayEntryLine, _grayEntryLabel, _grayEntryTxt, _grayEntryBox, _grayEntryBoxBorder]
+
+// === APPLY GRAY SIGNAL COLORS ===
+f_applyGrayToAllSignals(gL, gLbl, gTxt, gBox, gBoxB, gEntL, gEntLbl, gEntTxt, gEntBox, gEntBoxB, buyEntryLine, buyEntryLabel, buyEntryZone, buyZoneLabel, buySLLine, buyTPLine, buySLLabel, buyTPLabel, buyRiskZone, buyRewardZone, buyTP2Line, buyTP2Label, buyRewardZone2, sellEntryLine, sellEntryLabel, sellEntryZone, sellZoneLabel, sellSLLine, sellTPLine, sellSLLabel, sellTPLabel, sellRiskZone, sellRewardZone, sellTP2Line, sellTP2Label, sellRewardZone2) =>
+    if not na(buyEntryLine)
+        line.set_color(buyEntryLine, gEntL)
+    if not na(buyEntryLabel)
+        label.set_color(buyEntryLabel, gEntLbl)
+        label.set_textcolor(buyEntryLabel, gEntTxt)
+    if not na(buyEntryZone)
+        box.set_bgcolor(buyEntryZone, gEntBox)
+        box.set_border_color(buyEntryZone, gEntBoxB)
+    if not na(buyZoneLabel)
+        label.set_color(buyZoneLabel, gEntLbl)
+        label.set_textcolor(buyZoneLabel, gEntTxt)
+    if not na(buySLLine)
+        line.set_color(buySLLine, gL)
+    if not na(buyTPLine)
+        line.set_color(buyTPLine, gL)
+    if not na(buySLLabel)
+        label.set_color(buySLLabel, gLbl)
+        label.set_textcolor(buySLLabel, gTxt)
+    if not na(buyTPLabel)
+        label.set_color(buyTPLabel, gLbl)
+        label.set_textcolor(buyTPLabel, gTxt)
+    if not na(buyTP2Line)
+        line.set_color(buyTP2Line, gL)
+    if not na(buyTP2Label)
+        label.set_color(buyTP2Label, gLbl)
+        label.set_textcolor(buyTP2Label, gTxt)
+    if not na(buyRiskZone)
+        box.set_bgcolor(buyRiskZone, gBox)
+        box.set_border_color(buyRiskZone, gBoxB)
+    if not na(buyRewardZone)
+        box.set_bgcolor(buyRewardZone, gBox)
+        box.set_border_color(buyRewardZone, gBoxB)
+    if not na(buyRewardZone2)
+        box.set_bgcolor(buyRewardZone2, gBox)
+        box.set_border_color(buyRewardZone2, gBoxB)
+    if not na(sellRiskZone)
+        box.set_bgcolor(sellRiskZone, gBox)
+        box.set_border_color(sellRiskZone, gBoxB)
+    if not na(sellRewardZone)
+        box.set_bgcolor(sellRewardZone, gBox)
+        box.set_border_color(sellRewardZone, gBoxB)
+    if not na(sellRewardZone2)
+        box.set_bgcolor(sellRewardZone2, gBox)
+        box.set_border_color(sellRewardZone2, gBoxB)
+    if not na(sellEntryLine)
+        line.set_color(sellEntryLine, gEntL)
+    if not na(sellEntryLabel)
+        label.set_color(sellEntryLabel, gEntLbl)
+        label.set_textcolor(sellEntryLabel, gEntTxt)
+    if not na(sellEntryZone)
+        box.set_bgcolor(sellEntryZone, gEntBox)
+        box.set_border_color(sellEntryZone, gEntBoxB)
+    if not na(sellZoneLabel)
+        label.set_color(sellZoneLabel, gEntLbl)
+        label.set_textcolor(sellZoneLabel, gEntTxt)
+    if not na(sellSLLine)
+        line.set_color(sellSLLine, gL)
+    if not na(sellTPLine)
+        line.set_color(sellTPLine, gL)
+    if not na(sellSLLabel)
+        label.set_color(sellSLLabel, gLbl)
+        label.set_textcolor(sellSLLabel, gTxt)
+    if not na(sellTPLabel)
+        label.set_color(sellTPLabel, gLbl)
+        label.set_textcolor(sellTPLabel, gTxt)
+    if not na(sellTP2Line)
+        line.set_color(sellTP2Line, gL)
+    if not na(sellTP2Label)
+        label.set_color(sellTP2Label, gLbl)
+        label.set_textcolor(sellTP2Label, gTxt)
 
 // ==================================================================================
 // VISUALIZATION
 // ==================================================================================
 
-// --- Layer 1: Background (transparency 92-97) ---
-// Trend background
+// === LAYER 1: Background (transparency 92-97) ===
+// --- Trend background ---
 bgColor = useBackground ? (trendUp and adxStrong ? color.new(bullPrimary, 95) : trendDown and adxStrong ? color.new(bearPrimary, 95) : na) : na
 bgcolor(bgColor, title="Trend Background")
 
-// TTM Squeeze active background
+// --- TTM Squeeze active background ---
 bgcolor(useTTMSqueeze and ttmSqueezeOn ? color.new(warningColor, 95) : na, title="Squeeze Active")
 
-// --- Layer 2: Zones (transparency 80-90) ---
-// Ichimoku Cloud
+// === LAYER 2: Zones (transparency 80-90) ===
+// --- Ichimoku Cloud ---
 ichSpanAPlot = plot(useIchimoku ? ichSpanA : na, "Ichimoku Span A", color=color.new(bullSecondary, 82), offset=ichBase, display=display.all)
 ichSpanBPlot = plot(useIchimoku ? ichSpanB : na, "Ichimoku Span B", color=color.new(bearSecondary, 82), offset=ichBase, display=display.all)
 fill(ichSpanAPlot, ichSpanBPlot, color=ichGreenCloud ? color.new(bullPrimary, 90) : color.new(bearPrimary, 90), title="Ichimoku Cloud")
 
-// Bollinger Bands
+// --- Bollinger Bands ---
 bbRelevant = useBB and (bbSqueeze or bbPercent < 0.1 or bbPercent > 0.9 or true)
 bbUpperPlot = plot(bbRelevant ? bbUpper : na, "BB Upper", color=color.new(volumeClr, 82), linewidth=1)
 bbLowerPlot = plot(bbRelevant ? bbLower : na, "BB Lower", color=color.new(volumeClr, 82), linewidth=1)
@@ -1508,12 +1785,12 @@ plot(bbRelevant ? bbBasis : na, "BB Basis", color=color.new(volumeClr, 65), line
 bbFillIntensity = bbSqueeze ? color.new(warningColor, 88) : color.new(volumeClr, 93)
 fill(bbUpperPlot, bbLowerPlot, color=bbFillIntensity, title="BB Fill")
 
-// Keltner Channels (only when relevant)
+// --- Keltner Channels (only when relevant) ---
 kcVisible = useKeltner
 plot(kcVisible ? kcUpper : na, "KC Upper", color=color.new(kcClr, 82), linewidth=1, style=plot.style_circles)
 plot(kcVisible ? kcLower : na, "KC Lower", color=color.new(kcClr, 82), linewidth=1, style=plot.style_circles)
 
-// FVG boxes
+// --- FVG boxes ---
 var box lastBullFvg = na
 var box lastBearFvg = na
 if useFVG and bullFVG
@@ -1525,30 +1802,30 @@ if useFVG and bearFVG
         box.delete(lastBearFvg)
     lastBearFvg := box.new(bar_index - 2, low[0], bar_index + 6, high[2], border_color=color.new(bearPrimary, 45), bgcolor=color.new(bearPrimary, 88), border_width=1)
 
-// --- Layer 3: Moving Averages (transparency 40-70) ---
-// EMA Stack (display controlled by Display Indicators; filter by MA Alignment)
+// === LAYER 3: Moving Averages (transparency 40-70) === 
+// --- EMA Stack (display controlled by Display Indicators; filter by MA Alignment) ---
 plot(useMAStackLines ? emaFast : na, "EMA 9", color=color.new(emaFastClr, 35), linewidth=1)
 plot(useMAStackLines ? emaSlow : na, "EMA 21", color=color.new(emaMidClr, 45), linewidth=1)
 plot(useMAStackLines ? emaSlower : na, "EMA 50", color=color.new(emaSlowClr, 55), linewidth=1)
 
-// VWAP
+// --- VWAP ---
 plot(useVWAPLine ? vwapValue : na, "VWAP", color=color.new(volumeClr, 25), linewidth=1, style=plot.style_line)
 
-// Hull MA with ADX-based gradient intensity
+// --- Hull MA with ADX-based gradient intensity ---
 hmaGradientBull = color.from_gradient(adxValue, 15, 35, color.new(bullPrimary, 60), color.new(bullPrimary, 0))
 hmaGradientBear = color.from_gradient(adxValue, 15, 35, color.new(bearPrimary, 60), color.new(bearPrimary, 0))
 hmaColor = hullTrend ? hmaGradientBull : hmaGradientBear
 plot(useHullMA ? hullMA : na, "Hull MA", color=hmaColor, linewidth=2)
 
-// --- Layer 4: Signals & Levels ---
-// SuperTrend line
+// === LAYER 4: Signals & Levels ===
+// --- SuperTrend line ---
 stColor = stDir < 0 ? bullPrimary : bearPrimary
 plot(useSuperTrend ? stValue : na, "SuperTrend", color=color.new(stColor, 20), linewidth=2, style=plot.style_line)
 
-// Parabolic SAR dots
+// --- Parabolic SAR dots ---
 plotshape(useSAR ? sarValue : na, "SAR", shape.cross, location.absolute, color=color.new(neutralColor, 40), size=size.tiny)
 
-// Candlestick pattern markers (tiered offsets: primary 0.25, secondary 0.45, tertiary 0.65)
+// === CANDLESTICK PATTERN MARKERS (tiered offsets: primary 0.25, secondary 0.45, tertiary 0.65) ===
 // --- Primary tier: strongest patterns ---
 if usePatternMarkers and bullEngulfing
     label.new(bar_index, low - atr * 0.25, "E", style=label.style_label_up, color=color.new(structureClr, 30), textcolor=color.white, size=size.tiny, tooltip="Bullish Engulfing")
@@ -1583,31 +1860,31 @@ if usePatternMarkers and piercingLine
 if usePatternMarkers and darkCloudCover
     label.new(bar_index, high + atr * 0.65, "DCC", style=label.style_label_down, color=color.new(bearSecondary, 30), textcolor=color.white, size=size.tiny, tooltip="Dark Cloud Cover")
 
-// --- Layer 5: New indicator overlays ---
-// Donchian Channel
+// === LAYER 5: New indicator overlays ===
+// --- Donchian Channel ---
 plot(useDonchian ? donchianUpper : na, "Donchian Upper", color=color.new(donchClr, 72), linewidth=1)
 plot(useDonchian ? donchianLower : na, "Donchian Lower", color=color.new(donchClr, 72), linewidth=1)
 plot(useDonchian ? donchianMid : na, "Donchian Mid", color=color.new(donchClr, 80), linewidth=1)
 
-// McGinley Dynamic
+// --- McGinley Dynamic ---
 plot(useMcGinley ? mcginleyVal : na, "McGinley", color=color.new(structureClr, 50), linewidth=1)
 
-// DEMA / TEMA — using line.new to save plot slots
+// --- DEMA / TEMA — using line.new to save plot slots ---
 if useMcGinley and not na(demaVal[1])
     line.new(bar_index - 1, demaVal[1], bar_index, demaVal, color=color.new(warningColor, 60), width=1)
 if useMcGinley and not na(temaVal[1])
     line.new(bar_index - 1, temaVal[1], bar_index, temaVal, color=color.new(warningColor, 70), width=1)
 
-// GMMA bands (short avg and long avg)
+// --- GMMA bands (short avg and long avg) ---
 plot(useGMMA ? gmmaShortAvg : na, "GMMA Short", color=color.new(bullSecondary, 70), linewidth=1)
 plot(useGMMA ? gmmaLongAvg : na, "GMMA Long", color=color.new(bearSecondary, 70), linewidth=1)
 
-// Williams Alligator
+// --- Williams Alligator ---
 plot(useAlligator ? alligatorJawPlot : na, "Alligator Jaw", color=color.new(volumeClr, 45), linewidth=2)
 plot(useAlligator ? alligatorTeethPlot : na, "Alligator Teeth", color=color.new(alligTeethClr, 45), linewidth=2)
 plot(useAlligator ? alligatorLipsPlot : na, "Alligator Lips", color=color.new(alligLipsClr, 45), linewidth=2)
 
-// Pivot lines (horizontal) — using line.new to save plot slots
+// --- Pivot lines (horizontal) — using line.new to save plot slots ---
 var line pivotPLine  = na
 var line pivotR1Line = na
 var line pivotR2Line = na
@@ -1626,7 +1903,7 @@ if barstate.islast and usePivots
     pivotS1Line := line.new(bar_index - 200, pivotS1, bar_index + 20, pivotS1, color=color.new(bullPrimary, 65),  width=1, style=line.style_dotted)
     pivotS2Line := line.new(bar_index - 200, pivotS2, bar_index + 20, pivotS2, color=color.new(bullPrimary, 75),  width=1, style=line.style_dotted)
 
-// Fibonacci levels — using line.new to save plot slots
+// --- Fibonacci levels — using line.new to save plot slots ---
 var line fib50Line  = na
 var line fib382Line = na
 var line fib618Line = na
@@ -1639,349 +1916,304 @@ if barstate.islast and useFibLevels
     fib382Line := line.new(bar_index - 200, fib382, bar_index + 20, fib382, color=color.new(structureClr, 80), width=1, style=line.style_dotted)
     fib618Line := line.new(bar_index - 200, fib618, bar_index + 20, fib618, color=color.new(structureClr, 80), width=1, style=line.style_dotted)
 
-// Gap labels
+// --- Gap labels ---
 if gapValid and gapUp
     label.new(bar_index, low, "Gap Up", style=label.style_label_up, color=color.new(bullPrimary, 30), textcolor=color.white, size=size.tiny)
 if gapValid and gapDown
     label.new(bar_index, high, "Gap Dn", style=label.style_label_down, color=color.new(bearPrimary, 30), textcolor=color.white, size=size.tiny)
 
-// Elder Impulse background
+// --- Elder Impulse background ---
 elderBgColor = elderImpulseBull ? color.new(bullPrimary, 91) : elderImpulseBear ? color.new(bearPrimary, 91) : color.new(neutralColor, 96)
 bgcolor(useBackground ? elderBgColor : na, title="Elder Impulse")
 
-// --- Buy/Sell Signal: Labels, SL/TP lines, Tooltips ---
-// Timeframe-adaptive line length
+// === Buy/Sell Signal: Labels, SL/TP lines, Tooltips ===
+// --- Timeframe-adaptive line length and expiration ---
 tfSeconds = timeframe.in_seconds(timeframe.period)
 lineLen = tfSeconds >= 86400 ? 8 : tfSeconds >= 14400 ? 10 : tfSeconds >= 3600 ? 12 : 15
+signalExpirationBars = tfSeconds >= 86400 ? 100 : tfSeconds >= 14400 ? 80 : tfSeconds >= 3600 ? 60 : tfSeconds >= 900 ? 40 : 30
 
-// Active signal tracking for dashboard
+// --- Active signal tracking for dashboard ---
 var float activeRR = 0.0
 var string activeSLType = "-"
 var float activeTP = na
 var float activeSL = na
 
+// --- Signal tracking for expiration and TP/SL detection ---
+var int buySignalBarIndex = na
+var float buySignalTP = na
+var float buySignalSL = na
+var int buySignalRightExtent = na
+var int sellSignalBarIndex = na
+var float sellSignalTP = na
+var float sellSignalSL = na
+var int sellSignalRightExtent = na
+
+// --- Signal Drawing Elements ---
 var line buySLLine = na
 var line buyTPLine = na
 var label buySLLabel = na
 var label buyTPLabel = na
+var line buyTP2Line = na
+var label buyTP2Label = na
 var line sellSLLine = na
 var line sellTPLine = na
 var label sellSLLabel = na
 var label sellTPLabel = na
-var box buyZone = na
-var box sellZone = na
-var label buyZoneLabel = na
-var label sellZoneLabel = na
+var line sellTP2Line = na
+var label sellTP2Label = na
 var box buyRiskZone = na
 var box buyRewardZone = na
+var box buyRewardZone2 = na
 var box sellRiskZone = na
 var box sellRewardZone = na
+var box sellRewardZone2 = na
 var line buyEntryLine = na
 var label buyEntryLabel = na
+var box buyEntryZone = na
 var line sellEntryLine = na
 var label sellEntryLabel = na
+var box sellEntryZone = na
+var label buyZoneLabel = na
+var label sellZoneLabel = na
 
-if signalBuy
-    buyReasons = f_signalReasons(true)
-    buySLSource = structSLBuyOk ? "[Swing]" : structSLBuyOk2 ? "[SwingMomentum]" : "[ATR]"
-    buyTooltip = f_signalTooltip(true, buyReasons, buySLSource)
-
-    // --- Handle previous buy signals ---
-    if usePrevSignals
-        grayLine = color.new(color.rgb(90, 90, 105), 100 - prevSignalOpacity)
-        grayLabel = color.new(color.rgb(90, 90, 105), math.min(110 - prevSignalOpacity, 99))
-        grayTxt = color.new(color.rgb(130, 130, 145), math.max(80 - prevSignalOpacity, 30))
-        grayBox = color.new(color.rgb(90, 90, 105), math.min(108 - prevSignalOpacity, 99))
-        grayBoxBorder = color.new(color.rgb(90, 90, 105), 100 - prevSignalOpacity)
-        if not na(buyZone)
-            box.set_bgcolor(buyZone, grayBox)
-            box.set_border_color(buyZone, grayBoxBorder)
-            box.set_text_color(buyZone, grayTxt)
-        if not na(buyZoneLabel)
-            label.set_color(buyZoneLabel, grayLabel)
-            label.set_textcolor(buyZoneLabel, grayTxt)
-        if not na(buyEntryLine)
-            line.set_color(buyEntryLine, grayLine)
-            label.set_color(buyEntryLabel, grayLabel)
-            label.set_textcolor(buyEntryLabel, grayTxt)
-        if not na(buySLLine)
-            line.set_color(buySLLine, grayLine)
-            line.set_color(buyTPLine, grayLine)
-            label.set_color(buySLLabel, grayLabel)
-            label.set_textcolor(buySLLabel, grayTxt)
-            label.set_color(buyTPLabel, grayLabel)
-            label.set_textcolor(buyTPLabel, grayTxt)
-        if not na(buyRiskZone)
-            box.set_bgcolor(buyRiskZone, grayBox)
-            box.set_border_color(buyRiskZone, grayBoxBorder)
-        if not na(buyRewardZone)
-            box.set_bgcolor(buyRewardZone, grayBox)
-            box.set_border_color(buyRewardZone, grayBoxBorder)
-        if not na(sellRiskZone)
-            box.set_bgcolor(sellRiskZone, grayBox)
-            box.set_border_color(sellRiskZone, grayBoxBorder)
-        if not na(sellRewardZone)
-            box.set_bgcolor(sellRewardZone, grayBox)
-            box.set_border_color(sellRewardZone, grayBoxBorder)
-        // --- Gray out previous sell signals (only one active at a time) ---
-        if not na(sellZone)
-            box.set_bgcolor(sellZone, grayBox)
-            box.set_border_color(sellZone, grayBoxBorder)
-            box.set_text_color(sellZone, grayTxt)
-        if not na(sellZoneLabel)
-            label.set_color(sellZoneLabel, grayLabel)
-            label.set_textcolor(sellZoneLabel, grayTxt)
-        if not na(sellEntryLine)
-            line.set_color(sellEntryLine, grayLine)
-            label.set_color(sellEntryLabel, grayLabel)
-            label.set_textcolor(sellEntryLabel, grayTxt)
-        if not na(sellSLLine)
-            line.set_color(sellSLLine, grayLine)
-            line.set_color(sellTPLine, grayLine)
-            label.set_color(sellSLLabel, grayLabel)
-            label.set_textcolor(sellSLLabel, grayTxt)
-            label.set_color(sellTPLabel, grayLabel)
-            label.set_textcolor(sellTPLabel, grayTxt)
-    else
-        if not na(buyZone)
-            box.delete(buyZone)
-            buyZone := na
-        if not na(buyZoneLabel)
-            label.delete(buyZoneLabel)
-            buyZoneLabel := na
-        if not na(buyEntryLine)
-            line.delete(buyEntryLine)
-            label.delete(buyEntryLabel)
+// === Signal Expiration and TP/SL Hit Detection ===
+if signalAutoExpire
+    if not na(buySignalBarIndex)
+        barsSinceBuySignal = bar_index - buySignalBarIndex
+        priceHitBuyTP = not na(buySignalTP) and high >= buySignalTP
+        priceHitBuySL = not na(buySignalSL) and low <= buySignalSL
+        if priceHitBuyTP or priceHitBuySL or barsSinceBuySignal > signalExpirationBars
+            f_deleteBuySignalDrawings(buyEntryLine, buyEntryLabel, buyEntryZone, buyZoneLabel, buySLLine, buyTPLine, buySLLabel, buyTPLabel, buyRiskZone, buyRewardZone, buyTP2Line, buyTP2Label, buyRewardZone2)
             buyEntryLine := na
             buyEntryLabel := na
-        if not na(buySLLine)
-            line.delete(buySLLine)
-            line.delete(buyTPLine)
-            label.delete(buySLLabel)
-            label.delete(buyTPLabel)
+            buyEntryZone := na
+            buyZoneLabel := na
             buySLLine := na
             buyTPLine := na
             buySLLabel := na
             buyTPLabel := na
-        if not na(buyRiskZone)
-            box.delete(buyRiskZone)
             buyRiskZone := na
-        if not na(buyRewardZone)
-            box.delete(buyRewardZone)
             buyRewardZone := na
-        if not na(sellRiskZone)
-            box.delete(sellRiskZone)
-            sellRiskZone := na
-        if not na(sellRewardZone)
-            box.delete(sellRewardZone)
-            sellRewardZone := na
-        if not na(sellZone)
-            box.delete(sellZone)
-            sellZone := na
-        if not na(sellZoneLabel)
-            label.delete(sellZoneLabel)
-            sellZoneLabel := na
-        if not na(sellEntryLine)
-            line.delete(sellEntryLine)
-            label.delete(sellEntryLabel)
+            buyTP2Line := na
+            buyTP2Label := na
+            buyRewardZone2 := na
+            buySignalBarIndex := na
+            buySignalTP := na
+            buySignalSL := na
+            buySignalRightExtent := na
+        else
+            buySignalRightExtent := math.max(nz(buySignalRightExtent), bar_index)
+            f_extendBuySignalDrawings(buySLLine, buyTPLine, buyEntryLine, buyRiskZone, buyRewardZone, buyEntryZone, buySLLabel, buyTPLabel, buyEntryLabel, not na(buyEntryZone), buySignalRightExtent, buyTP2Line, buyTP2Label, buyRewardZone2)
+    if not na(sellSignalBarIndex)
+        barsSinceSellSignal = bar_index - sellSignalBarIndex
+        priceHitSellTP = not na(sellSignalTP) and low <= sellSignalTP
+        priceHitSellSL = not na(sellSignalSL) and high >= sellSignalSL
+        if priceHitSellTP or priceHitSellSL or barsSinceSellSignal > signalExpirationBars
+            f_deleteSellSignalDrawings(sellEntryLine, sellEntryLabel, sellEntryZone, sellZoneLabel, sellSLLine, sellTPLine, sellSLLabel, sellTPLabel, sellRiskZone, sellRewardZone, sellTP2Line, sellTP2Label, sellRewardZone2)
             sellEntryLine := na
             sellEntryLabel := na
-        if not na(sellSLLine)
-            line.delete(sellSLLine)
-            line.delete(sellTPLine)
-            label.delete(sellSLLabel)
-            label.delete(sellTPLabel)
+            sellEntryZone := na
+            sellZoneLabel := na
             sellSLLine := na
             sellTPLine := na
             sellSLLabel := na
             sellTPLabel := na
+            sellRiskZone := na
+            sellRewardZone := na
+            sellTP2Line := na
+            sellTP2Label := na
+            sellRewardZone2 := na
+            sellSignalBarIndex := na
+            sellSignalTP := na
+            sellSignalSL := na
+            sellSignalRightExtent := na
+        else
+            sellSignalRightExtent := math.max(nz(sellSignalRightExtent), bar_index)
+            f_extendSellSignalDrawings(sellSLLine, sellTPLine, sellEntryLine, sellRiskZone, sellRewardZone, sellEntryZone, sellSLLabel, sellTPLabel, sellEntryLabel, not na(sellEntryZone), sellSignalRightExtent, sellTP2Line, sellTP2Label, sellRewardZone2)
+else
+    if not na(buySignalBarIndex)
+        buySignalRightExtent := math.max(nz(buySignalRightExtent), bar_index)
+        f_extendBuySignalDrawings(buySLLine, buyTPLine, buyEntryLine, buyRiskZone, buyRewardZone, buyEntryZone, buySLLabel, buyTPLabel, buyEntryLabel, not na(buyEntryZone), buySignalRightExtent, buyTP2Line, buyTP2Label, buyRewardZone2)
+    if not na(sellSignalBarIndex)
+        sellSignalRightExtent := math.max(nz(sellSignalRightExtent), bar_index)
+        f_extendSellSignalDrawings(sellSLLine, sellTPLine, sellEntryLine, sellRiskZone, sellRewardZone, sellEntryZone, sellSLLabel, sellTPLabel, sellEntryLabel, not na(sellEntryZone), sellSignalRightExtent, sellTP2Line, sellTP2Label, sellRewardZone2)
 
-    zoneHalfH = atrPrev * 0.8
+if signalBuy
+    buySLSource = structSLBuyOk ? "[Swing]" : structSLBuyOk2 ? "[SwingMomentum]" : "[ATR]"
+    buyTooltip = f_signalTooltip(true, buySLSource)
+
+    if usePrevSignals
+        [grayLine, grayLabel, grayTxt, grayBox, grayBoxBorder, grayEntryLine, grayEntryLabel, grayEntryTxt, grayEntryBox, grayEntryBoxBorder] = f_prevSignalGrayColors(prevSignalOpacity)
+        f_applyGrayToAllSignals(grayLine, grayLabel, grayTxt, grayBox, grayBoxBorder, grayEntryLine, grayEntryLabel, grayEntryTxt, grayEntryBox, grayEntryBoxBorder, buyEntryLine, buyEntryLabel, buyEntryZone, buyZoneLabel, buySLLine, buyTPLine, buySLLabel, buyTPLabel, buyRiskZone, buyRewardZone, buyTP2Line, buyTP2Label, buyRewardZone2, sellEntryLine, sellEntryLabel, sellEntryZone, sellZoneLabel, sellSLLine, sellTPLine, sellSLLabel, sellTPLabel, sellRiskZone, sellRewardZone, sellTP2Line, sellTP2Label, sellRewardZone2)
+    else
+        f_deleteBuySignalDrawings(buyEntryLine, buyEntryLabel, buyEntryZone, buyZoneLabel, buySLLine, buyTPLine, buySLLabel, buyTPLabel, buyRiskZone, buyRewardZone, buyTP2Line, buyTP2Label, buyRewardZone2)
+        f_deleteSellSignalDrawings(sellEntryLine, sellEntryLabel, sellEntryZone, sellZoneLabel, sellSLLine, sellTPLine, sellSLLabel, sellTPLabel, sellRiskZone, sellRewardZone, sellTP2Line, sellTP2Label, sellRewardZone2)
+        buyEntryLine := na
+        buyEntryLabel := na
+        buyEntryZone := na
+        buyZoneLabel := na
+        buySLLine := na
+        buyTPLine := na
+        buySLLabel := na
+        buyTPLabel := na
+        buyRiskZone := na
+        buyRewardZone := na
+        buyTP2Line := na
+        buyTP2Label := na
+        buyRewardZone2 := na
+        sellEntryLine := na
+        sellEntryLabel := na
+        sellEntryZone := na
+        sellZoneLabel := na
+        sellSLLine := na
+        sellTPLine := na
+        sellSLLabel := na
+        sellTPLabel := na
+        sellRiskZone := na
+        sellRewardZone := na
+        sellTP2Line := na
+        sellTP2Label := na
+        sellRewardZone2 := na
+    entryZoneMult = finalBuyScore >= 80 ? 0.5 : finalBuyScore >= 65 ? 0.7 : 0.9
+    zoneHalfH = atrPrev * entryZoneMult
     bodyLow = math.min(open, close)
-    buyZoneLow = bodyLow - zoneHalfH * 0.3
+    buyZoneLow = math.max(bodyLow - zoneHalfH * 0.3, buySL)
     buyZoneHigh = bodyLow + zoneHalfH
     buyZoneBorder = finalBuyScore >= 80 ? color.new(bullPrimary, 35) : color.new(bullSecondary, 50)
-    if useSignalZone
-        zoneForward = finalBuyScore >= 80 ? 5 : 3
-        buyZoneBg = finalBuyScore >= 80 ? color.new(bullPrimary, 78) : color.new(bullSecondary, 82)
-        buyZone := box.new(bar_index - 1, buyZoneHigh, bar_index + zoneForward, buyZoneLow, border_color=buyZoneBorder, bgcolor=buyZoneBg, border_width=1, text="BUY " + str.tostring(finalBuyScore, "#"), text_color=color.white, text_size=size.small, text_halign=text.align_center, text_valign=text.align_center)
-    buyZoneLabel := label.new(bar_index, buyZoneLow - atr * 0.15, "▲ " + str.tostring(finalBuyScore, "#"), style=label.style_label_up, color=buyZoneBorder, textcolor=color.white, size=size.small, tooltip=buyTooltip)
+    buyZoneLabel := label.new(bar_index, buyZoneLow - atr * 0.15, "▲", style=label.style_label_up, color=buyZoneBorder, textcolor=color.white, size=size.small, tooltip=buyTooltip)
 
-    // --- Entry line ---
-    buyEntryLine := line.new(bar_index, close, bar_index + lineLen, close, color=color.new(entryClr, 15), style=line.style_solid, width=2)
-    buyEntryLabel := label.new(bar_index + lineLen, close, "ENTRY " + str.tostring(close, "#.##"), style=label.style_label_left, color=color.new(entryClr, 35), textcolor=color.white, size=size.tiny)
+    buyEntryPrice = (buyZoneHigh + buyZoneLow) / 2
+    if vwapValue >= buyZoneLow and vwapValue <= buyZoneHigh
+        buyEntryPrice := vwapValue
+    else if fib50 >= buyZoneLow and fib50 <= buyZoneHigh
+        buyEntryPrice := fib50
+    else if not na(lastBullOBHigh) and lastBullOBHigh >= buyZoneLow and lastBullOBHigh <= buyZoneHigh
+        buyEntryPrice := lastBullOBHigh
+    // --- Store signal tracking info ---
+    buySignalBarIndex := bar_index
+    buySignalRightExtent := bar_index
+    buySignalTP := buyTP
+    buySignalSL := buySL
 
-    // --- SL/TP lines and/or zones ---
-    if useBuySellSLTP
+    if useBuySellSLTPEntry and slTpDisplayMode == "Zones"
+        buyEntryZone := box.new(bar_index, buyZoneHigh, bar_index, buyZoneLow, border_color=color.new(entryClr, 40), bgcolor=color.new(entryClr, 85), border_width=1)
+        buyEntryLabel := label.new(bar_index, buyEntryPrice, "ENTRY " + str.tostring(buyEntryPrice, "#.##"), style=label.style_label_center, color=color.new(entryClr, 35), textcolor=color.white, size=size.tiny, tooltip="ENTRY " + str.tostring(buyEntryPrice, "#.##"))
+        buyEntryLine := na
+    else
+        buyEntryZone := na
+        buyEntryLine := line.new(bar_index, buyEntryPrice, bar_index, buyEntryPrice, color=color.new(entryClr, 15), style=line.style_solid, width=2)
+        buyEntryLabel := label.new(bar_index, buyEntryPrice, "ENTRY " + str.tostring(buyEntryPrice, "#.##"), style=label.style_label_left, color=color.new(entryClr, 35), textcolor=color.white, size=size.tiny)
+
+    if useBuySellSLTPEntry
         if slTpDisplayMode == "Zones"
-            buyRiskZone := box.new(bar_index, close, bar_index + lineLen, buySL, border_color=color.new(bearPrimary, 40), bgcolor=color.new(bearPrimary, 85), border_width=1)
-            buyRewardZone := box.new(bar_index, buyTP, bar_index + lineLen, close, border_color=color.new(bullPrimary, 40), bgcolor=color.new(bullPrimary, 85), border_width=1)
-        buySLLine := line.new(bar_index, buySL, bar_index + lineLen, buySL, color=color.new(bearPrimary, 25), style=line.style_dashed, width=2)
-        buySLLabel := label.new(bar_index + lineLen, buySL, "SL " + str.tostring(buySL, "#.##") + " (" + str.tostring((buySL - close) / close * 100, "#.#") + "%)", style=label.style_label_left, color=color.new(bearPrimary, 45), textcolor=color.white, size=size.tiny)
-        buyTPLine := line.new(bar_index, buyTP, bar_index + lineLen, buyTP, color=color.new(bullPrimary, 25), style=line.style_dashed, width=1)
-        buyTPLabel := label.new(bar_index + lineLen, buyTP, "TP " + str.tostring(buyTP, "#.##") + " (" + str.tostring((buyTP - close) / close * 100, "#.#") + "%) " + buyTPSource + " (1:" + str.tostring(buyActualRR, "#.#") + ")", style=label.style_label_left, color=color.new(bullPrimary, 45), textcolor=color.white, size=size.tiny)
+            buyRiskZone := box.new(bar_index, buyZoneLow, bar_index, buySL, border_color=color.new(bearPrimary, 40), bgcolor=color.new(bearPrimary, 85), border_width=1)
+            if useTwoTPsBuy
+                buyRewardZone := box.new(bar_index, buyTP1, bar_index, buyZoneHigh, border_color=color.new(bullPrimary, 40), bgcolor=color.new(bullPrimary, 65), border_width=1)
+                buyRewardZone2 := box.new(bar_index, buyTP2, bar_index, buyTP1, border_color=color.new(bullPrimary, 25), bgcolor=color.new(bullPrimary, 85), border_width=1)
+            else
+                buyRewardZone := box.new(bar_index, buyTP, bar_index, buyZoneHigh, border_color=color.new(bullPrimary, 40), bgcolor=color.new(bullPrimary, 85), border_width=1)
+        buySLLine := line.new(bar_index, buySL, bar_index, buySL, color=color.new(bearPrimary, 25), style=line.style_dashed, width=2)
+        buySLLabel := label.new(bar_index, buySL, "SL " + str.tostring(buySL, "#.##") + " (" + str.tostring((buySL - close) / close * 100, "#.#") + "%)", style=label.style_label_left, color=color.new(bearPrimary, 45), textcolor=color.white, size=size.tiny)
+        if useTwoTPsBuy
+            buyTPLine := line.new(bar_index, buyTP1, bar_index, buyTP1, color=color.new(bullPrimary, 25), style=line.style_dashed, width=1)
+            buyTPLabel := label.new(bar_index, buyTP1, "TP1 " + str.tostring(buyTP1, "#.##") + " (" + str.tostring((buyTP1 - close) / close * 100, "#.#") + "%) " + buyTPSource, style=label.style_label_left, color=color.new(bullPrimary, 45), textcolor=color.white, size=size.tiny)
+            buyTP2Line := line.new(bar_index, buyTP2, bar_index, buyTP2, color=color.new(bullPrimary, 20), style=line.style_dashed, width=1)
+            buyTP2Label := label.new(bar_index, buyTP2, "TP2 " + str.tostring(buyTP2, "#.##") + " (" + str.tostring((buyTP2 - close) / close * 100, "#.#") + "%) (1:" + str.tostring(buyActualRR, "#.#") + ")", style=label.style_label_left, color=color.new(bullPrimary, 40), textcolor=color.white, size=size.tiny)
+        else
+            buyTPLine := line.new(bar_index, buyTP, bar_index, buyTP, color=color.new(bullPrimary, 25), style=line.style_dashed, width=1)
+            buyTPLabel := label.new(bar_index, buyTP, "TP " + str.tostring(buyTP, "#.##") + " (" + str.tostring((buyTP - close) / close * 100, "#.#") + "%) " + buyTPSource + " (1:" + str.tostring(buyActualRR, "#.#") + ")", style=label.style_label_left, color=color.new(bullPrimary, 45), textcolor=color.white, size=size.tiny)
 
-    // Track active signal for dashboard
     activeRR := buyActualRR
     activeSLType := structSLBuyOk ? "Swing" : structSLBuyOk2 ? "SwingMomentum" : "ATR"
     activeTP := buyTP
     activeSL := buySL
 
 if signalSell
-    sellReasons = f_signalReasons(false)
     sellSLSource = structSLSellOk ? "[Swing]" : structSLSellOk2 ? "[SwingMomentum]" : "[ATR]"
-    sellTooltip = f_signalTooltip(false, sellReasons, sellSLSource)
+    sellTooltip = f_signalTooltip(false, sellSLSource)
 
-    // --- Handle previous sell signals ---
     if usePrevSignals
-        grayLine = color.new(color.rgb(90, 90, 105), 100 - prevSignalOpacity)
-        grayLabel = color.new(color.rgb(90, 90, 105), math.min(110 - prevSignalOpacity, 99))
-        grayTxt = color.new(color.rgb(130, 130, 145), math.max(80 - prevSignalOpacity, 30))
-        grayBox = color.new(color.rgb(90, 90, 105), math.min(108 - prevSignalOpacity, 99))
-        grayBoxBorder = color.new(color.rgb(90, 90, 105), 100 - prevSignalOpacity)
-        if not na(sellZone)
-            box.set_bgcolor(sellZone, grayBox)
-            box.set_border_color(sellZone, grayBoxBorder)
-            box.set_text_color(sellZone, grayTxt)
-        if not na(sellZoneLabel)
-            label.set_color(sellZoneLabel, grayLabel)
-            label.set_textcolor(sellZoneLabel, grayTxt)
-        if not na(sellEntryLine)
-            line.set_color(sellEntryLine, grayLine)
-            label.set_color(sellEntryLabel, grayLabel)
-            label.set_textcolor(sellEntryLabel, grayTxt)
-        if not na(sellSLLine)
-            line.set_color(sellSLLine, grayLine)
-            line.set_color(sellTPLine, grayLine)
-            label.set_color(sellSLLabel, grayLabel)
-            label.set_textcolor(sellSLLabel, grayTxt)
-            label.set_color(sellTPLabel, grayLabel)
-            label.set_textcolor(sellTPLabel, grayTxt)
-        if not na(sellRiskZone)
-            box.set_bgcolor(sellRiskZone, grayBox)
-            box.set_border_color(sellRiskZone, grayBoxBorder)
-        if not na(sellRewardZone)
-            box.set_bgcolor(sellRewardZone, grayBox)
-            box.set_border_color(sellRewardZone, grayBoxBorder)
-        if not na(buyRiskZone)
-            box.set_bgcolor(buyRiskZone, grayBox)
-            box.set_border_color(buyRiskZone, grayBoxBorder)
-        if not na(buyRewardZone)
-            box.set_bgcolor(buyRewardZone, grayBox)
-            box.set_border_color(buyRewardZone, grayBoxBorder)
-        // --- Gray out previous buy signals (only one active at a time) ---
-        if not na(buyZone)
-            box.set_bgcolor(buyZone, grayBox)
-            box.set_border_color(buyZone, grayBoxBorder)
-            box.set_text_color(buyZone, grayTxt)
-        if not na(buyZoneLabel)
-            label.set_color(buyZoneLabel, grayLabel)
-            label.set_textcolor(buyZoneLabel, grayTxt)
-        if not na(buyEntryLine)
-            line.set_color(buyEntryLine, grayLine)
-            label.set_color(buyEntryLabel, grayLabel)
-            label.set_textcolor(buyEntryLabel, grayTxt)
-        if not na(buySLLine)
-            line.set_color(buySLLine, grayLine)
-            line.set_color(buyTPLine, grayLine)
-            label.set_color(buySLLabel, grayLabel)
-            label.set_textcolor(buySLLabel, grayTxt)
-            label.set_color(buyTPLabel, grayLabel)
-            label.set_textcolor(buyTPLabel, grayTxt)
+        [grayLine, grayLabel, grayTxt, grayBox, grayBoxBorder, grayEntryLine, grayEntryLabel, grayEntryTxt, grayEntryBox, grayEntryBoxBorder] = f_prevSignalGrayColors(prevSignalOpacity)
+        f_applyGrayToAllSignals(grayLine, grayLabel, grayTxt, grayBox, grayBoxBorder, grayEntryLine, grayEntryLabel, grayEntryTxt, grayEntryBox, grayEntryBoxBorder, buyEntryLine, buyEntryLabel, buyEntryZone, buyZoneLabel, buySLLine, buyTPLine, buySLLabel, buyTPLabel, buyRiskZone, buyRewardZone, buyTP2Line, buyTP2Label, buyRewardZone2, sellEntryLine, sellEntryLabel, sellEntryZone, sellZoneLabel, sellSLLine, sellTPLine, sellSLLabel, sellTPLabel, sellRiskZone, sellRewardZone, sellTP2Line, sellTP2Label, sellRewardZone2)
     else
-        if not na(sellZone)
-            box.delete(sellZone)
-            sellZone := na
-        if not na(sellZoneLabel)
-            label.delete(sellZoneLabel)
-            sellZoneLabel := na
-        if not na(sellEntryLine)
-            line.delete(sellEntryLine)
-            label.delete(sellEntryLabel)
-            sellEntryLine := na
-            sellEntryLabel := na
-        if not na(sellSLLine)
-            line.delete(sellSLLine)
-            line.delete(sellTPLine)
-            label.delete(sellSLLabel)
-            label.delete(sellTPLabel)
-            sellSLLine := na
-            sellTPLine := na
-            sellSLLabel := na
-            sellTPLabel := na
-        if not na(sellRiskZone)
-            box.delete(sellRiskZone)
-            sellRiskZone := na
-        if not na(sellRewardZone)
-            box.delete(sellRewardZone)
-            sellRewardZone := na
-        if not na(buyZone)
-            box.delete(buyZone)
-            buyZone := na
-        if not na(buyZoneLabel)
-            label.delete(buyZoneLabel)
-            buyZoneLabel := na
-        if not na(buyEntryLine)
-            line.delete(buyEntryLine)
-            label.delete(buyEntryLabel)
-            buyEntryLine := na
-            buyEntryLabel := na
-        if not na(buySLLine)
-            line.delete(buySLLine)
-            line.delete(buyTPLine)
-            label.delete(buySLLabel)
-            label.delete(buyTPLabel)
-            buySLLine := na
-            buyTPLine := na
-            buySLLabel := na
-            buyTPLabel := na
-        if not na(buyRiskZone)
-            box.delete(buyRiskZone)
-            buyRiskZone := na
-        if not na(buyRewardZone)
-            box.delete(buyRewardZone)
-            buyRewardZone := na
+        f_deleteBuySignalDrawings(buyEntryLine, buyEntryLabel, buyEntryZone, buyZoneLabel, buySLLine, buyTPLine, buySLLabel, buyTPLabel, buyRiskZone, buyRewardZone, buyTP2Line, buyTP2Label, buyRewardZone2)
+        f_deleteSellSignalDrawings(sellEntryLine, sellEntryLabel, sellEntryZone, sellZoneLabel, sellSLLine, sellTPLine, sellSLLabel, sellTPLabel, sellRiskZone, sellRewardZone, sellTP2Line, sellTP2Label, sellRewardZone2)
+        buyEntryLine := na
+        buyEntryLabel := na
+        buyEntryZone := na
+        buyZoneLabel := na
+        buySLLine := na
+        buyTPLine := na
+        buySLLabel := na
+        buyTPLabel := na
+        buyRiskZone := na
+        buyRewardZone := na
+        sellEntryLine := na
+        sellEntryLabel := na
+        sellEntryZone := na
+        sellZoneLabel := na
+        sellSLLine := na
+        sellTPLine := na
+        sellSLLabel := na
+        sellTPLabel := na
+        sellRiskZone := na
+        sellRewardZone := na
+        sellTP2Line := na
+        sellTP2Label := na
+        sellRewardZone2 := na
 
-    // --- New sell zone (body-anchored, ATR-scaled) and score tooltip ---
-    sellZoneHalfH = atrPrev * 0.8
+    sellEntryZoneMult = finalSellScore >= 80 ? 0.5 : finalSellScore >= 65 ? 0.7 : 0.9
+    sellZoneHalfH = atrPrev * sellEntryZoneMult
     bodyHigh = math.max(open, close)
-    sellZoneHigh = bodyHigh + sellZoneHalfH * 0.3
+    sellZoneHigh = math.min(bodyHigh + sellZoneHalfH * 0.3, sellSL)
     sellZoneLow = bodyHigh - sellZoneHalfH
     sellZoneBorder = finalSellScore >= 80 ? color.new(bearPrimary, 35) : color.new(bearSecondary, 50)
-    if useSignalZone
-        sellZoneForward = finalSellScore >= 80 ? 5 : 3
-        sellZoneBg = finalSellScore >= 80 ? color.new(bearPrimary, 78) : color.new(bearSecondary, 82)
-        sellZone := box.new(bar_index - 1, sellZoneHigh, bar_index + sellZoneForward, sellZoneLow, border_color=sellZoneBorder, bgcolor=sellZoneBg, border_width=1, text="SELL " + str.tostring(finalSellScore, "#"), text_color=color.white, text_size=size.small, text_halign=text.align_center, text_valign=text.align_center)
-    sellZoneLabel := label.new(bar_index, sellZoneHigh + atr * 0.15, "▼ " + str.tostring(finalSellScore, "#"), style=label.style_label_down, color=sellZoneBorder, textcolor=color.white, size=size.small, tooltip=sellTooltip)
+    sellZoneLabel := label.new(bar_index, sellZoneHigh + atr * 0.15, "▼", style=label.style_label_down, color=sellZoneBorder, textcolor=color.white, size=size.small, tooltip=sellTooltip)
 
-    // --- Entry line ---
-    sellEntryLine := line.new(bar_index, close, bar_index + lineLen, close, color=color.new(entryClr, 15), style=line.style_solid, width=2)
-    sellEntryLabel := label.new(bar_index + lineLen, close, "ENTRY " + str.tostring(close, "#.##"), style=label.style_label_left, color=color.new(entryClr, 35), textcolor=color.white, size=size.tiny)
+    sellEntryPrice = (sellZoneHigh + sellZoneLow) / 2
+    if vwapValue >= sellZoneLow and vwapValue <= sellZoneHigh
+        sellEntryPrice := vwapValue
+    else if fib50 >= sellZoneLow and fib50 <= sellZoneHigh
+        sellEntryPrice := fib50
+    else if not na(lastBearOBLow) and lastBearOBLow >= sellZoneLow and lastBearOBLow <= sellZoneHigh
+        sellEntryPrice := lastBearOBLow
+    sellSignalBarIndex := bar_index
+    sellSignalRightExtent := bar_index
+    sellSignalTP := sellTP
+    sellSignalSL := sellSL
 
-    // --- SL/TP lines and/or zones ---
-    if useBuySellSLTP
+    if useBuySellSLTPEntry and slTpDisplayMode == "Zones"
+        sellEntryZone := box.new(bar_index, sellZoneHigh, bar_index, sellZoneLow, border_color=color.new(entryClr, 40), bgcolor=color.new(entryClr, 85), border_width=1)
+        sellEntryLabel := label.new(bar_index, sellEntryPrice, "ENTRY " + str.tostring(sellEntryPrice, "#.##"), style=label.style_label_center, color=color.new(entryClr, 35), textcolor=color.white, size=size.tiny, tooltip="ENTRY " + str.tostring(sellEntryPrice, "#.##"))
+        sellEntryLine := na
+    else
+        sellEntryZone := na
+        sellEntryLine := line.new(bar_index, sellEntryPrice, bar_index, sellEntryPrice, color=color.new(entryClr, 15), style=line.style_solid, width=2)
+        sellEntryLabel := label.new(bar_index, sellEntryPrice, "ENTRY " + str.tostring(sellEntryPrice, "#.##"), style=label.style_label_left, color=color.new(entryClr, 35), textcolor=color.white, size=size.tiny)
+
+    if useBuySellSLTPEntry
         if slTpDisplayMode == "Zones"
-            sellRewardZone := box.new(bar_index, close, bar_index + lineLen, sellTP, border_color=color.new(bullPrimary, 40), bgcolor=color.new(bullPrimary, 85), border_width=1)
-            sellRiskZone := box.new(bar_index, sellSL, bar_index + lineLen, close, border_color=color.new(bearPrimary, 40), bgcolor=color.new(bearPrimary, 85), border_width=1)
-        sellSLLine := line.new(bar_index, sellSL, bar_index + lineLen, sellSL, color=color.new(bearPrimary, 25), style=line.style_dashed, width=2)
-        sellSLLabel := label.new(bar_index + lineLen, sellSL, "SL " + str.tostring(sellSL, "#.##") + " (" + str.tostring((sellSL - close) / close * 100, "#.#") + "%)", style=label.style_label_left, color=color.new(bearPrimary, 45), textcolor=color.white, size=size.tiny)
-        sellTPLine := line.new(bar_index, sellTP, bar_index + lineLen, sellTP, color=color.new(bullPrimary, 25), style=line.style_dashed, width=1)
-        sellTPLabel := label.new(bar_index + lineLen, sellTP, "TP " + str.tostring(sellTP, "#.##") + " (" + str.tostring((sellTP - close) / close * 100, "#.#") + "%) " + sellTPSource + " (1:" + str.tostring(sellActualRR, "#.#") + ")", style=label.style_label_left, color=color.new(bullPrimary, 45), textcolor=color.white, size=size.tiny)
+            if useTwoTPsSell
+                sellRewardZone := box.new(bar_index, sellZoneLow, bar_index, sellTP1, border_color=color.new(bullPrimary, 40), bgcolor=color.new(bullPrimary, 75), border_width=1)
+                sellRewardZone2 := box.new(bar_index, sellTP1, bar_index, sellTP2, border_color=color.new(bullPrimary, 25), bgcolor=color.new(bullPrimary, 50), border_width=1)
+            else
+                sellRewardZone := box.new(bar_index, sellZoneLow, bar_index, sellTP, border_color=color.new(bullPrimary, 40), bgcolor=color.new(bullPrimary, 85), border_width=1)
+            sellRiskZone := box.new(bar_index, sellSL, bar_index, sellZoneHigh, border_color=color.new(bearPrimary, 40), bgcolor=color.new(bearPrimary, 85), border_width=1)
+        sellSLLine := line.new(bar_index, sellSL, bar_index, sellSL, color=color.new(bearPrimary, 25), style=line.style_dashed, width=2)
+        sellSLLabel := label.new(bar_index, sellSL, "SL " + str.tostring(sellSL, "#.##") + " (" + str.tostring((sellSL - close) / close * 100, "#.#") + "%)", style=label.style_label_left, color=color.new(bearPrimary, 45), textcolor=color.white, size=size.tiny)
+        if useTwoTPsSell
+            sellTPLine := line.new(bar_index, sellTP1, bar_index, sellTP1, color=color.new(bullPrimary, 25), style=line.style_dashed, width=1)
+            sellTPLabel := label.new(bar_index, sellTP1, "TP1 " + str.tostring(sellTP1, "#.##") + " (" + str.tostring((sellTP1 - close) / close * 100, "#.#") + "%) " + sellTPSource, style=label.style_label_left, color=color.new(bullPrimary, 45), textcolor=color.white, size=size.tiny)
+            sellTP2Line := line.new(bar_index, sellTP2, bar_index, sellTP2, color=color.new(bullPrimary, 20), style=line.style_dashed, width=1)
+            sellTP2Label := label.new(bar_index, sellTP2, "TP2 " + str.tostring(sellTP2, "#.##") + " (" + str.tostring((sellTP2 - close) / close * 100, "#.#") + "%) (1:" + str.tostring(sellActualRR, "#.#") + ")", style=label.style_label_left, color=color.new(bullPrimary, 40), textcolor=color.white, size=size.tiny)
+        else
+            sellTPLine := line.new(bar_index, sellTP, bar_index, sellTP, color=color.new(bullPrimary, 25), style=line.style_dashed, width=1)
+            sellTPLabel := label.new(bar_index, sellTP, "TP " + str.tostring(sellTP, "#.##") + " (" + str.tostring((sellTP - close) / close * 100, "#.#") + "%) " + sellTPSource + " (1:" + str.tostring(sellActualRR, "#.#") + ")", style=label.style_label_left, color=color.new(bullPrimary, 45), textcolor=color.white, size=size.tiny)
 
-    // Track active signal for dashboard
     activeRR := sellActualRR
     activeSLType := structSLSellOk ? "Swing" : structSLSellOk2 ? "SwingMomentum" : "ATR"
     activeTP := sellTP
     activeSL := sellSL
-
-// --- Hide signal zones ---
-if not useSignalZone
-    if not na(buyZone)
-        box.delete(buyZone)
-        buyZone := na
-    if not na(sellZone)
-        box.delete(sellZone)
-        sellZone := na
 
 // ==================================================================================
 // DASHBOARD functions
@@ -2015,12 +2247,10 @@ rsiSparkline = f_sparkline(rsiValue, 8)
 if useDashboard and barstate.islast
     var table dash = table.new(position.top_right, 5, 61, border_width=0, frame_width=0)
 
-    // Dashboard theme
     headerBg     = color.rgb(22, 22, 36)
     txtLabel     = color.rgb(158, 161, 176)
     txtValue     = color.rgb(225, 227, 234)
     txtSm        = size.tiny
-    // Accent colors per section
     accentTrend  = color.rgb(156, 107, 255)
     accentMom    = color.rgb(66, 165, 245)
     accentVol    = color.rgb(0, 200, 83)
@@ -2031,7 +2261,7 @@ if useDashboard and barstate.islast
     accentSignal = color.rgb(255, 215, 0)
     accentLevels = color.rgb(255, 167, 38)
 
-    // --- Table Section 1: TREND ---
+    // === TABLE SECTION 1: TREND ===
     table.cell(dash, 0, 2, " TREND", bgcolor=color.new(accentTrend, 30), text_color=color.white, text_size=txtSm, text_font_family=font.family_monospace, text_halign=text.align_left)
     table.cell(dash, 1, 2, "", bgcolor=color.new(accentTrend, 75))
     table.cell(dash, 2, 2, "", bgcolor=color.new(accentTrend, 75))
@@ -2085,7 +2315,7 @@ if useDashboard and barstate.islast
     table.cell(dash, 3, 10, vortexBullish ? "VI+>VI-" : "VI-<VI+", bgcolor=f_condColor(vortexBullish), text_color=txtValue, text_size=txtSm)
     table.cell(dash, 4, 10, f_condSym(alligatorBullish and vortexBullish), bgcolor=f_condColor(alligatorBullish and vortexBullish), text_color=txtValue, text_size=txtSm)
 
-    // --- Table Section 2: MOMENTUM ---
+    // === TABLE SECTION 2: MOMENTUM ===
     table.cell(dash, 0, 11, " MOMENTUM", bgcolor=color.new(accentMom, 30), text_color=color.white, text_size=txtSm, text_font_family=font.family_monospace, text_halign=text.align_left)
     table.cell(dash, 1, 11, "", bgcolor=color.new(accentMom, 75))
     table.cell(dash, 2, 11, "", bgcolor=color.new(accentMom, 75))
@@ -2155,7 +2385,7 @@ if useDashboard and barstate.islast
     table.cell(dash, 3, 22, str.tostring(vwRsiValue[1], "#"), bgcolor=f_condColor(vwRsiBullish), text_color=txtValue, text_size=txtSm)
     table.cell(dash, 4, 22, f_condSym(elderImpulseBull and vwRsiBullish), bgcolor=f_condColor(elderImpulseBull and vwRsiBullish), text_color=txtValue, text_size=txtSm)
 
-    // --- Table Section 3: VOLUME ---
+    // === TABLE SECTION 3: VOLUME ===
     table.cell(dash, 0, 23, " VOLUME", bgcolor=color.new(accentVol, 30), text_color=color.white, text_size=txtSm, text_font_family=font.family_monospace, text_halign=text.align_left)
     table.cell(dash, 1, 23, "", bgcolor=color.new(accentVol, 75))
     table.cell(dash, 2, 23, "", bgcolor=color.new(accentVol, 75))
@@ -2208,7 +2438,7 @@ if useDashboard and barstate.islast
     table.cell(dash, 3, 31, "", bgcolor=f_rowBg(31))
     table.cell(dash, 4, 31, "", bgcolor=f_rowBg(31))
 
-    // --- Table Section 4: VOLATILITY ---
+    // === TABLE SECTION 4: VOLATILITY ===
     table.cell(dash, 0, 32, " VOLATILITY", bgcolor=color.new(accentVolat, 30), text_color=color.white, text_size=txtSm, text_font_family=font.family_monospace, text_halign=text.align_left)
     table.cell(dash, 1, 32, "", bgcolor=color.new(accentVolat, 75))
     table.cell(dash, 2, 32, "", bgcolor=color.new(accentVolat, 75))
@@ -2240,7 +2470,7 @@ if useDashboard and barstate.islast
     table.cell(dash, 3, 36, bbBullish ? ">Basis" : "<Basis", bgcolor=f_condColor(bbBullish), text_color=txtValue, text_size=txtSm)
     table.cell(dash, 4, 36, f_condSym(not massBulge and bbBullish), bgcolor=f_condColor(not massBulge and bbBullish), text_color=txtValue, text_size=txtSm)
 
-    // --- Table Section 5: REGIME ---
+    // === TABLE SECTION 5: REGIME ===
     table.cell(dash, 0, 37, " REGIME", bgcolor=color.new(accentRegime, 30), text_color=color.white, text_size=txtSm, text_font_family=font.family_monospace, text_halign=text.align_left)
     table.cell(dash, 1, 37, "", bgcolor=color.new(accentRegime, 75))
     table.cell(dash, 2, 37, "", bgcolor=color.new(accentRegime, 75))
@@ -2266,7 +2496,7 @@ if useDashboard and barstate.islast
     table.cell(dash, 3, 40, wyckSpring ? "Spring" : wyckUpthrust ? "Upthr" : "-", bgcolor=f_condColor(wyckSpring), text_color=txtValue, text_size=txtSm)
     table.cell(dash, 4, 40, f_condSym(not hvHigh), bgcolor=f_condColor(not hvHigh), text_color=txtValue, text_size=txtSm)
 
-    // --- Table Section 6: META-MODIFIERS ---
+    // === TABLE SECTION 6: META-MODIFIERS ===
     table.cell(dash, 0, 41, " META-MODIFIERS", bgcolor=color.new(accentMeta, 30), text_color=color.white, text_size=txtSm, text_font_family=font.family_monospace, text_halign=text.align_left)
     table.cell(dash, 1, 41, "", bgcolor=color.new(accentMeta, 75))
     table.cell(dash, 2, 41, "", bgcolor=color.new(accentMeta, 75))
@@ -2286,7 +2516,7 @@ if useDashboard and barstate.islast
     table.cell(dash, 3, 43, adxStrong ? (trendUp ? "Uptrend" : trendDown ? "Downtrend" : "Trend") : "Ranging", bgcolor=trendUp and adxStrong ? color.new(bullPrimary, 50) : trendDown and adxStrong ? color.new(bearPrimary, 50) : color.new(warningColor, 50), text_color=txtValue, text_size=txtSm)
     table.cell(dash, 4, 43, "", bgcolor=f_rowBg(43))
 
-    // --- Table Section 7: RISK ---
+    // === TABLE SECTION 7: RISK ===
     table.cell(dash, 0, 44, " RISK MANAGEMENT", bgcolor=color.new(accentRisk, 30), text_color=color.white, text_size=txtSm, text_font_family=font.family_monospace, text_halign=text.align_left)
     table.cell(dash, 1, 44, "", bgcolor=color.new(accentRisk, 75))
     table.cell(dash, 2, 44, "", bgcolor=color.new(accentRisk, 75))
@@ -2306,7 +2536,7 @@ if useDashboard and barstate.islast
     table.cell(dash, 3, 46, activeRR > 0 ? "1:" + str.tostring(activeRR, "#.#") : "1:" + str.tostring(buySellRR, "#.#"), bgcolor=color.new(neutralColor, 50), text_color=txtValue, text_size=txtSm)
     table.cell(dash, 4, 46, "", bgcolor=f_rowBg(46))
 
-    // --- Table Section 8: MTF HEATMAP ---
+    // === TABLE SECTION 8: MTF HEATMAP ===
     if useMTFHeatmap
         table.cell(dash, 0, 47, " MTF HEATMAP", bgcolor=color.new(accentMeta, 30), text_color=color.white, text_size=txtSm, text_font_family=font.family_monospace, text_halign=text.align_left)
         table.cell(dash, 1, 47, "", bgcolor=color.new(accentMeta, 75))
@@ -2321,7 +2551,7 @@ if useDashboard and barstate.islast
         table.cell(dash, 3, 48, "H4", bgcolor=mtf240 ? color.new(bullPrimary, 40) : color.new(bearPrimary, 40), text_color=txtValue, text_size=txtSm)
         table.cell(dash, 4, 48, "D", bgcolor=mtfD ? color.new(bullPrimary, 40) : color.new(bearPrimary, 40), text_color=txtValue, text_size=txtSm)
 
-    // --- BUY/SELL SIGNAL ---
+    // === BUY/SELL SIGNAL ===
     if useBuySellSignal
         table.cell(dash, 0, 49, " BUY/SELL SIGNAL", bgcolor=color.new(accentSignal, 30), text_color=color.rgb(20, 20, 35), text_size=txtSm, text_font_family=font.family_monospace, text_halign=text.align_left)
         table.cell(dash, 1, 49, "", bgcolor=color.new(accentSignal, 75))
@@ -2345,7 +2575,7 @@ if useDashboard and barstate.islast
         table.cell(dash, 3, 51, str.tostring(sellCatAgree) + "/5 Sell", bgcolor=f_condColor(sellCatAgree >= 4), text_color=txtValue, text_size=txtSm)
         table.cell(dash, 4, 51, str.tostring(barsSinceLastBuy) + "/" + str.tostring(barsSinceLastSell) + " ago", bgcolor=color.new(neutralColor, 50), text_color=txtValue, text_size=txtSm)
 
-    // --- LEVELS ---
+    // === LEVELS ===
     table.cell(dash, 0, 53, " LEVELS", bgcolor=color.new(accentLevels, 30), text_color=color.white, text_size=txtSm, text_font_family=font.family_monospace, text_halign=text.align_left)
     table.cell(dash, 1, 53, "", bgcolor=color.new(accentLevels, 75))
     table.cell(dash, 2, 53, "", bgcolor=color.new(accentLevels, 75))
@@ -2367,7 +2597,6 @@ if useDashboard and barstate.islast
 // DATA WINDOW OUTPUTS
 // ==================================================================================
 
-// Create a single string containing all indicator values
 dataWindowOutput = 
      "RSI=" + str.tostring(rsiValue, "#.##") + 
      " | CCI=" + str.tostring(cciValue, "#.##") +
@@ -2432,7 +2661,6 @@ alertcondition(gapValid and gapDown, "Gap Down", "Gap down detected")
 alertcondition(massBulge, "Mass Index Bulge", "Mass Index bulge - potential reversal")
 alertcondition(pivotBreak, "Pivot Break", "Price broke pivot R1 or S1")
 
-// --- Buy/Sell Signal Alerts ---
 alertcondition(signalBuy, "Buy Signal", "Buy/Sell Signal: BUY triggered! Score threshold met with multi-category confirmation.")
 alertcondition(signalSell, "Sell Signal", "Buy/Sell Signal: SELL triggered! Score threshold met with multi-category confirmation.")
 alertcondition(signalBuy or signalSell, "Buy/Sell Signal (Any)", "Signal triggered! Check chart for direction and details.")
