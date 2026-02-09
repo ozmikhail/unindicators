@@ -80,7 +80,6 @@ var gIndMisc = "Settings · Pivots, Fib, S/R, Gap"
 // === Trend Settings ===
 hullLength = input.int(20, "Hull MA Length", minval=1, group=gTrend)
 useHTF = input.bool(true, "Use Higher Timeframe Filter", group=gTrend)
-htfTimeframe = input.timeframe("D", "Higher Timeframe", group=gTrend)
 htfEmaLength = input.int(50, "HTF EMA Length", group=gTrend)
 adxLength = input.int(14, "ADX Length", group=gTrend)
 adxThreshold = input.float(25, "ADX Threshold", minval=0, group=gTrend)
@@ -148,8 +147,6 @@ maSlowerLen = input.int(50, "Slower MA Length", minval=1, group=gMAAlign)
 // === Filters (Price Action, Session, HTF RSI, Risk, Premium/Discount, FVG) ===
 useCandleFilter = input.bool(true, "Candle Direction Filter", group=gFilters)
 useSessionFilter = input.bool(false, "Use Session Filter", group=gFilters)
-sessionInput = input.string("0800-1700", "Session (HHMM-HHMM)", group=gFilters)
-todTimezone = input.string("America/New_York", "Session Timezone", group=gFilters)
 useHTFRSI = input.bool(true, "Use HTF RSI Filter", group=gFilters)
 htfRsiLength = input.int(14, "HTF RSI Length", minval=1, group=gFilters)
 htfRsiNotOverbought = input.float(70, "HTF RSI Max (buy when below)", minval=50, group=gFilters)
@@ -195,7 +192,6 @@ cmoLength = input.int(14, "CMO Length", minval=1, group=gIndOsc)
 fisherLength = input.int(10, "Fisher Length", minval=2, group=gIndOsc)
 efiLength = input.int(13, "EFI EMA Length", minval=1, group=gIndOsc)
 obDisplacementMult = input.float(1.5, "OB Displacement ATR Mult", minval=0.5, step=0.1, group=gIndOsc)
-benchmarkSymbol = input.symbol("SPY", "Benchmark Symbol", group=gIndOsc)
 corrLength = input.int(20, "Correlation Length", minval=5, group=gIndOsc)
 pinBarWickRatio = input.float(2.0, "Pin Bar Min Wick/Body Ratio", minval=1.5, step=0.1, group=gIndOsc)
 dojiBodyPct = input.float(0.1, "Doji Max Body % of Range", minval=0.05, maxval=0.5, step=0.05, group=gIndOsc)
@@ -246,7 +242,6 @@ nviPviMALen = input.int(255, "NVI/PVI MA Length", minval=20, group=gIndMA)
 iiiLength = input.int(14, "III Smooth Length", minval=1, group=gIndMA)
 
 // === Pivots, Fib, S/R, Gap, Vortex, Elder, VW-RSI, Twiggs ===
-pivotTimeframe = input.timeframe("D", "Pivot Timeframe", group=gIndMisc, tooltip="Timeframe for pivot points. Can match Higher Timeframe (Trend) for consistency.")
 fibLookback = input.int(20, "Fib Swing Lookback", minval=5, group=gIndMisc)
 srPivotCount = input.int(3, "S/R Pivot Count", minval=2, group=gIndMisc)
 gapMinATR = input.float(0, "Gap Min ATR (0=any)", minval=0, step=0.1, group=gIndMisc)
@@ -254,6 +249,13 @@ vortexLength = input.int(14, "Vortex Length", minval=1, group=gIndMisc)
 elderEmaLen = input.int(13, "Elder EMA Length", minval=1, group=gIndMisc)
 vwRsiLength = input.int(14, "VW-RSI Length", minval=1, group=gIndMisc)
 twiggsLength = input.int(21, "Twiggs Length", minval=1, group=gIndMisc)
+
+// === Auto: session, HTF, pivot TF, benchmark (from chart/symbol) ===
+tfSec = timeframe.in_seconds(timeframe.period)
+htfTimeframe = tfSec >= 604800 ? "M" : tfSec >= 86400 ? "W" : "D"
+pivotTimeframe = htfTimeframe
+sessionStr = syminfo.timezone == "America/New_York" ? "0930-1600" : syminfo.timezone == "Europe/London" ? "0800-1630" : "0800-1700"
+benchmarkSymbol = syminfo.currency == "USD" ? "SPY" : syminfo.currency == "EUR" ? "STOXX50E" : "SPY"
 
 // ==================================================================================
 // FUNCTIONS
@@ -596,8 +598,8 @@ macdHistBearish = useMacdHist ? macdHist[1] < 0 : true
 bullishCandle = useCandleFilter ? close[1] > open[1] : true
 bearishCandle = useCandleFilter ? close[1] < open[1] : true
 
-// === Session ===
-inSession = useSessionFilter ? not na(time(timeframe.period, sessionInput)) : true
+// === Session (exchange timezone) ===
+inSession = useSessionFilter ? not na(time(timeframe.period, sessionStr, syminfo.timezone)) : true
 
 // === HTF RSI ===
 htfRsi = request.security(syminfo.tickerid, htfTimeframe, ta.rsi(close, htfRsiLength), lookahead=barmerge.lookahead_off)
@@ -1263,7 +1265,7 @@ f_metaMultipliers(exhB, exhS, revB, revS, strB, strS, volB, volS, trdB, trdS) =>
     sAgree = (exhS > 0.25 ? 1 : 0) + (revS > 0.15 ? 1 : 0) + (strS > 0.10 ? 1 : 0) + (volS > 0.20 ? 1 : 0) + (trdS > 0.25 ? 1 : 0)
     agreeB = bAgreeStrong >= 3 ? 1.15 : (bAgreeStrong >= 2 and bAgree >= 4) ? 1.10 : bAgree >= 4 ? 1.06 : bAgree >= 3 ? 1.03 : 1.0
     agreeS = sAgreeStrong >= 3 ? 1.15 : (sAgreeStrong >= 2 and sAgree >= 4) ? 1.10 : sAgree >= 4 ? 1.06 : sAgree >= 3 ? 1.03 : 1.0
-    hod = hour(time, todTimezone)
+    hod = hour(time, syminfo.timezone)
     midSess = hod >= 10 and hod <= 14
     sessM = useSessionFilter ? (inSession ? (midSess ? 1.05 : 1.0) : 0.90) : 1.0
     [r2M, zBuyM, zSellM, vsM, adxM, exBoostB, exPenB, exBoostS, exPenS, agreeB, agreeS, sessM, bAgreeStrong, bAgree, sAgreeStrong, sAgree]
