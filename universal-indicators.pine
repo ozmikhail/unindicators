@@ -369,12 +369,12 @@ f_volumeScore(volumeConfirm, volumeRising, pressureBullish, pressureBearish, obv
          + (adLineBearish ? 0.5 : 0.0)
     [math.min(bRaw / c, 1.0), math.min(sRaw / c, 1.0)]
 
-f_trendAlignScore(mtfD, mtf240, mtf60, mtf15, mtf5, htfTrendUp, adxStrong, vwRsiBullish, vortexBullish, vwapBullish, mcginleyBullish, alligatorBullish, vwRsiBearish, vortexBearish, vwapBearish, mcginleyBearish, alligatorBearish) =>
-    c = 8.5
+f_trendAlignScore(mtfD, mtf240, mtf60, mtf15, mtf5, htfTrendUp, adxStrong, vwRsiBullish, vortexBullish, vwapBullish, mcginleyBullish, alligatorBullish, vwRsiBearish, vortexBearish, vwapBearish, mcginleyBearish, alligatorBearish, bullHidden, bearHidden) =>
+    c = 10.0
     mtfBuy = (mtfD ? 2.5 : 0.0) + (mtf240 ? 2.0 : 0.0) + (mtf60 ? 1.0 : 0.0) + (mtf15 ? 0.6 : 0.0) + (mtf5 ? 0.4 : 0.0)
     mtfSell = (not mtfD ? 2.5 : 0.0) + (not mtf240 ? 2.0 : 0.0) + (not mtf60 ? 1.0 : 0.0) + (not mtf15 ? 0.6 : 0.0) + (not mtf5 ? 0.4 : 0.0)
-    bRaw = mtfBuy + (htfTrendUp ? 2.0 : 0.0) + (adxStrong ? 0.5 : 0.0) + (vwRsiBullish ? 0.8 : 0.0) + (vortexBullish ? 0.6 : 0.0) + (vwapBullish ? 0.7 : 0.0) + (mcginleyBullish ? 0.7 : 0.0) + (alligatorBullish ? 0.8 : 0.0)
-    sRaw = mtfSell + (not htfTrendUp ? 2.0 : 0.0) + (adxStrong ? 0.5 : 0.0) + (vwRsiBearish ? 0.8 : 0.0) + (vortexBearish ? 0.6 : 0.0) + (vwapBearish ? 0.7 : 0.0) + (mcginleyBearish ? 0.7 : 0.0) + (alligatorBearish ? 0.8 : 0.0)
+    bRaw = mtfBuy + (htfTrendUp ? 2.0 : 0.0) + (adxStrong ? 0.5 : 0.0) + (vwRsiBullish ? 0.8 : 0.0) + (vortexBullish ? 0.6 : 0.0) + (vwapBullish ? 0.7 : 0.0) + (mcginleyBullish ? 0.7 : 0.0) + (alligatorBullish ? 0.8 : 0.0) + (bullHidden ? 2.0 : 0.0)
+    sRaw = mtfSell + (not htfTrendUp ? 2.0 : 0.0) + (adxStrong ? 0.5 : 0.0) + (vwRsiBearish ? 0.8 : 0.0) + (vortexBearish ? 0.6 : 0.0) + (vwapBearish ? 0.7 : 0.0) + (mcginleyBearish ? 0.7 : 0.0) + (alligatorBearish ? 0.8 : 0.0) + (bearHidden ? 2.0 : 0.0)
     [math.min(bRaw / c, 1.0), math.min(sRaw / c, 1.0)]
 
 f_metaMultipliers(exhB, exhS, revB, revS, strB, strS, volB, volS, trdB, trdS, zScore, hvRank, adxValue, adxStrong, lagSellCount, lagEnabledCount, lagBuyCount, USE_SESSION_FILTER, inSession) =>
@@ -2201,9 +2201,9 @@ lagSellCount = (trendDown ? 1 : 0) + (USE_MA_STACK and maStackDown ? 1 : 0) + (U
 
 [exhBuyScore, exhSellScore] = f_exhaustionScore(rsiPrev, stochKVal, mfiValue, wrValue, bbPercent, zScore, cciValue, schaffVal, uoValue, volClimaxBuy, extendedBearRun, massBulge, cmoValue, volClimaxSell, extendedBullRun)
 [revBuyScore, revSellScore] = f_reversalScore(macdCrossUpFresh, rsiCrossUpFresh, stochCrossUpFresh, macdHistTurningUp, fisherBullish, trixBullish, kstBullish, sineBullish, coppockBullish, rviBullish, elderImpulseBull, dpoBullish, rsiAccelBuy, chandBullish, ttmFirBull, macdCrossDownFresh, rsiCrossDownFresh, stochCrossDownFresh, macdHistTurningDown, fisherBearish, trixBearish, kstBearish, sineBearish, coppockBearish, rviBearish, elderImpulseBear, dpoBearish, rsiAccelSell, chandBearish, ttmFirBear)
-[structBuyScore, structSellScore] = f_structureScore(bullEngulfing, hammerBull, morningStar, piercingLine, tweezerBottom, threeWhiteSoldiers, doji, rsiPrev, bullHarami, bearEngulfing, shootingStar, eveningStar, darkCloudCover, tweezerTop, threeBlackCrows, bearHarami, pivotCrossUpR1, pivotCrossDownS1, donchianBreakoutUp, donchianBreakoutDown, nearSupport, wyckSpring, bullishDivergence, bosBull, chochBullish, sfpBull, liqSweepBuy, bullFVG, nearBullOB, wickRejectionBuy, bullDisplacement, nearPivotS1, nearResistance, wyckUpthrust, bearishDivergence, bosBear, chochBearish, sfpBear, liqSweepSell, bearFVG, nearBearOB, wickRejectionSell, bearDisplacement, nearPivotR1)
+[structBuyScore, structSellScore] = f_structureScore(bullEngulfing, hammerBull, morningStar, piercingLine, tweezerBottom, threeWhiteSoldiers, doji, rsiPrev, bullHarami, bearEngulfing, shootingStar, eveningStar, darkCloudCover, tweezerTop, threeBlackCrows, bearHarami, pivotCrossUpR1, pivotCrossDownS1, donchianBreakoutUp, donchianBreakoutDown, nearSupport, wyckSpring, bullDivAny, bosBull, chochBullish, sfpBull, liqSweepBuy, bullFVG, nearBullOB, wickRejectionBuy, bullDisplacement, nearPivotS1, nearResistance, wyckUpthrust, bearDivAny, bosBear, chochBearish, sfpBear, liqSweepSell, bearFVG, nearBearOB, wickRejectionSell, bearDisplacement, nearPivotR1)
 [volBuyScore, volSellScore] = f_volumeScore(volumeConfirm, volumeRising, pressureBullish, pressureBearish, obvBullish, cmfBullish, klingerBullish, twiggsBullish, iiiBullish, eomBullish, nviBullish, pviBullish, efiBullish, adLineBullish, obvBearish, cmfBearish, klingerBearish, twiggsBearish, iiiBearish, eomBearish, nviBearish, pviBearish, efiBearish, adLineBearish)
-[trendAlignBuyScore, trendAlignSellScore] = f_trendAlignScore(mtfD, mtf240, mtf60, mtf15, mtf5, htfTrendUp, adxStrong, vwRsiBullish, vortexBullish, vwapBullish, mcginleyBullish, alligatorBullish, vwRsiBearish, vortexBearish, vwapBearish, mcginleyBearish, alligatorBearish)
+[trendAlignBuyScore, trendAlignSellScore] = f_trendAlignScore(mtfD, mtf240, mtf60, mtf15, mtf5, htfTrendUp, adxStrong, vwRsiBullish, vortexBullish, vwapBullish, mcginleyBullish, alligatorBullish, vwRsiBearish, vortexBearish, vwapBearish, mcginleyBearish, alligatorBearish, bullHiddenAny, bearHiddenAny)
 
 r2Trend = rSqValue > 0.7 ? 1.08 : rSqValue > 0.5 ? 1.0 : rSqValue > 0.3 ? 0.92 : 0.85
 r2Reversal = rSqValue < 0.3 ? 1.10 : rSqValue < 0.5 ? 1.0 : rSqValue < 0.7 ? 0.95 : 0.90
