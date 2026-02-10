@@ -234,7 +234,7 @@ MUTED_COLOR      = input.color(color.rgb(90, 90, 105), "Muted (historical)", gro
 // ==================================================================================
 
 f_exhaustionScore(rsiPrev, stochKVal, mfiValue, wrValue, bbPercent, zScore, cciValue, schaffVal, uoValue, volClimaxBuy, extendedBearRun, massBulge, cmoValue, volClimaxSell, extendedBullRun) =>
-    c = 5.0
+    c = 7.0
     bRaw = (rsiPrev < 35 ? 2.0 : rsiPrev < 45 ? 1.0 : 0.0)
          + (stochKVal[1] < 25 ? 1.5 : 0.0)
          + (mfiValue[1] < 30 ? 1.0 : 0.0)
