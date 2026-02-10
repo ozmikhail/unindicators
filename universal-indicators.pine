@@ -233,10 +233,10 @@ MUTED_COLOR      = input.color(color.rgb(90, 90, 105), "Muted (historical)", gro
 // FUNCTIONS
 // ==================================================================================
 
-f_exhaustionScore(rsiPrev, stochKVal, mfiValue, wrValue, bbPercent, zScore, cciValue, schaffVal, uoValue, volClimaxBuy, extendedBearRun, massBulge, cmoValue, volClimaxSell, extendedBullRun) =>
+f_exhaustionScore(rsiPrev, stochKVal, mfiValue, wrValue, bbPercent, zScore, cciValue, schaffVal, uoValue, volClimaxBuy, extendedBearRun, massBulge, cmoValue, volClimaxSell, extendedBullRun, useStoch) =>
     c = 7.0
     bRaw = (rsiPrev < 35 ? 2.0 : rsiPrev < 45 ? 1.0 : 0.0)
-         + (stochKVal[1] < 25 ? 1.5 : 0.0)
+         + (useStoch and stochKVal[1] < 25 ? 1.5 : 0.0)
          + (mfiValue[1] < 30 ? 1.0 : 0.0)
          + (wrValue[1] < -75 ? 1.0 : 0.0)
          + (bbPercent[1] < 0.15 ? 1.5 : 0.0)
@@ -249,7 +249,7 @@ f_exhaustionScore(rsiPrev, stochKVal, mfiValue, wrValue, bbPercent, zScore, cciV
          + (massBulge and rsiPrev < 40 ? 1.5 : 0.0)
          + (cmoValue[1] < -50 ? 0.8 : 0.0)
     sRaw = (rsiPrev > 65 ? 2.0 : rsiPrev > 55 ? 1.0 : 0.0)
-         + (stochKVal[1] > 75 ? 1.5 : 0.0)
+         + (useStoch and stochKVal[1] > 75 ? 1.5 : 0.0)
          + (mfiValue[1] > 70 ? 1.0 : 0.0)
          + (wrValue[1] > -25 ? 1.0 : 0.0)
          + (bbPercent[1] > 0.85 ? 1.5 : 0.0)
@@ -1543,39 +1543,40 @@ f_calcTPTargets(float lastSwH, float lastSwL, float pR1, float pS1, float pR2, f
     buyZoneHighPre = math.min(openP, cl) + atrP * entryZoneMultPre
     sellZoneLowPre = math.max(openP, cl) - atrP * (finSell >= 80 ? 0.5 : finSell >= 65 ? 0.7 : 0.9)
     buyRisk = cl - buySL
+    minRRStructural = 1.35
     nearBuyTarget = fixedBuyTP
     buyTPSource = "R:R"
-    if lastSwH > cl + atrP * 0.15 and (lastSwH - cl) / buyRisk >= 1.2
+    if lastSwH > cl + atrP * 0.15 and (lastSwH - cl) / buyRisk >= minRRStructural
         nearBuyTarget := math.min(nearBuyTarget, lastSwH)
         buyTPSource := "S/R"
-    if usePivots and pR1 > cl + atrP * 0.15 and (pR1 - cl) / buyRisk >= 1.2
+    if usePivots and pR1 > cl + atrP * 0.15 and (pR1 - cl) / buyRisk >= minRRStructural
         nearBuyTarget := math.min(nearBuyTarget, pR1)
         buyTPSource := "R1"
-    if not na(lastBearOBH) and lastBearOBH > cl + atrP * 0.15 and (lastBearOBH - cl) / buyRisk >= 1.2
+    if not na(lastBearOBH) and lastBearOBH > cl + atrP * 0.15 and (lastBearOBH - cl) / buyRisk >= minRRStructural
         nearBuyTarget := math.min(nearBuyTarget, lastBearOBH)
         buyTPSource := "OB"
-    if fib38 > cl + atrP * 0.15 and fib38 < cl + atrP * 6 and (fib38 - cl) / buyRisk >= 1.2
+    if fib38 > cl + atrP * 0.15 and fib38 < cl + atrP * 6 and (fib38 - cl) / buyRisk >= minRRStructural
         nearBuyTarget := math.min(nearBuyTarget, fib38)
         buyTPSource := "Fib38"
-    if fib61 > cl + atrP * 0.15 and fib61 < cl + atrP * 6 and (fib61 - cl) / buyRisk >= 1.2
+    if fib61 > cl + atrP * 0.15 and fib61 < cl + atrP * 6 and (fib61 - cl) / buyRisk >= minRRStructural
         nearBuyTarget := math.min(nearBuyTarget, fib61)
         buyTPSource := "Fib62"
-    if vwap > cl + atrP * 0.15 and (vwap - cl) / buyRisk >= 1.2
+    if vwap > cl + atrP * 0.15 and (vwap - cl) / buyRisk >= minRRStructural
         nearBuyTarget := math.min(nearBuyTarget, vwap)
         buyTPSource := "VWAP"
-    if bbUp > cl + atrP * 0.15 and (bbUp - cl) / buyRisk >= 1.2
+    if bbUp > cl + atrP * 0.15 and (bbUp - cl) / buyRisk >= minRRStructural
         nearBuyTarget := math.min(nearBuyTarget, bbUp)
         buyTPSource := "BB"
-    if ema200 > cl + atrP * 0.15 and (ema200 - cl) / buyRisk >= 1.2
+    if ema200 > cl + atrP * 0.15 and (ema200 - cl) / buyRisk >= minRRStructural
         nearBuyTarget := math.min(nearBuyTarget, ema200)
         buyTPSource := "EMA200"
-    if not na(prevDH) and prevDH > cl + atrP * 0.15 and (prevDH - cl) / buyRisk >= 1.2
+    if not na(prevDH) and prevDH > cl + atrP * 0.15 and (prevDH - cl) / buyRisk >= minRRStructural
         nearBuyTarget := math.min(nearBuyTarget, prevDH)
         buyTPSource := "PDH"
-    if usePivots and pR2 > cl + atrP * 0.15 and (pR2 - cl) / buyRisk >= 1.2
+    if usePivots and pR2 > cl + atrP * 0.15 and (pR2 - cl) / buyRisk >= minRRStructural
         nearBuyTarget := math.min(nearBuyTarget, pR2)
         buyTPSource := "R2"
-    trendExtendBuy = trendUp and adxStr and trendAlignBuySc > 0.5
+    trendExtendBuy = trendUp and trendAlignBuySc > 0.35 and (adxStr or trendAlignBuySc > 0.55)
     buyTP = (trendExtendBuy and nearBuyTarget < fixedBuyTP) ? fixedBuyTP : nearBuyTarget
     if trendExtendBuy and nearBuyTarget < fixedBuyTP
         buyTPSource := "R:R"
@@ -1585,37 +1586,37 @@ f_calcTPTargets(float lastSwH, float lastSwL, float pR1, float pS1, float pR2, f
     sellRisk = sellSL - cl
     nearSellTarget = fixedSellTP
     sellTPSource = "R:R"
-    if lastSwL < cl - atrP * 0.15 and (cl - lastSwL) / sellRisk >= 1.2
+    if lastSwL < cl - atrP * 0.15 and (cl - lastSwL) / sellRisk >= minRRStructural
         nearSellTarget := math.max(nearSellTarget, lastSwL)
         sellTPSource := "S/R"
-    if usePivots and pS1 < cl - atrP * 0.15 and (cl - pS1) / sellRisk >= 1.2
+    if usePivots and pS1 < cl - atrP * 0.15 and (cl - pS1) / sellRisk >= minRRStructural
         nearSellTarget := math.max(nearSellTarget, pS1)
         sellTPSource := "S1"
-    if not na(lastBullOBL) and lastBullOBL < cl - atrP * 0.15 and (cl - lastBullOBL) / sellRisk >= 1.2
+    if not na(lastBullOBL) and lastBullOBL < cl - atrP * 0.15 and (cl - lastBullOBL) / sellRisk >= minRRStructural
         nearSellTarget := math.max(nearSellTarget, lastBullOBL)
         sellTPSource := "OB"
-    if fib61 < cl - atrP * 0.15 and fib61 > cl - atrP * 6 and (cl - fib61) / sellRisk >= 1.2
+    if fib61 < cl - atrP * 0.15 and fib61 > cl - atrP * 6 and (cl - fib61) / sellRisk >= minRRStructural
         nearSellTarget := math.max(nearSellTarget, fib61)
         sellTPSource := "Fib62"
-    if fib38 < cl - atrP * 0.15 and fib38 > cl - atrP * 6 and (cl - fib38) / sellRisk >= 1.2
+    if fib38 < cl - atrP * 0.15 and fib38 > cl - atrP * 6 and (cl - fib38) / sellRisk >= minRRStructural
         nearSellTarget := math.max(nearSellTarget, fib38)
         sellTPSource := "Fib38"
-    if vwap < cl - atrP * 0.15 and (cl - vwap) / sellRisk >= 1.2
+    if vwap < cl - atrP * 0.15 and (cl - vwap) / sellRisk >= minRRStructural
         nearSellTarget := math.max(nearSellTarget, vwap)
         sellTPSource := "VWAP"
-    if bbLo < cl - atrP * 0.15 and (cl - bbLo) / sellRisk >= 1.2
+    if bbLo < cl - atrP * 0.15 and (cl - bbLo) / sellRisk >= minRRStructural
         nearSellTarget := math.max(nearSellTarget, bbLo)
         sellTPSource := "BB"
-    if ema200 < cl - atrP * 0.15 and (cl - ema200) / sellRisk >= 1.2
+    if ema200 < cl - atrP * 0.15 and (cl - ema200) / sellRisk >= minRRStructural
         nearSellTarget := math.max(nearSellTarget, ema200)
         sellTPSource := "EMA200"
-    if not na(prevDL) and prevDL < cl - atrP * 0.15 and (cl - prevDL) / sellRisk >= 1.2
+    if not na(prevDL) and prevDL < cl - atrP * 0.15 and (cl - prevDL) / sellRisk >= minRRStructural
         nearSellTarget := math.max(nearSellTarget, prevDL)
         sellTPSource := "PDL"
-    if usePivots and pS2 < cl - atrP * 0.15 and (cl - pS2) / sellRisk >= 1.2
+    if usePivots and pS2 < cl - atrP * 0.15 and (cl - pS2) / sellRisk >= minRRStructural
         nearSellTarget := math.max(nearSellTarget, pS2)
         sellTPSource := "S2"
-    trendExtendSell = trendDown and adxStr and trendAlignSellSc > 0.5
+    trendExtendSell = trendDown and trendAlignSellSc > 0.35 and (adxStr or trendAlignSellSc > 0.55)
     sellTP = (trendExtendSell and nearSellTarget > fixedSellTP) ? fixedSellTP : nearSellTarget
     if trendExtendSell and nearSellTarget > fixedSellTP
         sellTPSource := "R:R"
@@ -2199,12 +2200,12 @@ rsiVelocity = rsiValue - rsiValue[3]
 rsiAccelBuy = rsiPrev < 40 and rsiVelocity > 8
 rsiAccelSell = rsiPrev > 60 and rsiVelocity < -8
 
-lagEnabledCount = 8 + (USE_MA_STACK ? 1 : 0) + (USE_SUPER_TREND ? 1 : 0) + (USE_SAR ? 1 : 0) + (USE_ICHIMOKU ? 1 : 0) + 1 + 1 + (USE_GMMA ? 1 : 0) + 1 + (USE_ROC ? 1 : 0)
+lagEnabledCount = 8 + (USE_MA_STACK ? 1 : 0) + (USE_SUPER_TREND ? 1 : 0) + (USE_SAR ? 1 : 0) + (USE_ICHIMOKU ? 1 : 0) + (USE_STOCH ? 1 : 0) + 1 + (USE_GMMA ? 1 : 0) + 1 + (USE_ROC ? 1 : 0)
 lagBuyCount = (trendUp ? 1 : 0) + (USE_MA_STACK and maStackUp ? 1 : 0) + (USE_SUPER_TREND and stBullish ? 1 : 0) + (USE_SAR and sarBullish ? 1 : 0) + (USE_ICHIMOKU and ichBullish ? 1 : 0) + (aroonBullish ? 1 : 0) + (linRegBullish ? 1 : 0) + (donchianBullish ? 1 : 0) + (mcginleyBullish ? 1 : 0) + (alligatorBullish ? 1 : 0) + (vortexBullish ? 1 : 0) + (demaBullish ? 1 : 0) + (temaBullish ? 1 : 0) + (USE_GMMA and gmmaBullish ? 1 : 0) + (macdBullish ? 1 : 0) + (rsiBullish ? 1 : 0) + (USE_ROC and rocBullish ? 1 : 0)
 lagSellCount = (trendDown ? 1 : 0) + (USE_MA_STACK and maStackDown ? 1 : 0) + (USE_SUPER_TREND and stBearish ? 1 : 0) + (USE_SAR and sarBearish ? 1 : 0) + (USE_ICHIMOKU and ichBearish ? 1 : 0) + (aroonBearish ? 1 : 0) + (linRegBearish ? 1 : 0) + (donchianBearish ? 1 : 0) + (mcginleyBearish ? 1 : 0) + (alligatorBearish ? 1 : 0) + (vortexBearish ? 1 : 0) + (demaBearish ? 1 : 0) + (temaBearish ? 1 : 0) + (USE_GMMA and gmmaBearish ? 1 : 0) + (macdBearish ? 1 : 0) + (rsiBearish ? 1 : 0) + (USE_ROC and rocBearish ? 1 : 0)
 
-[exhBuyScore, exhSellScore] = f_exhaustionScore(rsiPrev, stochKVal, mfiValue, wrValue, bbPercent, zScore, cciValue, schaffVal, uoValue, volClimaxBuy, extendedBearRun, massBulge, cmoValue, volClimaxSell, extendedBullRun)
-[revBuyScore, revSellScore] = f_reversalScore(macdCrossUpFresh, rsiCrossUpFresh, stochCrossUpFresh, macdHistTurningUp, fisherBullish, trixBullish, kstBullish, sineBullish, coppockBullish, rviBullish, elderImpulseBull, dpoBullish, rsiAccelBuy, chandBullish, ttmFirBull, macdCrossDownFresh, rsiCrossDownFresh, stochCrossDownFresh, macdHistTurningDown, fisherBearish, trixBearish, kstBearish, sineBearish, coppockBearish, rviBearish, elderImpulseBear, dpoBearish, rsiAccelSell, chandBearish, ttmFirBear)
+[exhBuyScore, exhSellScore] = f_exhaustionScore(rsiPrev, stochKVal, mfiValue, wrValue, bbPercent, zScore, cciValue, schaffVal, uoValue, volClimaxBuy, extendedBearRun, massBulge, cmoValue, volClimaxSell, extendedBullRun, USE_STOCH)
+[revBuyScore, revSellScore] = f_reversalScore(macdCrossUpFresh, rsiCrossUpFresh, USE_STOCH ? stochCrossUpFresh : 0.0, macdHistTurningUp, fisherBullish, trixBullish, kstBullish, sineBullish, coppockBullish, rviBullish, elderImpulseBull, dpoBullish, rsiAccelBuy, chandBullish, ttmFirBull, macdCrossDownFresh, rsiCrossDownFresh, USE_STOCH ? stochCrossDownFresh : 0.0, macdHistTurningDown, fisherBearish, trixBearish, kstBearish, sineBearish, coppockBearish, rviBearish, elderImpulseBear, dpoBearish, rsiAccelSell, chandBearish, ttmFirBear)
 [structBuyScore, structSellScore] = f_structureScore(bullEngulfing, hammerBull, morningStar, piercingLine, tweezerBottom, threeWhiteSoldiers, doji, rsiPrev, bullHarami, bearEngulfing, shootingStar, eveningStar, darkCloudCover, tweezerTop, threeBlackCrows, bearHarami, pivotCrossUpR1, pivotCrossDownS1, donchianBreakoutUp, donchianBreakoutDown, nearSupport, wyckSpring, bullDivAny, bosBull, chochBullish, sfpBull, liqSweepBuy, bullFVG, nearBullOB, wickRejectionBuy, bullDisplacement, nearPivotS1, nearResistance, wyckUpthrust, bearDivAny, bosBear, chochBearish, sfpBear, liqSweepSell, bearFVG, nearBearOB, wickRejectionSell, bearDisplacement, nearPivotR1)
 [volBuyScore, volSellScore] = f_volumeScore(volumeConfirm, volumeRising, pressureBullish, pressureBearish, obvBullish, cmfBullish, klingerBullish, twiggsBullish, iiiBullish, eomBullish, nviBullish, pviBullish, efiBullish, adLineBullish, obvBearish, cmfBearish, klingerBearish, twiggsBearish, iiiBearish, eomBearish, nviBearish, pviBearish, efiBearish, adLineBearish)
 [trendAlignBuyScore, trendAlignSellScore] = f_trendAlignScore(mtfD, mtf240, mtf60, mtf15, mtf5, htfTrendUp, adxStrong, vwRsiBullish, vortexBullish, vwapBullish, mcginleyBullish, alligatorBullish, vwRsiBearish, vortexBearish, vwapBearish, mcginleyBearish, alligatorBearish, bullHiddenAny, bearHiddenAny)
