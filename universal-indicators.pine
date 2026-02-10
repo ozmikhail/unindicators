@@ -659,12 +659,16 @@ f_divergence(src, oscType) =>
     pivotLow = ta.pivotlow(src, lb, lb)
     oscPivotHigh = ta.pivothigh(osc, lb, lb)
     oscPivotLow = ta.pivotlow(osc, lb, lb)
+    prevPivotHigh = ta.valuewhen(not na(pivotHigh), pivotHigh, 1)
+    prevPivotLow = ta.valuewhen(not na(pivotLow), pivotLow, 1)
+    prevOscPivotHigh = ta.valuewhen(not na(oscPivotHigh), oscPivotHigh, 1)
+    prevOscPivotLow = ta.valuewhen(not na(oscPivotLow), oscPivotLow, 1)
     validLow = not na(pivotLow) and not na(oscPivotLow)
     validHigh = not na(pivotHigh) and not na(oscPivotHigh)
-    bullDiv = validLow and pivotLow < pivotLow[lb] and oscPivotLow > oscPivotLow[lb]
-    bearDiv = validHigh and pivotHigh > pivotHigh[lb] and oscPivotHigh < oscPivotHigh[lb]
-    bullHidden = validLow and pivotLow > pivotLow[lb] and oscPivotLow < oscPivotLow[lb]
-    bearHidden = validHigh and pivotHigh < pivotHigh[lb] and oscPivotHigh > oscPivotHigh[lb]
+    bullDiv = validLow and pivotLow < prevPivotLow and oscPivotLow > prevOscPivotLow
+    bearDiv = validHigh and pivotHigh > prevPivotHigh and oscPivotHigh < prevOscPivotHigh
+    bullHidden = validLow and pivotLow > prevPivotLow and oscPivotLow < prevOscPivotLow
+    bearHidden = validHigh and pivotHigh < prevPivotHigh and oscPivotHigh > prevOscPivotHigh
     [bullDiv, bearDiv, bullHidden, bearHidden]
 
 f_fisherTransform(length) =>
