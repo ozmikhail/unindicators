@@ -1,6 +1,12 @@
 //@version=6
 indicator("Universal Indicators", overlay=true, max_bars_back=500, max_lines_count=500, max_labels_count=500, max_boxes_count=500, max_polylines_count=100, explicit_plot_zorder=true)
 
+// Rightmost visible bar: when true, dashboard and floating drawings (pivots, fib, S/R, Donchian) redraw so they adapt on scroll/zoom
+isRightVisibleBar = (time == chart.right_visible_bar_time) or barstate.islast
+var int rightVisibleBarIndex = na
+if isRightVisibleBar
+    rightVisibleBarIndex := bar_index
+
 // ==================================================================================
 // INPUT PARAMETERS
 // ==================================================================================
@@ -25,7 +31,7 @@ USE_KELTNER         = input.bool(false, "Display Keltner Channels", group=gDispl
 USE_DONCHIAN        = input.bool(false, "Display Donchian Channel", group=gDisplay)
 USE_MC_GINLEY       = input.bool(false, "Display McGinley Dynamic", group=gDisplay)
 USE_ALLIGATOR       = input.bool(false, "Display Alligator", group=gDisplay)
-USE_PIVOTS          = input.bool(true, "Display Pivot Points", group=gDisplay)
+USE_PIVOTS          = input.bool(false, "Display Pivot Points", group=gDisplay)
 USE_FIB_LEVELS      = input.bool(false, "Display Fib Levels", group=gDisplay)
 USE_GMMA            = input.bool(false, "Display GMMA", group=gDisplay)
 USE_MA_STACK_LINES  = input.bool(false, "Display MA Stack (9/21/50)", group=gDisplay)
@@ -34,6 +40,16 @@ USE_SAR             = input.bool(false, "Display Parabolic SAR", group=gDisplay)
 USE_ICHIMOKU        = input.bool(false, "Display Ichimoku Cloud", group=gDisplay)
 USE_TTM_SQUEEZE     = input.bool(false, "Display TTM Squeeze", group=gDisplay)
 USE_GAP             = input.bool(false, "Display Gap Detection", group=gDisplay)
+USE_SR_ZONES       = input.bool(true, "Display S/R Zones (Current TF)", group=gDisplay)
+
+// --- Group 1b: Support/Resistance Zones (display only; not used in signals) ---
+var gSRZones        = "S/R Zones (Visual Only)"
+SR_ZONE_LOOKBACK    = input.int(120, "Lookback Bars", minval=30, maxval=500, group=gSRZones)
+SR_ZONE_PIVOT_LB    = input.int(5, "Pivot Left/Right Bars", minval=2, maxval=15, group=gSRZones)
+SR_ZONE_WIDTH_ATR   = input.float(0.4, "Zone Width (ATR mult)", minval=0.1, maxval=2.0, step=0.1, group=gSRZones)
+SR_ZONE_BREAK_ATR   = input.float(0.3, "Break Beyond Zone (ATR mult)", minval=0.1, maxval=1.0, step=0.1, group=gSRZones)
+SR_ZONE_MAX_ZONES   = input.int(2, "Max Zones Per Side", minval=1, maxval=3, group=gSRZones)
+SR_ZONE_MIN_TOUCHES = input.int(2, "Min Touches for Zone", minval=1, maxval=5, group=gSRZones)
 
 // --- Group 2: Buy/Sell Signal Engine ---
 var gBuySell            = "Signal Strategy Settings"
@@ -958,6 +974,264 @@ f_calcFiltersAndMTF(series float atr) =>
     inSession = USE_SESSION_FILTER ? not na(time(timeframe.period, SESSION_STR, syminfo.timezone)) : true
     [atrInRange, htfRsi, htfRsiPrev, htfRsiOkBuy, htfRsiOkSell, htfRsiForDiv, htfRsiForDivPrev, mtf5, mtf15, mtf60, mtf240, mtfD, prevDayHigh, prevDayLow, inSession]
 
+f_calcIchimoku() =>
+    conv = (ta.highest(high, ICH_CONVERSION) + ta.lowest(low, ICH_CONVERSION)) / 2
+    base = (ta.highest(high, ICH_BASE) + ta.lowest(low, ICH_BASE)) / 2
+    spanA = (conv + base) / 2
+    spanB = (ta.highest(high, ICH_SPAN) + ta.lowest(low, ICH_SPAN)) / 2
+    cloudTop = math.max(spanA[ICH_BASE], spanB[ICH_BASE])
+    cloudBot = math.min(spanA[ICH_BASE], spanB[ICH_BASE])
+    tkCross = conv > base
+    aboveCloud = close[1] > cloudTop[1]
+    belowCloud = close[1] < cloudBot[1]
+    greenCloud = spanA > spanB
+    ichBull = USE_ICHIMOKU ? (aboveCloud and tkCross[1]) : true
+    ichBear = USE_ICHIMOKU ? (belowCloud and not tkCross[1]) : true
+    [conv, base, spanA, spanB, cloudTop, cloudBot, tkCross, aboveCloud, belowCloud, greenCloud, ichBull, ichBear]
+
+f_calcDEMATEMA() =>
+    dE1 = ta.ema(close, DEMA_LENGTH)
+    dVal = 2 * dE1 - ta.ema(dE1, DEMA_LENGTH)
+    tE1 = ta.ema(close, TEMA_LENGTH)
+    tE2 = ta.ema(tE1, TEMA_LENGTH)
+    tE3 = ta.ema(tE2, TEMA_LENGTH)
+    tVal = 3 * tE1 - 3 * tE2 + tE3
+    [dVal, tVal, close[1] > dVal[1], close[1] < dVal[1], close[1] > tVal[1], close[1] < tVal[1]]
+
+f_calcGMMA() =>
+    s1 = ta.ema(close, 3)
+    s2 = ta.ema(close, 5)
+    s3 = ta.ema(close, 8)
+    s4 = ta.ema(close, 10)
+    s5 = ta.ema(close, 12)
+    s6 = ta.ema(close, 15)
+    l1 = ta.ema(close, 30)
+    l2 = ta.ema(close, 35)
+    l3 = ta.ema(close, 40)
+    l4 = ta.ema(close, 45)
+    l5 = ta.ema(close, 50)
+    l6 = ta.ema(close, 60)
+    shortAvg = (s1 + s2 + s3 + s4 + s5 + s6) / 6
+    longAvg = (l1 + l2 + l3 + l4 + l5 + l6) / 6
+    gBull = USE_GMMA ? shortAvg[1] > longAvg[1] : true
+    gBear = USE_GMMA ? shortAvg[1] < longAvg[1] : true
+    [shortAvg, longAvg, gBull, gBear]
+
+f_calcAlligator() =>
+    med = (high + low) / 2
+    jawVal = f_smma(med, ALLIGATOR_JAW)
+    teethVal = f_smma(med, ALLIGATOR_TEETH)
+    lipsVal = f_smma(med, ALLIGATOR_LIPS)
+    jawPlot = jawVal[8]
+    teethPlot = teethVal[5]
+    lipsPlot = lipsVal[3]
+    aBull = lipsPlot > teethPlot and teethPlot > jawPlot
+    aBear = lipsPlot < teethPlot and teethPlot < jawPlot
+    gatorUp = math.abs(jawPlot - teethPlot)
+    gatorLo = math.abs(teethPlot - lipsPlot)
+    gatorExp = (gatorUp > gatorUp[1] or gatorLo > gatorLo[1])
+    [jawPlot, teethPlot, lipsPlot, aBull, aBear, gatorUp, gatorLo, gatorExp]
+
+f_calcCandlePatterns(series float atr) =>
+    bodySz = math.abs(close[1] - open[1])
+    upperW = high[1] - math.max(close[1], open[1])
+    lowerW = math.min(close[1], open[1]) - low[1]
+    bullEng = (close[2] < open[2] and close[1] > open[1] and open[1] <= close[2] and close[1] >= open[2])
+    bearEng = (close[2] > open[2] and close[1] < open[1] and open[1] >= close[2] and close[1] <= open[2])
+    hammerB = (lowerW >= bodySz * PIN_BAR_WICK_RATIO and upperW < bodySz and close[1] > open[1])
+    shootStar = (upperW >= bodySz * PIN_BAR_WICK_RATIO and lowerW < bodySz and close[1] < open[1])
+    wickRejB = (low[1] < low[2]) and (close[1] > (high[1] + low[1]) / 2) and (close[2] > (high[2] + low[2]) / 2)
+    wickRejS = (high[1] > high[2]) and (close[1] < (high[1] + low[1]) / 2) and (close[2] < (high[2] + low[2]) / 2)
+    bar3Bear = close[3] < open[3] and math.abs(close[3] - open[3]) > atr[3] * 0.5
+    bar2Sm = math.abs(close[2] - open[2]) < atr[2] * 0.3
+    bar1Bull = close[1] > open[1] and close[1] > (open[3] + close[3]) / 2
+    mornStar = (bar3Bear and bar2Sm and bar1Bull)
+    bar3Bull = close[3] > open[3] and math.abs(close[3] - open[3]) > atr[3] * 0.5
+    bar1Bear = close[1] < open[1] and close[1] < (open[3] + close[3]) / 2
+    evenStar = (bar3Bull and bar2Sm and bar1Bear)
+    candleRng1 = high[1] - low[1]
+    doj = (bodySz / math.max(candleRng1, 1e-10) <= DOJI_BODY_PCT and bodySz < atr[1] * 0.2)
+    bullHar = (close[2] < open[2] and close[1] > open[1] and open[1] > close[2] and close[1] < open[2])
+    bearHar = (close[2] > open[2] and close[1] < open[1] and open[1] < close[2] and close[1] > open[2])
+    threeWS = (close[3] > open[3] and close[2] > open[2] and close[1] > open[1] and open[1] > open[2] and open[1] < close[2] and open[2] > open[3] and open[2] < close[3] and close[1] > close[2] and close[2] > close[3])
+    threeBC = (close[3] < open[3] and close[2] < open[2] and close[1] < open[1] and open[1] < open[2] and open[1] > close[2] and open[2] < open[3] and open[2] > close[3] and close[1] < close[2] and close[2] < close[3])
+    tweezerB = (math.abs(low[1] - low[2]) <= atr * TWEEZER_TOLERANCE and close[1] > open[1] and close[2] < open[2])
+    tweezerT = (math.abs(high[1] - high[2]) <= atr * TWEEZER_TOLERANCE and close[1] < open[1] and close[2] > open[2])
+    mid2 = (open[2] + close[2]) / 2
+    pierceLine = (close[2] < open[2] and open[1] < low[2] and close[1] > mid2 and close[1] < open[2] and close[1] > open[1])
+    darkCloud = (close[2] > open[2] and open[1] > high[2] and close[1] < mid2 and close[1] > close[2] and close[1] < open[1])
+    [bullEng, bearEng, hammerB, shootStar, mornStar, evenStar, doj, bullHar, bearHar, threeWS, threeBC, tweezerB, tweezerT, pierceLine, darkCloud, wickRejB, wickRejS]
+
+f_calcPivotLevels(series float pivotHighHTF, series float pivotLowHTF, series float pivotCloseHTF) =>
+    p = (pivotHighHTF + pivotLowHTF + pivotCloseHTF) / 3
+    r1 = 2 * p - pivotLowHTF
+    r2 = p + (pivotHighHTF - pivotLowHTF)
+    s1 = 2 * p - pivotHighHTF
+    s2 = p - (pivotHighHTF - pivotLowHTF)
+    nearR1 = close[1] >= r1[1] * 0.998 and close[1] <= r1[1] * 1.002
+    nearS1 = close[1] >= s1[1] * 0.998 and close[1] <= s1[1] * 1.002
+    crossUpR1 = ta.crossover(close, r1)
+    crossDnS1 = ta.crossunder(close, s1)
+    brk = crossUpR1 or crossDnS1
+    [p, r1, r2, s1, s2, nearR1, nearS1, crossUpR1, crossDnS1, brk]
+
+f_calcFibLevels() =>
+    fibHigh = ta.highest(high, FIB_LOOKBACK)
+    fibLow = ta.lowest(low, FIB_LOOKBACK)
+    fibRng = fibHigh - fibLow
+    [fibHigh - 0.236 * fibRng, fibHigh - 0.382 * fibRng, fibHigh - 0.5 * fibRng, fibHigh - 0.618 * fibRng, fibHigh - 0.786 * fibRng]
+
+f_calcStochRocCandle(series float macdHist) =>
+    stochK = ta.stoch(close, high, low, STOCH_K)
+    stochD = ta.sma(stochK, STOCH_D)
+    stochBull = USE_STOCH ? (stochK[1] > stochD[1] or stochK[1] < STOCH_OVERSOLD) : true
+    stochBear = USE_STOCH ? (stochK[1] < stochD[1] or stochK[1] > STOCH_OVERBOUGHT) : true
+    rocVal = ta.roc(close, ROC_LENGTH)
+    rocBull = USE_ROC ? rocVal[1] > 0 : true
+    rocBear = USE_ROC ? rocVal[1] < 0 : true
+    macdHistBull = USE_MACD_HIST ? macdHist[1] > 0 : true
+    macdHistBear = USE_MACD_HIST ? macdHist[1] < 0 : true
+    bullCandle = USE_CANDLE_FILTER ? close[1] > open[1] : true
+    bearCandle = USE_CANDLE_FILTER ? close[1] < open[1] : true
+    [stochK, stochD, stochBull, stochBear, rocVal, rocBull, rocBear, macdHistBull, macdHistBear, bullCandle, bearCandle]
+
+f_calcFVGSTSAR() =>
+    bodyPctB = (close[2] - open[2]) / (high[2] - low[2] + 1e-10)
+    bodyPctBe = (open[2] - close[2]) / (high[2] - low[2] + 1e-10)
+    bullFVGVal = low[2] > high[0] and bodyPctB >= FVG_MIN_BODY_PCT
+    bearFVGVal = high[2] < low[0] and bodyPctBe >= FVG_MIN_BODY_PCT
+    [stVal, stDirVal] = ta.supertrend(ST_FACTOR, ST_ATR_LEN)
+    stBull = USE_SUPER_TREND ? stDirVal[1] < 0 : true
+    stBear = USE_SUPER_TREND ? stDirVal[1] > 0 : true
+    sarVal = ta.sar(SAR_START, SAR_INCREMENT, SAR_MAX)
+    sarBull = USE_SAR ? close[1] > sarVal[1] : true
+    sarBear = USE_SAR ? close[1] < sarVal[1] : true
+    [bodyPctB, bodyPctBe, bullFVGVal, bearFVGVal, stVal, stDirVal, stBull, stBear, sarVal, sarBull, sarBear]
+
+f_calcAroonLinReg() =>
+    aroonU = 100.0 * (AROON_LENGTH - ta.highestbars(high, AROON_LENGTH + 1)) / AROON_LENGTH
+    aroonD = 100.0 * (AROON_LENGTH - ta.lowestbars(low, AROON_LENGTH + 1)) / AROON_LENGTH
+    aroonBull = (aroonU[1] > 70 and aroonD[1] < 30)
+    aroonBear = (aroonD[1] > 70 and aroonU[1] < 30)
+    linReg = ta.linreg(close, LIN_REG_LENGTH, 0)
+    linRegSl = linReg - ta.linreg(close, LIN_REG_LENGTH, 1)
+    corr = ta.correlation(close, bar_index, LIN_REG_LENGTH)
+    rSq = corr * corr
+    linRegBull = (linRegSl[1] > 0 and rSq[1] > 0.3)
+    linRegBear = (linRegSl[1] < 0 and rSq[1] > 0.3)
+    [aroonU, aroonD, aroonBull, aroonBear, linReg, linRegSl, corr, rSq, linRegBull, linRegBear]
+
+f_calcKeltnerTTM(series float bbUpper, series float bbLower) =>
+    kcB = ta.ema(close, KC_LENGTH)
+    kcRng = ta.atr(KC_LENGTH) * KC_MULT
+    kcUp = kcB + kcRng
+    kcLo = kcB - kcRng
+    ttmOn = USE_TTM_SQUEEZE ? (bbUpper < kcUp and bbLower > kcLo) : false
+    ttmOff = USE_TTM_SQUEEZE ? not ttmOn : true
+    ttmMom = ta.linreg(close - (ta.highest(high, KC_LENGTH) + ta.lowest(low, KC_LENGTH)) / 2, KC_LENGTH, 0)
+    ttmFirB = USE_TTM_SQUEEZE ? (not ttmOn and ttmOn[1] and ttmMom > 0) : false
+    ttmFirBe = USE_TTM_SQUEEZE ? (not ttmOn and ttmOn[1] and ttmMom < 0) : false
+    kcBull = USE_KELTNER ? (close[1] > kcB[1]) : true
+    kcBear = USE_KELTNER ? (close[1] < kcB[1]) : true
+    [kcB, kcRng, kcUp, kcLo, ttmOn, ttmOff, ttmMom, ttmFirB, ttmFirBe, kcBull, kcBear]
+
+f_calcHVChandVWAP() =>
+    hv = ta.stdev(math.log(close / close[1]), HV_LENGTH) * math.sqrt(252)
+    hvR = ta.percentrank(hv, HV_RANK_LENGTH)
+    hvL = hvR[1] < 25
+    hvH = hvR[1] > 75
+    chandL = ta.highest(high, CHAND_LENGTH) - CHAND_MULT * ta.atr(CHAND_LENGTH)
+    chandS = ta.lowest(low, CHAND_LENGTH) + CHAND_MULT * ta.atr(CHAND_LENGTH)
+    chandBull = close[1] > chandL[1]
+    chandBear = close[1] < chandS[1]
+    vwapV = ta.vwap(close)
+    vwapBull = close[1] > vwapV[1]
+    vwapBear = close[1] < vwapV[1]
+    [hv, hvR, hvL, hvH, chandL, chandS, chandBull, chandBear, vwapV, vwapBull, vwapBear]
+
+f_calcWyckoffVWMADisplacement(series float volumeMA, series float atr) =>
+    wyckH = ta.highest(high, WYCKOFF_LOOKBACK)
+    wyckL = ta.lowest(low, WYCKOFF_LOOKBACK)
+    wyckRng = wyckH - wyckL
+    wyckVolA = ta.sma(volume, WYCKOFF_LOOKBACK)
+    wyckInR = wyckRng > 0 and wyckRng < atr * WYCKOFF_LOOKBACK * 0.5
+    wyckSpr = wyckInR ? (low[1] < wyckL[1] and close[1] > wyckL[1] and volume[1] > wyckVolA[1]) : false
+    wyckUp = wyckInR ? (high[1] > wyckH[1] and close[1] < wyckH[1] and volume[1] > wyckVolA[1]) : false
+    vwmaV = ta.vwma(close, VWMA_LENGTH)
+    smaVwma = ta.sma(close, VWMA_LENGTH)
+    vwmaBull = vwmaV[1] > smaVwma[1]
+    vwmaBear = vwmaV[1] < smaVwma[1]
+    avgB = ta.sma(math.abs(close - open), 20)
+    bullDisp = (close[1] > open[1] and math.abs(close[1] - open[1]) > avgB[1] * DISP_BODY_MULT and volume[1] > volumeMA[1])
+    bearDisp = (close[1] < open[1] and math.abs(close[1] - open[1]) > avgB[1] * DISP_BODY_MULT and volume[1] > volumeMA[1])
+    [wyckH, wyckL, wyckRng, wyckVolA, wyckInR, wyckSpr, wyckUp, vwmaV, smaVwma, vwmaBull, vwmaBear, avgB, bullDisp, bearDisp]
+
+f_calcDonchianMcGinley() =>
+    donchUp = ta.highest(high, DONCHIAN_LENGTH)
+    donchLo = ta.lowest(low, DONCHIAN_LENGTH)
+    donchMid = (donchUp + donchLo) / 2
+    donchBull = close[1] > donchMid[1]
+    donchBear = close[1] < donchMid[1]
+    donchBreakUp = ta.crossover(close, donchUp)
+    donchBreakDn = ta.crossunder(close, donchLo)
+    mcgVal = f_mcginley(close, MCGINLEY_LENGTH)
+    mcgBull = close[1] > mcgVal[1]
+    mcgBear = close[1] < mcgVal[1]
+    [donchUp, donchLo, donchMid, donchBull, donchBear, donchBreakUp, donchBreakDn, mcgVal, mcgBull, mcgBear]
+
+f_calcMomentumOscillators() =>
+    [trixV, trixSig] = f_trix(close, TRIX_LENGTH, TRIX_SIGNAL_LEN)
+    trixBull = trixV[1] > trixSig[1]
+    trixBear = trixV[1] < trixSig[1]
+    uoV = f_oscillator(UO_PERIOD_1, UO_PERIOD_2, UO_PERIOD_3)
+    uoBull = uoV[1] > 50
+    uoBear = uoV[1] < 50
+    kstR1 = ta.roc(close, KST_ROC_1)
+    kstR2 = ta.roc(close, KST_ROC_2)
+    kstR3 = ta.roc(close, KST_ROC_3)
+    kstR4 = ta.roc(close, KST_ROC_4)
+    kstV = ta.sma(kstR1 * 1 + kstR2 * 2 + kstR3 * 3 + kstR4 * 4, 10)
+    kstSig = ta.sma(kstV, KST_SMA_LEN)
+    kstBull = kstV[1] > kstSig[1]
+    kstBear = kstV[1] < kstSig[1]
+    dpoV = f_dpo(close, DPO_LENGTH)
+    dpoBull = dpoV[1] > 0
+    dpoBear = dpoV[1] < 0
+    [rviV, rviSig] = f_rvi(RVI_LENGTH)
+    rviBull = rviV[1] > rviSig[1]
+    rviBear = rviV[1] < rviSig[1]
+    [_, schaffV] = f_schaffTrendCycle(SCHAFF_CYCLE, SCHAFF_SMOOTH_1, SCHAFF_SMOOTH_2)
+    schaffBull = (schaffV[1] > 25 and schaffV[2] <= 25) or schaffV[1] > 75
+    schaffBear = (schaffV[1] < 75 and schaffV[2] >= 75) or schaffV[1] < 25
+    pgoV = (close - ta.ema(close, PGO_LENGTH)) / math.max(ta.atr(PGO_LENGTH), 1e-10)
+    pgoBull = pgoV[1] > 0
+    pgoBear = pgoV[1] < 0
+    coppockR = ta.roc(close, COPPOCK_ROC_1) + ta.roc(close, COPPOCK_ROC_2)
+    coppockV = ta.sma(coppockR, COPPOCK_SMA)
+    coppockBull = coppockV[1] > 0
+    coppockBear = coppockV[1] < 0
+    massV = f_massIndex(MASS_SINGLE, MASS_SUM)
+    massB = (massV[1] > MASS_THRESHOLD and massV[1] < massV[2])
+    [trixV, trixSig, trixBull, trixBear, uoV, uoBull, uoBear, kstV, kstSig, kstBull, kstBear, dpoV, dpoBull, dpoBear, rviV, rviSig, rviBull, rviBear, schaffV, schaffBull, schaffBear, pgoV, pgoBull, pgoBear, coppockV, coppockBull, coppockBear, massV, massB]
+
+f_calcVortexElderVWRsiTwiggs(series float macdHist) =>
+    [viP, viM] = f_vortex(VORTEX_LENGTH)
+    vortexBull = viP[1] > viM[1]
+    vortexBear = viM[1] > viP[1]
+    elderE = ta.ema(close, ELDER_EMA_LEN)
+    elderRising = elderE > elderE[1]
+    elderImpBull = (elderRising[1] and macdHist[1] > 0)
+    elderImpBear = (not elderRising[1] and macdHist[1] < 0)
+    vwP = ta.vwma(close, VW_RSI_LENGTH)
+    vwRsiV = ta.rsi(vwP, VW_RSI_LENGTH)
+    vwRsiBull = vwRsiV[1] > 50
+    vwRsiBear = vwRsiV[1] < 50
+    twiggsR = ((close - low) - (high - close)) / math.max(high - low, 1e-10) * volume
+    twiggsV = ta.sma(twiggsR, TWIGGS_LENGTH)
+    twiggsBull = twiggsV[1] > 0
+    twiggsBear = twiggsV[1] < 0
+    [viP, viM, vortexBull, vortexBear, elderE, elderRising, elderImpBull, elderImpBear, vwP, vwRsiV, vwRsiBull, vwRsiBear, twiggsV, twiggsBull, twiggsBear]
+
 // ==================================================================================
 // CALCULATIONS
 // ==================================================================================
@@ -1021,101 +1295,26 @@ obvMA = ta.sma(obv, OBV_LENGTH)
 obvBullish = USE_OBV ? obv[1] > obvMA[1] : true
 obvBearish = USE_OBV ? obv[1] < obvMA[1] : true
 
-// --- Stochastic ---
-stochKVal = ta.stoch(close, high, low, STOCH_K)
-stochDVal = ta.sma(stochKVal, STOCH_D)
-stochBullish = USE_STOCH ? (stochKVal[1] > stochDVal[1] or stochKVal[1] < STOCH_OVERSOLD) : true
-stochBearish = USE_STOCH ? (stochKVal[1] < stochDVal[1] or stochKVal[1] > STOCH_OVERBOUGHT) : true
-
-// --- ROC ---
-roc = ta.roc(close, ROC_LENGTH)
-rocBullish = USE_ROC ? roc[1] > 0 : true
-rocBearish = USE_ROC ? roc[1] < 0 : true
-
-// --- MACD Histogram ---
-macdHistBullish = USE_MACD_HIST ? macdHist[1] > 0 : true
-macdHistBearish = USE_MACD_HIST ? macdHist[1] < 0 : true
-
-// --- Candle direction ---
-bullishCandle = USE_CANDLE_FILTER ? close[1] > open[1] : true
-bearishCandle = USE_CANDLE_FILTER ? close[1] < open[1] : true
+// --- Stochastic, ROC, MACD Hist, Candle direction ---
+[stochKVal, stochDVal, stochBullish, stochBearish, roc, rocBullish, rocBearish, macdHistBullish, macdHistBearish, bullishCandle, bearishCandle] = f_calcStochRocCandle(macdHist)
 
 // --- Session, HTF RSI, MTF Heatmap, ATR Range ---
 [atrInRange, htfRsi, htfRsiPrev, htfRsiOkBuy, htfRsiOkSell, htfRsiForDiv, htfRsiForDivPrev, mtf5, mtf15, mtf60, mtf240, mtfD, prevDayHigh, prevDayLow, inSession] = f_calcFiltersAndMTF(atr)
 
-// --- FVG ---
-bodyPctBull = (close[2] - open[2]) / (high[2] - low[2] + 1e-10)
-bodyPctBear = (open[2] - close[2]) / (high[2] - low[2] + 1e-10)
-bullFVG = low[2] > high[0] and bodyPctBull >= FVG_MIN_BODY_PCT
-bearFVG = high[2] < low[0] and bodyPctBear >= FVG_MIN_BODY_PCT
-
-// --- SuperTrend ---
-[stValue, stDir] = ta.supertrend(ST_FACTOR, ST_ATR_LEN)
-stBullish = USE_SUPER_TREND ? stDir[1] < 0 : true
-stBearish = USE_SUPER_TREND ? stDir[1] > 0 : true
-
-// --- Parabolic SAR ---
-sarValue = ta.sar(SAR_START, SAR_INCREMENT, SAR_MAX)
-sarBullish = USE_SAR ? close[1] > sarValue[1] : true
-sarBearish = USE_SAR ? close[1] < sarValue[1] : true
+// --- FVG, SuperTrend, Parabolic SAR ---
+[bodyPctBull, bodyPctBear, bullFVG, bearFVG, stValue, stDir, stBullish, stBearish, sarValue, sarBullish, sarBearish] = f_calcFVGSTSAR()
 
 // --- Ichimoku Cloud ---
-ichConvLine = (ta.highest(high, ICH_CONVERSION) + ta.lowest(low, ICH_CONVERSION)) / 2
-ichBaseLine = (ta.highest(high, ICH_BASE) + ta.lowest(low, ICH_BASE)) / 2
-ichSpanA = (ichConvLine + ichBaseLine) / 2
-ichSpanB = (ta.highest(high, ICH_SPAN) + ta.lowest(low, ICH_SPAN)) / 2
-ichCloudTop = math.max(ichSpanA[ICH_BASE], ichSpanB[ICH_BASE])
-ichCloudBot = math.min(ichSpanA[ICH_BASE], ichSpanB[ICH_BASE])
-ichTKCross = ichConvLine > ichBaseLine
-ichAboveCloud = close[1] > ichCloudTop[1]
-ichBelowCloud = close[1] < ichCloudBot[1]
-ichGreenCloud = ichSpanA > ichSpanB
-ichBullish = USE_ICHIMOKU ? (ichAboveCloud and ichTKCross[1]) : true
-ichBearish = USE_ICHIMOKU ? (ichBelowCloud and not ichTKCross[1]) : true
+[ichConvLine, ichBaseLine, ichSpanA, ichSpanB, ichCloudTop, ichCloudBot, ichTKCross, ichAboveCloud, ichBelowCloud, ichGreenCloud, ichBullish, ichBearish] = f_calcIchimoku()
 
-// --- Aroon ---
-aroonUp = 100.0 * (AROON_LENGTH - ta.highestbars(high, AROON_LENGTH + 1)) / AROON_LENGTH
-aroonDown = 100.0 * (AROON_LENGTH - ta.lowestbars(low, AROON_LENGTH + 1)) / AROON_LENGTH
-aroonBullish = (aroonUp[1] > 70 and aroonDown[1] < 30)
-aroonBearish = (aroonDown[1] > 70 and aroonUp[1] < 30)
-
-// --- Linear Regression + R-Squared ---
-linRegVal = ta.linreg(close, LIN_REG_LENGTH, 0)
-linRegSlope = linRegVal - ta.linreg(close, LIN_REG_LENGTH, 1)
-corrVal = ta.correlation(close, bar_index, LIN_REG_LENGTH)
-rSquared = corrVal * corrVal
-linRegBullish = (linRegSlope[1] > 0 and rSquared[1] > 0.3)
-linRegBearish = (linRegSlope[1] < 0 and rSquared[1] > 0.3)
+// --- Aroon, Linear Regression, R-Squared ---
+[aroonUp, aroonDown, aroonBullish, aroonBearish, linRegVal, linRegSlope, corrVal, rSquared, linRegBullish, linRegBearish] = f_calcAroonLinReg()
 
 // --- Keltner Channels + TTM Squeeze ---
-kcBasis = ta.ema(close, KC_LENGTH)
-kcRange = ta.atr(KC_LENGTH) * KC_MULT
-kcUpper = kcBasis + kcRange
-kcLower = kcBasis - kcRange
-ttmSqueezeOn = USE_TTM_SQUEEZE ? (bbUpper < kcUpper and bbLower > kcLower) : false
-ttmSqueezeOff = USE_TTM_SQUEEZE ? not ttmSqueezeOn : true
-ttmMomentum = ta.linreg(close - (ta.highest(high, KC_LENGTH) + ta.lowest(low, KC_LENGTH)) / 2, KC_LENGTH, 0)
-ttmFirBull = USE_TTM_SQUEEZE ? (not ttmSqueezeOn and ttmSqueezeOn[1] and ttmMomentum > 0) : false
-ttmFirBear = USE_TTM_SQUEEZE ? (not ttmSqueezeOn and ttmSqueezeOn[1] and ttmMomentum < 0) : false
-kcBullish = USE_KELTNER ? (close[1] > kcBasis[1]) : true
-kcBearish = USE_KELTNER ? (close[1] < kcBasis[1]) : true
+[kcBasis, kcRange, kcUpper, kcLower, ttmSqueezeOn, ttmSqueezeOff, ttmMomentum, ttmFirBull, ttmFirBear, kcBullish, kcBearish] = f_calcKeltnerTTM(bbUpper, bbLower)
 
-// --- Historical Volatility Percentile ---
-hvol = ta.stdev(math.log(close / close[1]), HV_LENGTH) * math.sqrt(252)
-hvRank = ta.percentrank(hvol, HV_RANK_LENGTH)
-hvLow = hvRank[1] < 25
-hvHigh = hvRank[1] > 75
-
-// --- Chandelier Exit ---
-chandLong = ta.highest(high, CHAND_LENGTH) - CHAND_MULT * ta.atr(CHAND_LENGTH)
-chandShort = ta.lowest(low, CHAND_LENGTH) + CHAND_MULT * ta.atr(CHAND_LENGTH)
-chandBullish = close[1] > chandLong[1]
-chandBearish = close[1] < chandShort[1]
-
-// --- VWAP ---
-vwapValue = ta.vwap(close)
-vwapBullish = close[1] > vwapValue[1]
-vwapBearish = close[1] < vwapValue[1]
+// --- Historical Volatility, Chandelier, VWAP ---
+[hvol, hvRank, hvLow, hvHigh, chandLong, chandShort, chandBullish, chandBearish, vwapValue, vwapBullish, vwapBearish] = f_calcHVChandVWAP()
 
 // --- Chaikin Money Flow ---
 clv = ((close - low) - (high - close)) / math.max(high - low, 1e-10)
@@ -1194,49 +1393,8 @@ rsMA = ta.sma(rsRatio, CORR_LENGTH)
 rsBullish = rsRatio[1] > rsMA[1]
 rsBearish = rsRatio[1] < rsMA[1]
 
-// --- Engulfing Pattern ---
-bullEngulfing = (close[2] < open[2] and close[1] > open[1] and open[1] <= close[2] and close[1] >= open[2])
-bearEngulfing = (close[2] > open[2] and close[1] < open[1] and open[1] >= close[2] and close[1] <= open[2])
-
-// --- Pin Bar / Hammer ---
-bodySize = math.abs(close[1] - open[1])
-upperWick = high[1] - math.max(close[1], open[1])
-lowerWick = math.min(close[1], open[1]) - low[1]
-hammerBull = (lowerWick >= bodySize * PIN_BAR_WICK_RATIO and upperWick < bodySize and close[1] > open[1])
-shootingStar = (upperWick >= bodySize * PIN_BAR_WICK_RATIO and lowerWick < bodySize and close[1] < open[1])
-wickRejectionBuy = (low[1] < low[2]) and (close[1] > (high[1] + low[1]) / 2) and (close[2] > (high[2] + low[2]) / 2)
-wickRejectionSell = (high[1] > high[2]) and (close[1] < (high[1] + low[1]) / 2) and (close[2] < (high[2] + low[2]) / 2)
-
-// --- Morning Star / Evening Star ---
-bar3Bearish = close[3] < open[3] and math.abs(close[3] - open[3]) > atr[3] * 0.5
-bar2Small = math.abs(close[2] - open[2]) < atr[2] * 0.3
-bar1Bullish = close[1] > open[1] and close[1] > (open[3] + close[3]) / 2
-morningStar = (bar3Bearish and bar2Small and bar1Bullish)
-
-bar3BullishStar = close[3] > open[3] and math.abs(close[3] - open[3]) > atr[3] * 0.5
-bar1BearishStar = close[1] < open[1] and close[1] < (open[3] + close[3]) / 2
-eveningStar = (bar3BullishStar and bar2Small and bar1BearishStar)
-
-// --- Doji (1-bar) ---
-candleRange1 = high[1] - low[1]
-doji = (bodySize / math.max(candleRange1, 1e-10) <= DOJI_BODY_PCT and bodySize < atr[1] * 0.2)
-
-// --- Harami (2-bar) ---
-bullHarami = (close[2] < open[2] and close[1] > open[1] and open[1] > close[2] and close[1] < open[2])
-bearHarami = (close[2] > open[2] and close[1] < open[1] and open[1] < close[2] and close[1] > open[2])
-
-// --- Three White Soldiers / Three Black Crows (3-bar) ---
-threeWhiteSoldiers = (close[3] > open[3] and close[2] > open[2] and close[1] > open[1] and open[1] > open[2] and open[1] < close[2] and open[2] > open[3] and open[2] < close[3] and close[1] > close[2] and close[2] > close[3])
-threeBlackCrows = (close[3] < open[3] and close[2] < open[2] and close[1] < open[1] and open[1] < open[2] and open[1] > close[2] and open[2] < open[3] and open[2] > close[3] and close[1] < close[2] and close[2] < close[3])
-
-// --- Tweezer Bottoms / Tweezer Tops (2-bar) ---
-tweezerBottom = (math.abs(low[1] - low[2]) <= atr * TWEEZER_TOLERANCE and close[1] > open[1] and close[2] < open[2])
-tweezerTop = (math.abs(high[1] - high[2]) <= atr * TWEEZER_TOLERANCE and close[1] < open[1] and close[2] > open[2])
-
-// --- Piercing Line / Dark Cloud Cover (2-bar) ---
-mid2 = (open[2] + close[2]) / 2
-piercingLine = (close[2] < open[2] and open[1] < low[2] and close[1] > mid2 and close[1] < open[2] and close[1] > open[1])
-darkCloudCover = (close[2] > open[2] and open[1] > high[2] and close[1] < mid2 and close[1] > close[2] and close[1] < open[1])
+// --- Candlestick Patterns ---
+[bullEngulfing, bearEngulfing, hammerBull, shootingStar, morningStar, eveningStar, doji, bullHarami, bearHarami, threeWhiteSoldiers, threeBlackCrows, tweezerBottom, tweezerTop, piercingLine, darkCloudCover, wickRejectionBuy, wickRejectionSell] = f_calcCandlePatterns(atr)
 
 // --- Z-Score ---
 zScore = (close - ta.sma(close, Z_SCORE_LENGTH)) / math.max(ta.stdev(close, Z_SCORE_LENGTH), 1e-10)
@@ -1263,138 +1421,19 @@ pressureBearish = pressureRatio[1] < 0.45
 sineBullish = (sineVal[1] > leadSineVal[1] and sineVal[2] <= leadSineVal[2]) or sineVal[1] > leadSineVal[1]
 sineBearish = (sineVal[1] < leadSineVal[1] and sineVal[2] >= leadSineVal[2]) or sineVal[1] < leadSineVal[1]
 
-// --- Wyckoff Phase Detection ---
-wyckHigh = ta.highest(high, WYCKOFF_LOOKBACK)
-wyckLow = ta.lowest(low, WYCKOFF_LOOKBACK)
-wyckRange = wyckHigh - wyckLow
-wyckVolAvg = ta.sma(volume, WYCKOFF_LOOKBACK)
-wyckInRange = wyckRange > 0 and wyckRange < atr * WYCKOFF_LOOKBACK * 0.5
-wyckSpring = wyckInRange ? (low[1] < wyckLow[1] and close[1] > wyckLow[1] and volume[1] > wyckVolAvg[1]) : false
-wyckUpthrust = wyckInRange ? (high[1] > wyckHigh[1] and close[1] < wyckHigh[1] and volume[1] > wyckVolAvg[1]) : false
+// --- Wyckoff, VWMA, Displacement ---
+[wyckHigh, wyckLow, wyckRange, wyckVolAvg, wyckInRange, wyckSpring, wyckUpthrust, vwmaVal, smaForVwma, vwmaBullish, vwmaBearish, avgBody, bullDisplacement, bearDisplacement] = f_calcWyckoffVWMADisplacement(volumeMA, atr)
 
-// --- VWMA ---
-vwmaVal = ta.vwma(close, VWMA_LENGTH)
-smaForVwma = ta.sma(close, VWMA_LENGTH)
-vwmaBullish = vwmaVal[1] > smaForVwma[1]
-vwmaBearish = vwmaVal[1] < smaForVwma[1]
+// --- Donchian Channel, McGinley Dynamic ---
+[donchianUpper, donchianLower, donchianMid, donchianBullish, donchianBearish, donchianBreakoutUp, donchianBreakoutDown, mcginleyVal, mcginleyBullish, mcginleyBearish] = f_calcDonchianMcGinley()
 
-// --- Displacement Candle ---
-avgBody = ta.sma(math.abs(close - open), 20)
-bullDisplacement = (close[1] > open[1] and math.abs(close[1] - open[1]) > avgBody[1] * DISP_BODY_MULT and volume[1] > volumeMA[1])
-bearDisplacement = (close[1] < open[1] and math.abs(close[1] - open[1]) > avgBody[1] * DISP_BODY_MULT and volume[1] > volumeMA[1])
+// --- DEMA / TEMA / GMMA / Alligator ---
+[demaVal, temaVal, demaBullish, demaBearish, temaBullish, temaBearish] = f_calcDEMATEMA()
+[gmmaShortAvg, gmmaLongAvg, gmmaBullish, gmmaBearish] = f_calcGMMA()
+[alligatorJawPlot, alligatorTeethPlot, alligatorLipsPlot, alligatorBullish, alligatorBearish, gatorUpper, gatorLower, gatorExpanding] = f_calcAlligator()
 
-// --- Donchian Channel --- (always computed for scoring; USE_DONCHIAN = display only)
-donchianUpper = ta.highest(high, DONCHIAN_LENGTH)
-donchianLower = ta.lowest(low, DONCHIAN_LENGTH)
-donchianMid = (donchianUpper + donchianLower) / 2
-donchianBullish = close[1] > donchianMid[1]
-donchianBearish = close[1] < donchianMid[1]
-donchianBreakoutUp = ta.crossover(close, donchianUpper)
-donchianBreakoutDown = ta.crossunder(close, donchianLower)
-
-// --- McGinley Dynamic --- (always computed for scoring; USE_MC_GINLEY = display only)
-mcginleyVal = f_mcginley(close, MCGINLEY_LENGTH)
-mcginleyBullish = close[1] > mcginleyVal[1]
-mcginleyBearish = close[1] < mcginleyVal[1]
-
-// --- DEMA ---
-demaEma1 = ta.ema(close, DEMA_LENGTH)
-demaVal = 2 * demaEma1 - ta.ema(demaEma1, DEMA_LENGTH)
-demaBullish = close[1] > demaVal[1]
-demaBearish = close[1] < demaVal[1]
-
-// --- TEMA ---
-temaE1 = ta.ema(close, TEMA_LENGTH)
-temaE2 = ta.ema(temaE1, TEMA_LENGTH)
-temaE3 = ta.ema(temaE2, TEMA_LENGTH)
-temaVal = 3 * temaE1 - 3 * temaE2 + temaE3
-temaBullish = close[1] > temaVal[1]
-temaBearish = close[1] < temaVal[1]
-
-// --- GMMA (fixed periods: 3,5,8,10,12,15 and 30,35,40,45,50,60) ---
-gmmaS1 = ta.ema(close, 3)
-gmmaS2 = ta.ema(close, 5)
-gmmaS3 = ta.ema(close, 8)
-gmmaS4 = ta.ema(close, 10)
-gmmaS5 = ta.ema(close, 12)
-gmmaS6 = ta.ema(close, 15)
-gmmaL1 = ta.ema(close, 30)
-gmmaL2 = ta.ema(close, 35)
-gmmaL3 = ta.ema(close, 40)
-gmmaL4 = ta.ema(close, 45)
-gmmaL5 = ta.ema(close, 50)
-gmmaL6 = ta.ema(close, 60)
-gmmaShortAvg = (gmmaS1 + gmmaS2 + gmmaS3 + gmmaS4 + gmmaS5 + gmmaS6) / 6
-gmmaLongAvg = (gmmaL1 + gmmaL2 + gmmaL3 + gmmaL4 + gmmaL5 + gmmaL6) / 6
-gmmaBullish = USE_GMMA ? gmmaShortAvg[1] > gmmaLongAvg[1] : true
-gmmaBearish = USE_GMMA ? gmmaShortAvg[1] < gmmaLongAvg[1] : true
-
-// --- Williams Alligator ---
-alligatorMed = (high + low) / 2
-alligatorJawVal = f_smma(alligatorMed, ALLIGATOR_JAW)
-alligatorTeethVal = f_smma(alligatorMed, ALLIGATOR_TEETH)
-ALLIGATOR_LIPSVal = f_smma(alligatorMed, ALLIGATOR_LIPS)
-alligatorJawPlot = alligatorJawVal[8]
-alligatorTeethPlot = alligatorTeethVal[5]
-alligatorLipsPlot = ALLIGATOR_LIPSVal[3]
-// Alligator alignment always computed for scoring; USE_ALLIGATOR = display only
-alligatorBullish = alligatorLipsPlot > alligatorTeethPlot and alligatorTeethPlot > alligatorJawPlot
-alligatorBearish = alligatorLipsPlot < alligatorTeethPlot and alligatorTeethPlot < alligatorJawPlot
-
-// --- Gator Oscillator ---
-gatorUpper = math.abs(alligatorJawPlot - alligatorTeethPlot)
-gatorLower = math.abs(alligatorTeethPlot - alligatorLipsPlot)
-gatorExpanding = (gatorUpper > gatorUpper[1] or gatorLower > gatorLower[1])
-
-// --- TRIX ---
-[trixVal, trixSignalVal] = f_trix(close, TRIX_LENGTH, TRIX_SIGNAL_LEN)
-trixBullish = trixVal[1] > trixSignalVal[1]
-trixBearish = trixVal[1] < trixSignalVal[1]
-
-// --- Oscillator ---
-uoValue = f_oscillator(UO_PERIOD_1, UO_PERIOD_2, UO_PERIOD_3)
-uoBullish = uoValue[1] > 50
-uoBearish = uoValue[1] < 50
-
-// --- Know Sure Thing ---
-kstR1 = ta.roc(close, KST_ROC_1)
-kstR2 = ta.roc(close, KST_ROC_2)
-kstR3 = ta.roc(close, KST_ROC_3)
-kstR4 = ta.roc(close, KST_ROC_4)
-kstValue = ta.sma(kstR1 * 1 + kstR2 * 2 + kstR3 * 3 + kstR4 * 4, 10)
-kstSignalVal = ta.sma(kstValue, KST_SMA_LEN)
-kstBullish = kstValue[1] > kstSignalVal[1]
-kstBearish = kstValue[1] < kstSignalVal[1]
-
-// --- DPO ---
-dpoValue = f_dpo(close, DPO_LENGTH)
-dpoBullish = dpoValue[1] > 0
-dpoBearish = dpoValue[1] < 0
-
-// --- RVI ---
-[rviValue, rviSignalVal] = f_rvi(RVI_LENGTH)
-rviBullish = rviValue[1] > rviSignalVal[1]
-rviBearish = rviValue[1] < rviSignalVal[1]
-
-// --- Schaff Trend Cycle ---
-[_, schaffVal] = f_schaffTrendCycle(SCHAFF_CYCLE, SCHAFF_SMOOTH_1, SCHAFF_SMOOTH_2)
-schaffBullish = (schaffVal[1] > 25 and schaffVal[2] <= 25) or schaffVal[1] > 75
-schaffBearish = (schaffVal[1] < 75 and schaffVal[2] >= 75) or schaffVal[1] < 25
-
-// --- Pretty Good Oscillator ---
-pgoValue = (close - ta.ema(close, PGO_LENGTH)) / math.max(ta.atr(PGO_LENGTH), 1e-10)
-pgoBullish = pgoValue[1] > 0
-pgoBearish = pgoValue[1] < 0
-
-// --- Coppock Curve ---
-coppockRaw = ta.roc(close, COPPOCK_ROC_1) + ta.roc(close, COPPOCK_ROC_2)
-coppockValue = ta.sma(coppockRaw, COPPOCK_SMA)
-coppockBullish = coppockValue[1] > 0
-coppockBearish = coppockValue[1] < 0
-
-// --- Mass Index ---
-massValue = f_massIndex(MASS_SINGLE, MASS_SUM)
-massBulge = (massValue[1] > MASS_THRESHOLD and massValue[1] < massValue[2])
+// --- TRIX, UO, KST, DPO, RVI, Schaff, PGO, Coppock, Mass ---
+[trixVal, trixSignalVal, trixBullish, trixBearish, uoValue, uoBullish, uoBearish, kstValue, kstSignalVal, kstBullish, kstBearish, dpoValue, dpoBullish, dpoBearish, rviValue, rviSignalVal, rviBullish, rviBearish, schaffVal, schaffBullish, schaffBearish, pgoValue, pgoBullish, pgoBearish, coppockValue, coppockBullish, coppockBearish, massValue, massBulge] = f_calcMomentumOscillators()
 
 // --- Klinger Volume ---
 [kvoValue, KVO_SIGNALLine] = f_klinger(KVO_FAST, KVO_SLOW, KVO_SIGNAL)
@@ -1434,28 +1473,10 @@ mfiBWVolUp = volume > volume[1]
 mfiBWBullish = (mfiBWUp and mfiBWVolUp)
 mfiBWBearish = (not mfiBWUp and mfiBWVolUp)
 
-// --- Pivot Points (HTF) --- (always computed for scoring; USE_PIVOTS = display only)
+// --- Pivot Points (HTF) & Fibonacci ---
 [pivotHighHTF, pivotLowHTF, pivotCloseHTF] = request.security(syminfo.tickerid, PIVOT_TIMEFRAME, [high[1], low[1], close[1]], lookahead=barmerge.lookahead_off)
-pivotP = (pivotHighHTF + pivotLowHTF + pivotCloseHTF) / 3
-pivotR1 = 2 * pivotP - pivotLowHTF
-pivotR2 = pivotP + (pivotHighHTF - pivotLowHTF)
-pivotS1 = 2 * pivotP - pivotHighHTF
-pivotS2 = pivotP - (pivotHighHTF - pivotLowHTF)
-nearPivotR1 = close[1] >= pivotR1[1] * 0.998 and close[1] <= pivotR1[1] * 1.002
-nearPivotS1 = close[1] >= pivotS1[1] * 0.998 and close[1] <= pivotS1[1] * 1.002
-pivotCrossUpR1 = ta.crossover(close, pivotR1)
-pivotCrossDownS1 = ta.crossunder(close, pivotS1)
-pivotBreak = pivotCrossUpR1 or pivotCrossDownS1
-
-// --- Auto Fibonacci ---
-fibSwingHigh = ta.highest(high, FIB_LOOKBACK)
-fibSwingLow = ta.lowest(low, FIB_LOOKBACK)
-fibRange = fibSwingHigh - fibSwingLow
-fib236 = fibSwingHigh - 0.236 * fibRange
-fib382 = fibSwingHigh - 0.382 * fibRange
-fib50 = fibSwingHigh - 0.5 * fibRange
-fib618 = fibSwingHigh - 0.618 * fibRange
-fib786 = fibSwingHigh - 0.786 * fibRange
+[pivotP, pivotR1, pivotR2, pivotS1, pivotS2, nearPivotR1, nearPivotS1, pivotCrossUpR1, pivotCrossDownS1, pivotBreak] = f_calcPivotLevels(pivotHighHTF, pivotLowHTF, pivotCloseHTF)
+[fib236, fib382, fib50, fib618, fib786] = f_calcFibLevels()
 
 // --- Gap Detection ---
 gapUp = USE_GAP and open > high[1]
@@ -1463,28 +1484,170 @@ gapDown = USE_GAP and open < low[1]
 gapSize = gapUp ? open - high[1] : gapDown ? low[1] - open : 0.0
 gapValid = (GAP_MIN_ATR <= 0 or gapSize >= atr * GAP_MIN_ATR) and (gapUp or gapDown)
 
-// --- Vortex ---
-[viPlus, viMinus] = f_vortex(VORTEX_LENGTH)
-vortexBullish = viPlus[1] > viMinus[1]
-vortexBearish = viMinus[1] > viPlus[1]
+// --- S/R Zones (display only; multiple factors: pivots, clustering, touch count, break detection) ---
+srPivotHigh = ta.pivothigh(high, SR_ZONE_PIVOT_LB, SR_ZONE_PIVOT_LB)
+srPivotLow  = ta.pivotlow(low, SR_ZONE_PIVOT_LB, SR_ZONE_PIVOT_LB)
+var array<float> srPhPrices = array.new_float(0)
+var array<int>   srPhBars   = array.new_int(0)
+var array<float> srPlPrices = array.new_float(0)
+var array<int>   srPlBars   = array.new_int(0)
+if not na(srPivotHigh)
+    array.push(srPhPrices, srPivotHigh)
+    array.push(srPhBars, bar_index - SR_ZONE_PIVOT_LB)
+    if array.size(srPhPrices) > 50
+        array.shift(srPhPrices)
+        array.shift(srPhBars)
+if not na(srPivotLow)
+    array.push(srPlPrices, srPivotLow)
+    array.push(srPlBars, bar_index - SR_ZONE_PIVOT_LB)
+    if array.size(srPlPrices) > 50
+        array.shift(srPlPrices)
+        array.shift(srPlBars)
 
-// --- Elder Impulse ---
-elderEma = ta.ema(close, ELDER_EMA_LEN)
-elderEmaRising = elderEma > elderEma[1]
-elderImpulseBull = (elderEmaRising[1] and macdHist[1] > 0)
-elderImpulseBear = (not elderEmaRising[1] and macdHist[1] < 0)
+srZoneWidth = atr * SR_ZONE_WIDTH_ATR
+srBreakMarg = atr * SR_ZONE_BREAK_ATR
+var float srR1Top = na
+var float srR1Bot = na
+var int   srR1Start = na
+var float srR2Top = na
+var float srR2Bot = na
+var int   srR2Start = na
+var float srS1Top = na
+var float srS1Bot = na
+var int   srS1Start = na
+var float srS2Top = na
+var float srS2Bot = na
+var int   srS2Start = na
 
-// --- Volume-Weighted RSI ---
-vwPrice = ta.vwma(close, VW_RSI_LENGTH)
-vwRsiValue = ta.rsi(vwPrice, VW_RSI_LENGTH)
-vwRsiBullish = vwRsiValue[1] > 50
-vwRsiBearish = vwRsiValue[1] < 50
+if USE_SR_ZONES and array.size(srPhPrices) >= 1
+    rLo      = array.new_float(20, na)
+    rHi      = array.new_float(20, na)
+    rStartB  = array.new_int(20, 2147483647)
+    rTouches = array.new_int(20, 0)
+    numR     = 0
+    lb       = math.max(0, bar_index - SR_ZONE_LOOKBACK)
+    for i = 0 to array.size(srPhPrices) - 1
+        bi = array.get(srPhBars, i)
+        if bi >= lb
+            p = array.get(srPhPrices, i)
+            found = false
+            for j = 0 to numR - 1
+                zl = array.get(rLo, j) - srZoneWidth
+                zh = array.get(rHi, j) + srZoneWidth
+                if p >= zl and p <= zh
+                    array.set(rLo, j, math.min(array.get(rLo, j), p - srZoneWidth * 0.5))
+                    array.set(rHi, j, math.max(array.get(rHi, j), p + srZoneWidth * 0.5))
+                    array.set(rStartB, j, math.min(array.get(rStartB, j), bi))
+                    found := true
+                    break
+            if not found and numR < 20
+                array.set(rLo, numR, p - srZoneWidth * 0.5)
+                array.set(rHi, numR, p + srZoneWidth * 0.5)
+                array.set(rStartB, numR, bi)
+                numR += 1
+    for j = 0 to numR - 1
+        tc = 0
+        for k = 1 to math.min(SR_ZONE_LOOKBACK, bar_index)
+            if high[k] >= array.get(rLo, j) and low[k] <= array.get(rHi, j)
+                tc += 1
+        array.set(rTouches, j, tc)
+    bestR = -1
+    bestRt = 0
+    for j = 0 to numR - 1
+        if array.get(rTouches, j) >= SR_ZONE_MIN_TOUCHES and array.get(rTouches, j) > bestRt
+            bestRt := array.get(rTouches, j)
+            bestR := j
+    secondR = -1
+    secondRt = 0
+    for j = 0 to numR - 1
+        if j != bestR and array.get(rTouches, j) >= SR_ZONE_MIN_TOUCHES and array.get(rTouches, j) > secondRt
+            secondRt := array.get(rTouches, j)
+            secondR := j
+    if bestR >= 0
+        srR1Top   := array.get(rHi, bestR)
+        srR1Bot   := array.get(rLo, bestR)
+        srR1Start := array.get(rStartB, bestR)
+    else
+        srR1Top   := na
+        srR1Bot   := na
+        srR1Start := na
+    if secondR >= 0 and SR_ZONE_MAX_ZONES >= 2
+        srR2Top   := array.get(rHi, secondR)
+        srR2Bot   := array.get(rLo, secondR)
+        srR2Start := array.get(rStartB, secondR)
+    else
+        srR2Top   := na
+        srR2Bot   := na
+        srR2Start := na
 
-// --- Twiggs Money Flow ---
-twiggsRaw = ((close - low) - (high - close)) / math.max(high - low, 1e-10) * volume
-twiggsValue = ta.sma(twiggsRaw, TWIGGS_LENGTH)
-twiggsBullish = twiggsValue[1] > 0
-twiggsBearish = twiggsValue[1] < 0
+if USE_SR_ZONES and array.size(srPlPrices) >= 1
+    sLo      = array.new_float(20, na)
+    sHi      = array.new_float(20, na)
+    sStartB  = array.new_int(20, 2147483647)
+    sTouches = array.new_int(20, 0)
+    numS     = 0
+    lb       = math.max(0, bar_index - SR_ZONE_LOOKBACK)
+    for i = 0 to array.size(srPlPrices) - 1
+        bi = array.get(srPlBars, i)
+        if bi >= lb
+            p = array.get(srPlPrices, i)
+            found = false
+            for j = 0 to numS - 1
+                zl = array.get(sLo, j) - srZoneWidth
+                zh = array.get(sHi, j) + srZoneWidth
+                if p >= zl and p <= zh
+                    array.set(sLo, j, math.min(array.get(sLo, j), p - srZoneWidth * 0.5))
+                    array.set(sHi, j, math.max(array.get(sHi, j), p + srZoneWidth * 0.5))
+                    array.set(sStartB, j, math.min(array.get(sStartB, j), bi))
+                    found := true
+                    break
+            if not found and numS < 20
+                array.set(sLo, numS, p - srZoneWidth * 0.5)
+                array.set(sHi, numS, p + srZoneWidth * 0.5)
+                array.set(sStartB, numS, bi)
+                numS += 1
+    for j = 0 to numS - 1
+        tc = 0
+        for k = 1 to math.min(SR_ZONE_LOOKBACK, bar_index)
+            if high[k] >= array.get(sLo, j) and low[k] <= array.get(sHi, j)
+                tc += 1
+        array.set(sTouches, j, tc)
+    bestS = -1
+    bestSt = 0
+    for j = 0 to numS - 1
+        if array.get(sTouches, j) >= SR_ZONE_MIN_TOUCHES and array.get(sTouches, j) > bestSt
+            bestSt := array.get(sTouches, j)
+            bestS := j
+    secondS = -1
+    secondSt = 0
+    for j = 0 to numS - 1
+        if j != bestS and array.get(sTouches, j) >= SR_ZONE_MIN_TOUCHES and array.get(sTouches, j) > secondSt
+            secondSt := array.get(sTouches, j)
+            secondS := j
+    if bestS >= 0
+        srS1Top   := array.get(sHi, bestS)
+        srS1Bot   := array.get(sLo, bestS)
+        srS1Start := array.get(sStartB, bestS)
+    else
+        srS1Top   := na
+        srS1Bot   := na
+        srS1Start := na
+    if secondS >= 0 and SR_ZONE_MAX_ZONES >= 2
+        srS2Top   := array.get(sHi, secondS)
+        srS2Bot   := array.get(sLo, secondS)
+        srS2Start := array.get(sStartB, secondS)
+    else
+        srS2Top   := na
+        srS2Bot   := na
+        srS2Start := na
+
+srR1Broken = USE_SR_ZONES and not na(srR1Top) and close > srR1Top + srBreakMarg
+srR2Broken = USE_SR_ZONES and not na(srR2Top) and close > srR2Top + srBreakMarg
+srS1Broken = USE_SR_ZONES and not na(srS1Bot) and close < srS1Bot - srBreakMarg
+srS2Broken = USE_SR_ZONES and not na(srS2Bot) and close < srS2Bot - srBreakMarg
+
+// --- Vortex, Elder Impulse, VW-RSI, Twiggs ---
+[viPlus, viMinus, vortexBullish, vortexBearish, elderEma, elderEmaRising, elderImpulseBull, elderImpulseBear, vwPrice, vwRsiValue, vwRsiBullish, vwRsiBearish, twiggsValue, twiggsBullish, twiggsBearish] = f_calcVortexElderVWRsiTwiggs(macdHist)
 
 // ==================================================================================
 // BUY/SELL SIGNAL ENGINE
@@ -1593,7 +1756,7 @@ var string activeSLType = "-"
 var float activeTP = na
 var float activeSL = na
 
-if USE_DASHBOARD and barstate.islast
+if USE_DASHBOARD and isRightVisibleBar
     var table dash = table.new(position.top_right, 5, 61, border_width=0, frame_width=0)
     txtSm = size.tiny
 
@@ -2185,7 +2348,7 @@ if USE_PATTERN_MARKERS and darkCloudCover
 var line donchianUpperLine = na
 var line donchianLowerLine = na
 var line donchianMidLine = na
-if barstate.islast
+if isRightVisibleBar
     line.delete(donchianUpperLine)
     line.delete(donchianLowerLine)
     line.delete(donchianMidLine)
@@ -2223,7 +2386,7 @@ var line pivotR2Line = na
 var line pivotS1Line = na
 var line pivotS2Line = na
 
-if barstate.islast and USE_PIVOTS
+if isRightVisibleBar and USE_PIVOTS
     line.delete(pivotPLine)
     line.delete(pivotR1Line)
     line.delete(pivotR2Line)
@@ -2240,13 +2403,53 @@ var line fib50Line  = na
 var line fib382Line = na
 var line fib618Line = na
 
-if barstate.islast and USE_FIB_LEVELS
+if isRightVisibleBar and USE_FIB_LEVELS
     line.delete(fib50Line)
     line.delete(fib382Line)
     line.delete(fib618Line)
     fib50Line  := line.new(bar_index - 200, fib50,  bar_index + 20, fib50,  color=color.new(ACCENT_COLOR, 70), width=1, style=line.style_dotted)
     fib382Line := line.new(bar_index - 200, fib382, bar_index + 20, fib382, color=color.new(ACCENT_COLOR, 80), width=1, style=line.style_dotted)
     fib618Line := line.new(bar_index - 200, fib618, bar_index + 20, fib618, color=color.new(ACCENT_COLOR, 80), width=1, style=line.style_dotted)
+
+// --- S/R lines ---
+var line srR1Line = na
+var line srR2Line = na
+var line srS1Line = na
+var line srS2Line = na
+var label srR1Label = na
+var label srR2Label = na
+var label srS1Label = na
+var label srS2Label = na
+if isRightVisibleBar and USE_SR_ZONES
+    line.delete(srR1Line)
+    line.delete(srR2Line)
+    line.delete(srS1Line)
+    line.delete(srS2Line)
+    label.delete(srR1Label)
+    label.delete(srR2Label)
+    label.delete(srS1Label)
+    label.delete(srS2Label)
+    srR1Line := na
+    srR2Line := na
+    srS1Line := na
+    srS2Line := na
+    srR1Label := na
+    srR2Label := na
+    srS1Label := na
+    srS2Label := na
+    rightExt = bar_index + 20
+    if not na(srR1Start) and not na(srR1Top)
+        srR1Line := line.new(srR1Start, srR1Top, rightExt, srR1Top, color=color.new(NEGATIVE_COLOR, 50), width=2, style=line.style_solid)
+        srR1Label := label.new(rightExt, srR1Top, "RESISTANCE", style=label.style_label_up, color=color.new(NEGATIVE_COLOR, 30), textcolor=color.white, size=size.small)
+    if not na(srR2Start) and not na(srR2Top)
+        srR2Line := line.new(srR2Start, srR2Top, rightExt, srR2Top, color=color.new(NEGATIVE_COLOR, 55), width=2, style=line.style_solid)
+        srR2Label := label.new(rightExt, srR2Top, "RESISTANCE 2", style=label.style_label_up, color=color.new(NEGATIVE_COLOR, 40), textcolor=color.white, size=size.small)
+    if not na(srS1Start) and not na(srS1Bot)
+        srS1Line := line.new(srS1Start, srS1Bot, rightExt, srS1Bot, color=color.new(POSITIVE_COLOR, 50), width=2, style=line.style_solid)
+        srS1Label := label.new(rightExt, srS1Bot, "SUPPORT", style=label.style_label_up, color=color.new(POSITIVE_COLOR, 30), textcolor=color.white, size=size.small)
+    if not na(srS2Start) and not na(srS2Bot)
+        srS2Line := line.new(srS2Start, srS2Bot, rightExt, srS2Bot, color=color.new(POSITIVE_COLOR, 55), width=2, style=line.style_solid)
+        srS2Label := label.new(rightExt, srS2Bot, "SUPPORT 2", style=label.style_label_up, color=color.new(POSITIVE_COLOR, 40), textcolor=color.white, size=size.small)
 
 // --- Gap Labels ---
 if gapValid and gapUp
@@ -2324,7 +2527,8 @@ if BUY_SELL_AUTO_EXPIRE
             buySignalRightExtent := na
         else
             buySignalRightExtent := math.max(nz(buySignalRightExtent), bar_index)
-            f_extendBuySignalDrawings(buySLLine, buyTPLine, buyEntryLine, buyRiskZone, buyRewardZone, buyEntryZone, buySLLabel, buyTPLabel, buyEntryLabel, not na(buyEntryZone), buySignalRightExtent, buyTP2Line, buyTP2Label, buyRewardZone2)
+            extentBuy = na(rightVisibleBarIndex) ? nz(buySignalRightExtent) : math.min(nz(buySignalRightExtent), rightVisibleBarIndex)
+            f_extendBuySignalDrawings(buySLLine, buyTPLine, buyEntryLine, buyRiskZone, buyRewardZone, buyEntryZone, buySLLabel, buyTPLabel, buyEntryLabel, not na(buyEntryZone), extentBuy, buyTP2Line, buyTP2Label, buyRewardZone2)
     if not na(sellSignalBarIndex)
         barsSinceSellSignal = bar_index - sellSignalBarIndex
         priceHitSellTP = not na(sellSignalTP) and low <= sellSignalTP
@@ -2350,14 +2554,17 @@ if BUY_SELL_AUTO_EXPIRE
             sellSignalRightExtent := na
         else
             sellSignalRightExtent := math.max(nz(sellSignalRightExtent), bar_index)
-            f_extendSellSignalDrawings(sellSLLine, sellTPLine, sellEntryLine, sellRiskZone, sellRewardZone, sellEntryZone, sellSLLabel, sellTPLabel, sellEntryLabel, not na(sellEntryZone), sellSignalRightExtent, sellTP2Line, sellTP2Label, sellRewardZone2)
+            extentSell = na(rightVisibleBarIndex) ? nz(sellSignalRightExtent) : math.min(nz(sellSignalRightExtent), rightVisibleBarIndex)
+            f_extendSellSignalDrawings(sellSLLine, sellTPLine, sellEntryLine, sellRiskZone, sellRewardZone, sellEntryZone, sellSLLabel, sellTPLabel, sellEntryLabel, not na(sellEntryZone), extentSell, sellTP2Line, sellTP2Label, sellRewardZone2)
 else
     if not na(buySignalBarIndex)
         buySignalRightExtent := math.max(nz(buySignalRightExtent), bar_index)
-        f_extendBuySignalDrawings(buySLLine, buyTPLine, buyEntryLine, buyRiskZone, buyRewardZone, buyEntryZone, buySLLabel, buyTPLabel, buyEntryLabel, not na(buyEntryZone), buySignalRightExtent, buyTP2Line, buyTP2Label, buyRewardZone2)
+        extentBuy = na(rightVisibleBarIndex) ? nz(buySignalRightExtent) : math.min(nz(buySignalRightExtent), rightVisibleBarIndex)
+        f_extendBuySignalDrawings(buySLLine, buyTPLine, buyEntryLine, buyRiskZone, buyRewardZone, buyEntryZone, buySLLabel, buyTPLabel, buyEntryLabel, not na(buyEntryZone), extentBuy, buyTP2Line, buyTP2Label, buyRewardZone2)
     if not na(sellSignalBarIndex)
         sellSignalRightExtent := math.max(nz(sellSignalRightExtent), bar_index)
-        f_extendSellSignalDrawings(sellSLLine, sellTPLine, sellEntryLine, sellRiskZone, sellRewardZone, sellEntryZone, sellSLLabel, sellTPLabel, sellEntryLabel, not na(sellEntryZone), sellSignalRightExtent, sellTP2Line, sellTP2Label, sellRewardZone2)
+        extentSell = na(rightVisibleBarIndex) ? nz(sellSignalRightExtent) : math.min(nz(sellSignalRightExtent), rightVisibleBarIndex)
+        f_extendSellSignalDrawings(sellSLLine, sellTPLine, sellEntryLine, sellRiskZone, sellRewardZone, sellEntryZone, sellSLLabel, sellTPLabel, sellEntryLabel, not na(sellEntryZone), extentSell, sellTP2Line, sellTP2Label, sellRewardZone2)
 
 if signalBuy
     buySLSource = structSLBuyOk ? "[Swing]" : structSLBuyOk2 ? "[SwingMomentum]" : "[ATR]"
