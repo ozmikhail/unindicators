@@ -246,7 +246,7 @@ f_exhaustionScore(rsiPrev, stochKVal, mfiValue, wrValue, bbPercent, zScore, cciV
          + (uoValue[1] < 30 ? 0.8 : 0.0)
          + (volClimaxBuy ? 2.5 : 0.0)
          + (extendedBearRun ? 1.5 : 0.0)
-         + (massBulge ? 1.5 : 0.0)
+         + (massBulge and rsiPrev < 40 ? 1.5 : 0.0)
          + (cmoValue[1] < -50 ? 0.8 : 0.0)
     sRaw = (rsiPrev > 65 ? 2.0 : rsiPrev > 55 ? 1.0 : 0.0)
          + (stochKVal[1] > 75 ? 1.5 : 0.0)
@@ -259,7 +259,7 @@ f_exhaustionScore(rsiPrev, stochKVal, mfiValue, wrValue, bbPercent, zScore, cciV
          + (uoValue[1] > 70 ? 0.8 : 0.0)
          + (volClimaxSell ? 2.5 : 0.0)
          + (extendedBullRun ? 1.5 : 0.0)
-         + (massBulge ? 1.5 : 0.0)
+         + (massBulge and rsiPrev > 60 ? 1.5 : 0.0)
          + (cmoValue[1] > 50 ? 0.8 : 0.0)
     [math.min(bRaw / c, 1.0), math.min(sRaw / c, 1.0)]
 
