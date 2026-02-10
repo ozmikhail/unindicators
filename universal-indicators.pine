@@ -1672,10 +1672,16 @@ f_calcResistanceZones(array<float> phPrices, array<int> phBars, float zoneWidth,
                 bestR := j
         secondR = -1
         secondRt = 0
+        minSeparation = zoneWidth * 2.0
         for j = 0 to numR - 1
-            if j != bestR and array.get(rTouches, j) >= minTouches and array.get(rTouches, j) > secondRt
-                secondRt := array.get(rTouches, j)
-                secondR := j
+            if j != bestR and array.get(rTouches, j) >= minTouches
+                bestCenter = bestR >= 0 ? (array.get(rLo, bestR) + array.get(rHi, bestR)) / 2 : na
+                candidateCenter = (array.get(rLo, j) + array.get(rHi, j)) / 2
+                separation = not na(bestCenter) ? math.abs(candidateCenter - bestCenter) : 999999
+                qualityRatio = array.get(rTouches, j) / math.max(bestRt, 1)
+                if separation >= minSeparation and qualityRatio >= 0.7 and array.get(rTouches, j) > secondRt
+                    secondRt := array.get(rTouches, j)
+                    secondR := j
         if bestR >= 0
             r1T := array.get(rHi, bestR)
             r1B := array.get(rLo, bestR)
@@ -1733,10 +1739,16 @@ f_calcSupportZones(array<float> plPrices, array<int> plBars, float zoneWidth, in
                 bestS := j
         secondS = -1
         secondSt = 0
+        minSeparation = zoneWidth * 2.0
         for j = 0 to numS - 1
-            if j != bestS and array.get(sTouches, j) >= minTouches and array.get(sTouches, j) > secondSt
-                secondSt := array.get(sTouches, j)
-                secondS := j
+            if j != bestS and array.get(sTouches, j) >= minTouches
+                bestCenter = bestS >= 0 ? (array.get(sLo, bestS) + array.get(sHi, bestS)) / 2 : na
+                candidateCenter = (array.get(sLo, j) + array.get(sHi, j)) / 2
+                separation = not na(bestCenter) ? math.abs(candidateCenter - bestCenter) : 999999
+                qualityRatio = array.get(sTouches, j) / math.max(bestSt, 1)
+                if separation >= minSeparation and qualityRatio >= 0.7 and array.get(sTouches, j) > secondSt
+                    secondSt := array.get(sTouches, j)
+                    secondS := j
         if bestS >= 0
             s1T := array.get(sHi, bestS)
             s1B := array.get(sLo, bestS)
