@@ -46,7 +46,7 @@ SLTP_DISPLAY_MODE        = input.string("Zones", "SL/TP Display Mode", options=[
 USE_SINGLE_TP            = input.bool(true, "Single TP at R:R (indices)", group=gSettingsBooleans)
 TP2_USE_SR               = input.bool(true, "Use S/R for TP1/TP2", group=gSettingsBooleans)
 USE_PREVIOUS_SIGNALS     = input.bool(false, "Display Historical Signals", group=gSettingsBooleans)
-BUY_SELL_AUTO_EXPIRE     = input.bool(false, "Auto-Expire Signals", group=gSettingsBooleans)
+BUY_SELL_AUTO_EXPIRE     = input.bool(true, "Auto-Expire Signals", group=gSettingsBooleans)
 USE_EXTENDED_OSCILLATORS = input.bool(false, "Use extended oscillators (TRIX, KST, Schaff, etc.)", group=gSettingsBooleans)
 USE_RSI_REGIME           = input.bool(true, "Trend-Adjusted RSI", group=gSettingsBooleans)
 USE_STOCH                = input.bool(true, "Use Stochastic", group=gSettingsBooleans)
@@ -2294,8 +2294,8 @@ multProductSell = zScoreSellMult * exhaustionBoostSell * exhaustionPenaltySell *
 finalBuyScore = math.min((rawBuyScore + divBonusBuy + wyckBonusBuy + chochBonusBuy) * math.min(multProductBuy, 1.80), 100.0)
 finalSellScore = math.min((rawSellScore + divBonusSell + wyckBonusSell + chochBonusSell) * math.min(multProductSell, 1.80), 100.0)
 pctRank = 100 - ADAPTIVE_TOP_N
-adaptiveBuyThreshold = ta.percentile_nearest_rank(finalBuyScore, ADAPTIVE_LOOKBACK, pctRank)
-adaptiveSellThreshold = ta.percentile_nearest_rank(finalSellScore, ADAPTIVE_LOOKBACK, pctRank)
+adaptiveBuyThreshold = math.max(ta.percentile_nearest_rank(finalBuyScore, ADAPTIVE_LOOKBACK, pctRank), 55.0)
+adaptiveSellThreshold = math.max(ta.percentile_nearest_rank(finalSellScore, ADAPTIVE_LOOKBACK, pctRank), 55.0)
 
 var int barsSinceLastBuy = 999
 var int barsSinceLastSell = 999
