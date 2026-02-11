@@ -377,9 +377,9 @@ f_metaMultipliers(exhB, exhS, revB, revS, strB, strS, volB, volS, trdB, trdS, zS
     lagNetBuy = lagSellRatio - lagBuyRatio
     lagNetSell = lagBuyRatio - lagSellRatio
     exBoostB = lagNetBuy >= 0 ? (lagSellRatio >= 0.82 ? 1.15 : lagSellRatio >= 0.65 ? 1.08 : 1.0) : 1.0
-    exPenB = lagSellRatio >= 0.75 ? 0.40 : (lagNetBuy < 0 ? (lagBuyRatio >= 0.82 ? 0.55 : lagBuyRatio >= 0.65 ? 0.75 : 1.0) : 1.0)
+    exPenB = (lagNetBuy >= 0 and lagSellRatio >= 0.65) ? 1.0 : (lagSellRatio >= 0.75 ? 0.40 : (lagNetBuy < 0 ? (lagBuyRatio >= 0.82 ? 0.55 : lagBuyRatio >= 0.65 ? 0.75 : 1.0) : 1.0))
     exBoostS = lagNetSell >= 0 ? (lagBuyRatio >= 0.82 ? 1.15 : lagBuyRatio >= 0.65 ? 1.08 : 1.0) : 1.0
-    exPenS = lagBuyRatio >= 0.75 ? 0.40 : (lagNetSell < 0 ? (lagSellRatio >= 0.82 ? 0.55 : lagSellRatio >= 0.65 ? 0.75 : 1.0) : 1.0)
+    exPenS = (lagNetSell >= 0 and lagBuyRatio >= 0.65) ? 1.0 : (lagBuyRatio >= 0.75 ? 0.40 : (lagNetSell < 0 ? (lagSellRatio >= 0.82 ? 0.55 : lagSellRatio >= 0.65 ? 0.75 : 1.0) : 1.0))
     // STOCKS: Demand more confirmation - higher thresholds, increased rewards
     bAgreeStrong = (exhB > 0.50 ? 1 : 0) + (revB > 0.40 ? 1 : 0) + (strB > 0.40 ? 1 : 0) + (volB > 0.55 ? 1 : 0) + (trdB > 0.60 ? 1 : 0)
     bAgree = (exhB > 0.20 ? 1 : 0) + (revB > 0.12 ? 1 : 0) + (strB > 0.15 ? 1 : 0) + (volB > 0.25 ? 1 : 0) + (trdB > 0.30 ? 1 : 0)
@@ -391,7 +391,7 @@ f_metaMultipliers(exhB, exhS, revB, revS, strB, strS, volB, volS, trdB, trdS, zS
     sessM = 1.0
     [r2M, zBuyM, zSellM, vsM, adxM, exBoostB, exPenB, exBoostS, exPenS, agreeB, agreeS, sessM, bAgreeStrong, bAgree, sAgreeStrong, sAgree]
 
-f_signalTooltip(isBuy, slSource, finalBuyScore, finalSellScore, buyConfidence, sellConfidence, buyDominance, sellDominance, dominanceRatioBuy, dominanceRatioSell, exhBuyScore, exhSellScore, revBuyScore, revSellScore, structBuyScore, structSellScore, volBuyScore, volSellScore, trendAlignBuyScore, trendAlignSellScore, buyCatAgreeStrong, sellCatAgreeStrong, buyCatAgree, sellCatAgree, buySL, sellSL, buyTP, sellTP, buyActualRR, sellActualRR, buyTPSource, sellTPSource, bullishDivergence, bearishDivergence, USE_TWO_T_PS_BUY, USE_TWO_T_PS_SELL, buyTP1, sellTP1, buyTP2, sellTP2, inPremium, inDiscount, rSqValue, r2Reversal, r2Trend, zScore, hvRank, volSpikeMult, lagBuyCount, lagSellCount, lagEnabledCount) =>
+f_signalTooltip(isBuy, slSource, finalBuyScore, finalSellScore, buyConfidence, sellConfidence, buyDominance, sellDominance, dominanceRatioBuy, dominanceRatioSell, exhBuyScore, exhSellScore, revBuyScore, revSellScore, structBuyScore, structSellScore, volBuyScore, volSellScore, trendAlignBuyScore, trendAlignSellScore, buyCatAgreeStrong, sellCatAgreeStrong, buyCatAgree, sellCatAgree, buySL, sellSL, buyTP, sellTP, buyActualRR, sellActualRR, buyTPSource, sellTPSource, bullishDivergence, bearishDivergence, USE_TWO_T_PS_BUY, USE_TWO_T_PS_SELL, buyTP1, sellTP1, buyTP2, sellTP2, inPremium, inDiscount, rSqValue, r2Reversal, r2Trend, zScore, hvRank, volSpikeMult, lagBuyCount, lagSellCount, lagEnabledCount, buyEntryPrice, sellEntryPrice) =>
     _score = isBuy ? finalBuyScore : finalSellScore
     _conf = isBuy ? buyConfidence : sellConfidence
     _dom = isBuy ? buyDominance : sellDominance
@@ -408,24 +408,25 @@ f_signalTooltip(isBuy, slSource, finalBuyScore, finalSellScore, buyConfidence, s
     _rr = isBuy ? buyActualRR : sellActualRR
     _tpSrc = isBuy ? buyTPSource : sellTPSource
     _isDivergent = isBuy ? bullishDivergence : bearishDivergence
-    _slPct = isBuy ? str.tostring((close - _sl) / close * 100, "#.#") : str.tostring((_sl - close) / close * 100, "#.#")
-    _tpPct = isBuy ? str.tostring((_tp - close) / close * 100, "#.#") : str.tostring((close - _tp) / close * 100, "#.#")
+    _entry = isBuy ? buyEntryPrice : sellEntryPrice
+    _slPct = isBuy ? str.tostring((_entry - _sl) / _entry * 100, "#.#") : str.tostring((_sl - _entry) / _entry * 100, "#.#")
+    _tpPct = isBuy ? str.tostring((_tp - _entry) / _entry * 100, "#.#") : str.tostring((_entry - _tp) / _entry * 100, "#.#")
     _slSign = isBuy ? "-" : "+"
     _tpSign = isBuy ? "+" : "-"
     _useTwo = isBuy ? USE_TWO_T_PS_BUY : USE_TWO_T_PS_SELL
     _tp1 = isBuy ? buyTP1 : sellTP1
     _tp2 = isBuy ? buyTP2 : sellTP2
-    _tp1Pct = isBuy ? str.tostring((_tp1 - close) / close * 100, "#.#") : str.tostring((close - _tp1) / close * 100, "#.#")
-    _tp2Pct = isBuy ? str.tostring((_tp2 - close) / close * 100, "#.#") : str.tostring((close - _tp2) / close * 100, "#.#")
+    _tp1Pct = isBuy ? str.tostring((_tp1 - _entry) / _entry * 100, "#.#") : str.tostring((_entry - _tp1) / _entry * 100, "#.#")
+    _tp2Pct = isBuy ? str.tostring((_tp2 - _entry) / _entry * 100, "#.#") : str.tostring((_entry - _tp2) / _entry * 100, "#.#")
     _side = isBuy ? "Buy" : "Sell"
     _pdLabel = isBuy ? (inPremium ? "Premium ⚠" : "Discount ✓") : (inDiscount ? "Discount ⚠" : "Premium ✓")
     t = _side + " Signal\n"
      + "Dominance: +" + str.tostring(_dom, "#.#") + " (×" + str.tostring(_domRatio, "#.##") + ")\n"
-     + "Exhaustion:  " + str.tostring(_exh * 100, "#") + "% (wt 30%)\n"
-     + "Reversal:    " + str.tostring(_rev * 100, "#") + "% (wt 25%)\n"
-     + "Structure:   " + str.tostring(_str * 100, "#") + "% (wt 20%)\n"
-     + "Volume:      " + str.tostring(_vol * 100, "#") + "% (wt 15%)\n"
-     + "Trend Align: " + str.tostring(_trd * 100, "#") + "% (wt 10%)\n"
+     + "Exhaustion:  " + str.tostring(_exh * 100, "#") + "% (wt 20%)\n"
+     + "Reversal:    " + str.tostring(_rev * 100, "#") + "% (wt 18%)\n"
+     + "Structure:   " + str.tostring(_str * 100, "#") + "% (wt 22%)\n"
+     + "Volume:      " + str.tostring(_vol * 100, "#") + "% (wt 22%)\n"
+     + "Trend Align: " + str.tostring(_trd * 100, "#") + "% (wt 18%)\n"
      + "━━━━━━━━━━━━━━━━━━━━\n"
      + "Cats agree: " + str.tostring(_catStrong) + " strong + " + str.tostring(_catAny) + "/5 any\n"
      + "R²: " + str.tostring(rSqValue, "#.##") + " (rev×" + str.tostring(r2Reversal, "#.##") + " trd×" + str.tostring(r2Trend, "#.##") + ") | Z: " + str.tostring(zScore[1], "#.#") + "\n"
@@ -434,7 +435,7 @@ f_signalTooltip(isBuy, slSource, finalBuyScore, finalSellScore, buyConfidence, s
      + "Lagging bull/bear: " + str.tostring(lagBuyCount) + "/" + str.tostring(lagSellCount) + " (of " + str.tostring(lagEnabledCount) + ")\n"
      + "Divergence: " + (_isDivergent ? "Yes (+8)" : "No") + "\n"
      + "━━━━━━━━━━━━━━━━━━━━\n"
-     + "Entry: " + str.tostring(close, "#.##") + "\n"
+     + "Entry: " + str.tostring(_entry, "#.##") + "\n"
      + "SL: " + str.tostring(_sl, "#.##") + " (" + _slSign + _slPct + "%) " + slSource + "\n"
      + (_useTwo ? "TP1: " + str.tostring(_tp1, "#.##") + " (" + _tpSign + _tp1Pct + "%) | TP2: " + str.tostring(_tp2, "#.##") + " (" + _tpSign + _tp2Pct + "%) at " + _tpSrc + "\n" : "TP: " + str.tostring(_tp, "#.##") + " (" + _tpSign + _tpPct + "%) at " + _tpSrc + "\n")
      + "R:R = 1:" + str.tostring(_rr, "#.#")
@@ -749,7 +750,7 @@ f_oscillator(period1, period2, period3) =>
 
 f_dpo(src, length) =>
     halfLen = math.round(length / 2) + 1
-    smaVal = ta.sma(src, halfLen)
+    smaVal = ta.sma(src, length)
     dpoVal = src[halfLen] - smaVal[halfLen]
     dpoVal
 
@@ -765,7 +766,7 @@ f_schaffTrendCycle(cycleLen, smooth1, smooth2) =>
     var float stc = 0.0
     xmac := ta.ema(close - ta.ema(close, cycleLen), smooth1)
     xmacd := ta.ema(xmac, smooth2)
-    v1 = ta.lowest(xmacd, smooth2) - ta.highest(xmacd, smooth2)
+    v1 = ta.highest(xmacd, smooth2) - ta.lowest(xmacd, smooth2)
     v2 = v1 != 0 ? (xmacd - ta.lowest(xmacd, smooth2)) / v1 : 0.0
     stc := 0.0
     if not na(v2)
@@ -782,7 +783,8 @@ f_smma(src, length) =>
 f_massIndex(singleLen, sumLen) =>
     hlRange = high - low
     hlEma = ta.ema(hlRange, singleLen)
-    ratio = hlEma > 0 ? hlRange / hlEma : 0.0
+    hlEma2 = ta.ema(hlEma, singleLen)
+    ratio = hlEma2 > 0 ? hlEma / hlEma2 : 0.0
     massSumVal = math.sum(ratio, sumLen)
     massSumVal
 
@@ -793,7 +795,7 @@ f_klinger(fastLen, slowLen, signalLen) =>
     if trend == trend[1]
         cm := nz(cm[1]) + dm
     else
-        cm := nz(cm[1]) + dm
+        cm := dm
     vf = volume * math.abs(2 * dm / math.max(cm, 1e-10) - 1) * trend * 100
     kvo = ta.ema(ta.sma(vf, math.min(fastLen, slowLen)), math.max(fastLen, slowLen) - math.min(fastLen, slowLen) + 1)
     kvoSigLine = ta.ema(kvo, signalLen)
@@ -809,8 +811,6 @@ f_eom(length) =>
 f_vortex(len) =>
     plusVM = math.abs(high - low[1])
     minusVM = math.abs(low - high[1])
-    plusDM = high - high[1] > low[1] - low ? math.max(high - high[1], 0) : 0
-    minusDM = low[1] - low > high - high[1] ? math.max(low[1] - low, 0) : 0
     trV = ta.atr(len)
     viPlus = trV != 0 ? ta.rma(plusVM, len) / trV : 0.0
     viMinus = trV != 0 ? ta.rma(minusVM, len) / trV : 0.0
@@ -1643,7 +1643,7 @@ f_calcTPTargets(float lastSwH, float lastSwL, float pR1, float pS1, float pR2, f
         useSRSell = tp2UseSR and sellFirstSValid and sellTP < sellFirstS
         useTwoTPsSell := useSRSell or (sellTPPct > tp2MinPct)
         sellTP1 := useSRSell ? sellFirstS : (sellTPPct > tp2MinPct ? cl - (cl - sellTP) * 0.5 : sellTP)
-        sellTP2 := useSRSell ? (not na(sellSecondS) ? math.max(sellTP, sellSecondS) : sellTP) : (sellTPPct > tp2MinPct ? sellTP : sellTP)
+        sellTP2 := useSRSell ? (not na(sellSecondS) ? math.min(sellTP, sellSecondS) : sellTP) : (sellTPPct > tp2MinPct ? sellTP : sellTP)
         buyTPDistPct = (buyTP2 - buyTP1) / cl * 100
         sellTPDistPct = (sellTP1 - sellTP2) / cl * 100
         buyTPsTooClose = useTwoTPsBuy and buyTPDistPct < tpMinDistPct
@@ -2216,9 +2216,9 @@ rsiVelocity = rsiValue - rsiValue[3]
 rsiAccelBuy = rsiPrev < 40 and rsiVelocity > 8
 rsiAccelSell = rsiPrev > 60 and rsiVelocity < -8
 
-lagEnabledCount = 8 + (USE_MA_STACK ? 1 : 0) + (USE_SUPER_TREND ? 1 : 0) + (USE_SAR ? 1 : 0) + (USE_ICHIMOKU ? 1 : 0) + (USE_STOCH ? 1 : 0) + 1 + (USE_GMMA ? 1 : 0) + 1 + (USE_ROC ? 1 : 0)
-lagBuyCount = (trendUp ? 1 : 0) + (USE_MA_STACK and maStackUp ? 1 : 0) + (USE_SUPER_TREND and stBullish ? 1 : 0) + (USE_SAR and sarBullish ? 1 : 0) + (USE_ICHIMOKU and ichBullish ? 1 : 0) + (aroonBullish ? 1 : 0) + (linRegBullish ? 1 : 0) + (donchianBullish ? 1 : 0) + (mcginleyBullish ? 1 : 0) + (alligatorBullish ? 1 : 0) + (vortexBullish ? 1 : 0) + (demaBullish ? 1 : 0) + (temaBullish ? 1 : 0) + (USE_GMMA and gmmaBullish ? 1 : 0) + (macdBullish ? 1 : 0) + (rsiBullish ? 1 : 0) + (USE_ROC and rocBullish ? 1 : 0)
-lagSellCount = (trendDown ? 1 : 0) + (USE_MA_STACK and maStackDown ? 1 : 0) + (USE_SUPER_TREND and stBearish ? 1 : 0) + (USE_SAR and sarBearish ? 1 : 0) + (USE_ICHIMOKU and ichBearish ? 1 : 0) + (aroonBearish ? 1 : 0) + (linRegBearish ? 1 : 0) + (donchianBearish ? 1 : 0) + (mcginleyBearish ? 1 : 0) + (alligatorBearish ? 1 : 0) + (vortexBearish ? 1 : 0) + (demaBearish ? 1 : 0) + (temaBearish ? 1 : 0) + (USE_GMMA and gmmaBearish ? 1 : 0) + (macdBearish ? 1 : 0) + (rsiBearish ? 1 : 0) + (USE_ROC and rocBearish ? 1 : 0)
+lagEnabledCount = 9 + (USE_MA_STACK ? 1 : 0) + (USE_SUPER_TREND ? 1 : 0) + (USE_SAR ? 1 : 0) + (USE_ICHIMOKU ? 1 : 0) + (USE_STOCH ? 1 : 0) + 1 + (USE_GMMA ? 1 : 0) + 1 + (USE_ROC ? 1 : 0)
+lagBuyCount = (trendUp ? 1 : 0) + (USE_MA_STACK and maStackUp ? 1 : 0) + (USE_SUPER_TREND and stBullish ? 1 : 0) + (USE_SAR and sarBullish ? 1 : 0) + (USE_ICHIMOKU and ichBullish ? 1 : 0) + (USE_STOCH and stochBullish ? 1 : 0) + (aroonBullish ? 1 : 0) + (linRegBullish ? 1 : 0) + (donchianBullish ? 1 : 0) + (mcginleyBullish ? 1 : 0) + (alligatorBullish ? 1 : 0) + (vortexBullish ? 1 : 0) + (demaBullish ? 1 : 0) + (temaBullish ? 1 : 0) + (USE_GMMA and gmmaBullish ? 1 : 0) + (macdBullish ? 1 : 0) + (rsiBullish ? 1 : 0) + (USE_ROC and rocBullish ? 1 : 0)
+lagSellCount = (trendDown ? 1 : 0) + (USE_MA_STACK and maStackDown ? 1 : 0) + (USE_SUPER_TREND and stBearish ? 1 : 0) + (USE_SAR and sarBearish ? 1 : 0) + (USE_ICHIMOKU and ichBearish ? 1 : 0) + (USE_STOCH and stochBearish ? 1 : 0) + (aroonBearish ? 1 : 0) + (linRegBearish ? 1 : 0) + (donchianBearish ? 1 : 0) + (mcginleyBearish ? 1 : 0) + (alligatorBearish ? 1 : 0) + (vortexBearish ? 1 : 0) + (demaBearish ? 1 : 0) + (temaBearish ? 1 : 0) + (USE_GMMA and gmmaBearish ? 1 : 0) + (macdBearish ? 1 : 0) + (rsiBearish ? 1 : 0) + (USE_ROC and rocBearish ? 1 : 0)
 lagBuyRatio = lagBuyCount / math.max(lagEnabledCount, 1)
 lagSellRatio = lagSellCount / math.max(lagEnabledCount, 1)
 
@@ -2236,8 +2236,8 @@ rawSellScore = (exhSellScore * 0.20 * r2Reversal + revSellScore * 0.18 * r2Rever
 
 [rSqMult, zScoreBuyMult, zScoreSellMult, volSpikeMult, adxReversalMult, exhaustionBoostBuy, exhaustionPenaltyBuy, exhaustionBoostSell, exhaustionPenaltySell, agreeMult, agreeMsell, sessionMult, buyCatAgreeStrong, buyCatAgree, sellCatAgreeStrong, sellCatAgree] = f_metaMultipliers(exhBuyScore, exhSellScore, revBuyScore, revSellScore, structBuyScore, structSellScore, volBuyScore, volSellScore, trendAlignBuyScore, trendAlignSellScore, zScore, hvRank, adxValue, adxStrong, lagSellCount, lagEnabledCount, lagBuyCount, USE_SESSION_FILTER, inSession)
 
-divBonusBuy = 0.0
-divBonusSell = 0.0
+divBonusBuy = bullishDivergence ? 8.0 : 0.0
+divBonusSell = bearishDivergence ? 8.0 : 0.0
 wyckBonusBuy = USE_WYCKOFF and wyckSpring ? 8.0 : 0.0
 wyckBonusSell = USE_WYCKOFF and wyckUpthrust ? 8.0 : 0.0
 chochBonusBuy = USE_SMC and chochBullish ? 5.0 : 0.0
@@ -2315,6 +2315,30 @@ slSwingAgeSell2 = bar_index - ta.valuewhen(not na(slSwingHigh), bar_index, 1)
 
 [buySL, sellSL, fixedBuyTP, fixedSellTP, structSLBuyOk, structSLBuyOk2, structSLSellOk, structSLSellOk2] = f_calcSLTP(slLastSwingHigh, slLastSwingLow, slSwingAgeBuy, slSwingAgeSell, slLastSwingLow2, slLastSwingHigh2, slSwingAgeBuy2, slSwingAgeSell2, close, open, atrPrev, finalBuyScore, finalSellScore, ATR_MULTIPLIER_SL, BUY_SELL_RR, SL_MIN_PCT)
 [nearBuyTarget, buyTPSource, buyTP, buyActualRR, nearSellTarget, sellTPSource, sellTP, sellActualRR, trendExtendBuy, trendExtendSell, USE_TWO_T_PS_BUY, USE_TWO_T_PS_SELL, buyTP1, buyTP2, sellTP1, sellTP2] = f_calcTPTargets(lastSwingHigh, lastSwingLow, pivotR1, pivotS1, pivotR2, pivotS2, USE_SMC ? lastBearOBHigh : na, USE_SMC ? lastBullOBLow : na, fib382, fib618, vwapValue, bbUpper, bbLower, ema200, prevDayHigh, prevDayLow, close, atrPrev, USE_PIVOTS, buySL, sellSL, fixedBuyTP, fixedSellTP, finalBuyScore, finalSellScore, open, ATR_MULTIPLIER_TP, trendUp, trendDown, adxStrong, trendAlignBuyScore, trendAlignSellScore, srR1Top, srR2Top, srS1Bot, srS2Bot, TP2_USE_SR, TP2_MIN_PCT, TP_MIN_DISTANCE_PCT)
+
+buyEntryZoneMult = finalBuyScore >= 80 ? 0.5 : finalBuyScore >= 65 ? 0.7 : 0.9
+buyZoneHalfH = atrPrev * buyEntryZoneMult
+buyBodyLow = math.min(open, close)
+buyZoneLow = math.max(buyBodyLow - buyZoneHalfH * 0.3, buySL)
+buyZoneHigh = buyBodyLow + buyZoneHalfH
+buyEntryPrice = (buyZoneHigh + buyZoneLow) / 2
+buyEntryPrice := vwapValue >= buyZoneLow and vwapValue <= buyZoneHigh ? vwapValue : buyEntryPrice
+buyEntryPrice := not (vwapValue >= buyZoneLow and vwapValue <= buyZoneHigh) and fib50 >= buyZoneLow and fib50 <= buyZoneHigh ? fib50 : buyEntryPrice
+buyEntryPrice := not (vwapValue >= buyZoneLow and vwapValue <= buyZoneHigh) and not (fib50 >= buyZoneLow and fib50 <= buyZoneHigh) and USE_SMC and not na(lastBullOBHigh) and lastBullOBHigh >= buyZoneLow and lastBullOBHigh <= buyZoneHigh ? lastBullOBHigh : buyEntryPrice
+buyRiskFromEntry = buyEntryPrice - buySL
+buyActualRR := buyRiskFromEntry > 0 ? (buyTP - buyEntryPrice) / buyRiskFromEntry : buyActualRR
+
+sellEntryZoneMult = finalSellScore >= 80 ? 0.5 : finalSellScore >= 65 ? 0.7 : 0.9
+sellZoneHalfH = atrPrev * sellEntryZoneMult
+sellBodyHigh = math.max(open, close)
+sellZoneHigh = math.min(sellBodyHigh + sellZoneHalfH * 0.3, sellSL)
+sellZoneLow = sellBodyHigh - sellZoneHalfH
+sellEntryPrice = (sellZoneHigh + sellZoneLow) / 2
+sellEntryPrice := vwapValue >= sellZoneLow and vwapValue <= sellZoneHigh ? vwapValue : sellEntryPrice
+sellEntryPrice := not (vwapValue >= sellZoneLow and vwapValue <= sellZoneHigh) and fib50 >= sellZoneLow and fib50 <= sellZoneHigh ? fib50 : sellEntryPrice
+sellEntryPrice := not (vwapValue >= sellZoneLow and vwapValue <= sellZoneHigh) and not (fib50 >= sellZoneLow and fib50 <= sellZoneHigh) and USE_SMC and not na(lastBearOBLow) and lastBearOBLow >= sellZoneLow and lastBearOBLow <= sellZoneHigh ? lastBearOBLow : sellEntryPrice
+sellRiskFromEntry = sellSL - sellEntryPrice
+sellActualRR := sellRiskFromEntry > 0 ? (sellEntryPrice - sellTP) / sellRiskFromEntry : sellActualRR
 
 // ==================================================================================
 // VISUALIZATION
@@ -2553,7 +2577,7 @@ else
 
 if signalBuy
     buySLSource = structSLBuyOk ? "[Swing]" : structSLBuyOk2 ? "[SwingMomentum]" : "[ATR]"
-    buyTooltip = f_signalTooltip(true, buySLSource, finalBuyScore, finalSellScore, buyConfidence, sellConfidence, buyDominance, sellDominance, dominanceRatioBuy, dominanceRatioSell, exhBuyScore, exhSellScore, revBuyScore, revSellScore, structBuyScore, structSellScore, volBuyScore, volSellScore, trendAlignBuyScore, trendAlignSellScore, buyCatAgreeStrong, sellCatAgreeStrong, buyCatAgree, sellCatAgree, buySL, sellSL, buyTP, sellTP, buyActualRR, sellActualRR, buyTPSource, sellTPSource, bullishDivergence, bearishDivergence, USE_TWO_T_PS_BUY, USE_TWO_T_PS_SELL, buyTP1, sellTP1, buyTP2, sellTP2, inPremium, inDiscount, rSqValue, r2Reversal, r2Trend, zScore, hvRank, volSpikeMult, lagBuyCount, lagSellCount, lagEnabledCount)
+    buyTooltip = f_signalTooltip(true, buySLSource, finalBuyScore, finalSellScore, buyConfidence, sellConfidence, buyDominance, sellDominance, dominanceRatioBuy, dominanceRatioSell, exhBuyScore, exhSellScore, revBuyScore, revSellScore, structBuyScore, structSellScore, volBuyScore, volSellScore, trendAlignBuyScore, trendAlignSellScore, buyCatAgreeStrong, sellCatAgreeStrong, buyCatAgree, sellCatAgree, buySL, sellSL, buyTP, sellTP, buyActualRR, sellActualRR, buyTPSource, sellTPSource, bullishDivergence, bearishDivergence, USE_TWO_T_PS_BUY, USE_TWO_T_PS_SELL, buyTP1, sellTP1, buyTP2, sellTP2, inPremium, inDiscount, rSqValue, r2Reversal, r2Trend, zScore, hvRank, volSpikeMult, lagBuyCount, lagSellCount, lagEnabledCount, buyEntryPrice, sellEntryPrice)
     if USE_PREVIOUS_SIGNALS
         [grayLine, grayLabel, grayTxt, grayBox, grayBoxBorder, grayEntryLine, grayEntryLabel, grayEntryTxt, grayEntryBox, grayEntryBoxBorder] = f_prevSignalGrayColors(PREVIOUS_SELL_RR)
         f_applyGrayToAllSignals(grayLine, grayLabel, grayTxt, grayBox, grayBoxBorder, grayEntryLine, grayEntryLabel, grayEntryTxt, grayEntryBox, grayEntryBoxBorder, buyEntryLine, buyEntryLabel, buyEntryZone, buyZoneLabel, buySLLine, buyTPLine, buySLLabel, buyTPLabel, buyRiskZone, buyRewardZone, buyTP2Line, buyTP2Label, buyRewardZone2, sellEntryLine, sellEntryLabel, sellEntryZone, sellZoneLabel, sellSLLine, sellTPLine, sellSLLabel, sellTPLabel, sellRiskZone, sellRewardZone, sellTP2Line, sellTP2Label, sellRewardZone2)
@@ -2611,7 +2635,7 @@ if signalBuy
 
 if signalSell
     sellSLSource = structSLSellOk ? "[Swing]" : structSLSellOk2 ? "[SwingMomentum]" : "[ATR]"
-    sellTooltip = f_signalTooltip(false, sellSLSource, finalBuyScore, finalSellScore, buyConfidence, sellConfidence, buyDominance, sellDominance, dominanceRatioBuy, dominanceRatioSell, exhBuyScore, exhSellScore, revBuyScore, revSellScore, structBuyScore, structSellScore, volBuyScore, volSellScore, trendAlignBuyScore, trendAlignSellScore, buyCatAgreeStrong, sellCatAgreeStrong, buyCatAgree, sellCatAgree, buySL, sellSL, buyTP, sellTP, buyActualRR, sellActualRR, buyTPSource, sellTPSource, bullishDivergence, bearishDivergence, USE_TWO_T_PS_BUY, USE_TWO_T_PS_SELL, buyTP1, sellTP1, buyTP2, sellTP2, inPremium, inDiscount, rSqValue, r2Reversal, r2Trend, zScore, hvRank, volSpikeMult, lagBuyCount, lagSellCount, lagEnabledCount)
+    sellTooltip = f_signalTooltip(false, sellSLSource, finalBuyScore, finalSellScore, buyConfidence, sellConfidence, buyDominance, sellDominance, dominanceRatioBuy, dominanceRatioSell, exhBuyScore, exhSellScore, revBuyScore, revSellScore, structBuyScore, structSellScore, volBuyScore, volSellScore, trendAlignBuyScore, trendAlignSellScore, buyCatAgreeStrong, sellCatAgreeStrong, buyCatAgree, sellCatAgree, buySL, sellSL, buyTP, sellTP, buyActualRR, sellActualRR, buyTPSource, sellTPSource, bullishDivergence, bearishDivergence, USE_TWO_T_PS_BUY, USE_TWO_T_PS_SELL, buyTP1, sellTP1, buyTP2, sellTP2, inPremium, inDiscount, rSqValue, r2Reversal, r2Trend, zScore, hvRank, volSpikeMult, lagBuyCount, lagSellCount, lagEnabledCount, buyEntryPrice, sellEntryPrice)
     if USE_PREVIOUS_SIGNALS
         [grayLine, grayLabel, grayTxt, grayBox, grayBoxBorder, grayEntryLine, grayEntryLabel, grayEntryTxt, grayEntryBox, grayEntryBoxBorder] = f_prevSignalGrayColors(PREVIOUS_SELL_RR)
         f_applyGrayToAllSignals(grayLine, grayLabel, grayTxt, grayBox, grayBoxBorder, grayEntryLine, grayEntryLabel, grayEntryTxt, grayEntryBox, grayEntryBoxBorder, buyEntryLine, buyEntryLabel, buyEntryZone, buyZoneLabel, buySLLine, buyTPLine, buySLLabel, buyTPLabel, buyRiskZone, buyRewardZone, buyTP2Line, buyTP2Label, buyRewardZone2, sellEntryLine, sellEntryLabel, sellEntryZone, sellZoneLabel, sellSLLine, sellTPLine, sellSLLabel, sellTPLabel, sellRiskZone, sellRewardZone, sellTP2Line, sellTP2Label, sellRewardZone2)
