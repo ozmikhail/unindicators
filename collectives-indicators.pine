@@ -2260,6 +2260,8 @@ rawSellScore = (exhSellScore * 0.20 * r2Reversal + revSellScore * 0.18 * r2Rever
 [rSqMult, zScoreBuyMult, zScoreSellMult, volSpikeMult, adxReversalMult, exhaustionBoostBuy, exhaustionPenaltyBuy, exhaustionBoostSell, exhaustionPenaltySell, agreeMult, agreeMsell, sessionMult, buyCatAgreeStrong, buyCatAgree, sellCatAgreeStrong, sellCatAgree] = f_metaMultipliers(exhBuyScore, exhSellScore, revBuyScore, revSellScore, structBuyScore, structSellScore, volBuyScore, volSellScore, trendAlignBuyScore, trendAlignSellScore, zScore, hvRank, adxValue, adxStrong, lagSellCount, lagEnabledCount, lagBuyCount, USE_SESSION_FILTER, inSession)
 buyCatMinOk = buyCatAgree >= 3
 sellCatMinOk = sellCatAgree >= 3
+buyReversalMinOk = (exhBuyScore + revBuyScore) > 0.10
+sellReversalMinOk = (exhSellScore + revSellScore) > 0.10
 
 divBonusBuy = bullishDivergence ? 8.0 : 0.0
 divBonusSell = bearishDivergence ? 8.0 : 0.0
@@ -2309,8 +2311,8 @@ signalBarBearish = close < open and signalBodyPct > 0.15
 signalBarInside = high <= high[1] and low >= low[1]
 r2RegimeOk = (rSqValue >= 0.15 and adxStrong) or (math.abs(zScore[1]) > 2.0)
 
-signalBuy = USE_BUY_SELL_SIGNAL and barstate.isconfirmed and finalBuyScore >= adaptiveBuyThreshold and barsSinceLastBuy >= BUY_SELL_COOLDOWN and dominanceRatioBuy >= 1.25 and buyDominance >= 8.0 and r2RegimeOk and (lagSellRatio < 0.75 or finalBuyScore >= 85) and (not USE_VIX_REGIME or not vixSuppressBuy) and yieldCurveOkBuy and buyCatMinOk
-signalSell = USE_BUY_SELL_SIGNAL and barstate.isconfirmed and finalSellScore >= adaptiveSellThreshold and barsSinceLastSell >= BUY_SELL_COOLDOWN and dominanceRatioSell >= 1.25 and sellDominance >= 8.0 and r2RegimeOk and (lagBuyRatio < 0.75 or finalSellScore >= 85) and (not USE_VIX_REGIME or not vixSuppressSell) and yieldCurveOkSell and sellCatMinOk
+signalBuy = USE_BUY_SELL_SIGNAL and barstate.isconfirmed and finalBuyScore >= adaptiveBuyThreshold and barsSinceLastBuy >= BUY_SELL_COOLDOWN and dominanceRatioBuy >= 1.25 and buyDominance >= 8.0 and r2RegimeOk and (lagSellRatio < 0.75 or finalBuyScore >= 85) and (not USE_VIX_REGIME or not vixSuppressBuy) and yieldCurveOkBuy and buyCatMinOk and buyReversalMinOk
+signalSell = USE_BUY_SELL_SIGNAL and barstate.isconfirmed and finalSellScore >= adaptiveSellThreshold and barsSinceLastSell >= BUY_SELL_COOLDOWN and dominanceRatioSell >= 1.25 and sellDominance >= 8.0 and r2RegimeOk and (lagBuyRatio < 0.75 or finalSellScore >= 85) and (not USE_VIX_REGIME or not vixSuppressSell) and yieldCurveOkSell and sellCatMinOk and sellReversalMinOk
 
 if signalBuy
     barsSinceLastBuy := 0
