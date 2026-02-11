@@ -46,7 +46,6 @@ SLTP_DISPLAY_MODE        = input.string("Zones", "SL/TP Display Mode", options=[
 USE_SINGLE_TP            = input.bool(true, "Single TP at R:R (indices)", group=gSettingsBooleans)
 TP2_USE_SR               = input.bool(true, "Use S/R for TP1/TP2", group=gSettingsBooleans)
 USE_PREVIOUS_SIGNALS     = input.bool(false, "Display Historical Signals", group=gSettingsBooleans)
-PREVIOUS_SELL_RR         = input.int(20, "Historical Signal Opacity", minval=5, maxval=50, step=5, group=gSettingsBooleans)
 BUY_SELL_AUTO_EXPIRE     = input.bool(false, "Auto-Expire Signals", group=gSettingsBooleans)
 USE_EXTENDED_OSCILLATORS = input.bool(false, "Use extended oscillators (TRIX, KST, Schaff, etc.)", group=gSettingsBooleans)
 USE_RSI_REGIME           = input.bool(true, "Trend-Adjusted RSI", group=gSettingsBooleans)
@@ -71,137 +70,143 @@ USE_SESSION_FILTER       = input.bool(false, "Use Session Filter", group=gSettin
 USE_ATR_FILTER           = input.bool(false, "Use ATR Range Filter", group=gSettingsBooleans)
 USE_PREMIUM_DISCOUNT     = input.bool(false, "Filter Prem/Disc", group=gSettingsBooleans)
 USE_MA_STACK             = input.bool(true, "Use MA Stack Filter", group=gSettingsBooleans)
+USE_YIELD_CURVE          = input.bool(false, "Use 10Y-2Y yield curve filter", group=gSettingsBooleans)
+USE_CREDIT_SPREAD        = input.bool(false, "Use credit spread filter (HY-IG)", group=gSettingsBooleans)
+USE_VIX_REGIME           = input.bool(true, "Use VIX regime filter", group=gSettingsBooleans)
 
-var gSettingsNumbers   = "Settings · Numbers"
-BUY_SELL_COOLDOWN      = input.int(5, "Signal Cooldown (bars)", minval=1, maxval=50, group=gSettingsNumbers)
-BUY_SELL_RR            = input.float(2.0, "Risk:Reward Ratio", minval=1.0, maxval=5.0, step=0.5, group=gSettingsNumbers)
-BUY_SELL_THRESHOLD     = input.float(70, "Signal Threshold (0-100)", minval=30, maxval=95, step=5, group=gSettingsNumbers)
-TP2_MIN_PCT            = input.float(8.0, "Min % for two TPs (when S/R not used)", minval=4.0, maxval=20.0, step=1.0, group=gSettingsNumbers)
-TP_MIN_DISTANCE_PCT    = input.float(2.0, "Min % distance between TP1 and TP2", minval=0.5, maxval=10.0, step=0.5, group=gSettingsNumbers)
-SL_MIN_PCT             = input.float(0.2, "Min SL distance %", minval=0.2, maxval=5.0, step=0.1, group=gSettingsNumbers)
-SR_ZONE_LOOKBACK       = input.int(120, "SR Zone Lookback", minval=50, maxval=300, group=gSettingsNumbers)
-SR_ZONE_PIVOT_LB       = input.int(5, "SR Zone Pivot LB", minval=3, maxval=20, group=gSettingsNumbers)
-SR_ZONE_WIDTH_ATR      = input.float(0.4, "SR Zone Width ATR", minval=0.1, maxval=2.0, step=0.1, group=gSettingsNumbers)
-SR_ZONE_MAX_ZONES      = input.int(2, "SR Zone Max Zones", minval=1, maxval=5, group=gSettingsNumbers)
-SR_ZONE_MIN_TOUCHES    = input.int(2, "SR Zone Min Touches", minval=1, maxval=5, group=gSettingsNumbers)
-ICH_CONVERSION         = input.int(9, "Ichimoku Conversion", minval=5, maxval=30, group=gSettingsNumbers)
-ICH_BASE               = input.int(26, "Ichimoku Base", minval=10, maxval=50, group=gSettingsNumbers)
-ICH_SPAN               = input.int(52, "Ichimoku Span", minval=30, maxval=100, group=gSettingsNumbers)
-SAR_START              = input.float(0.02, "SAR Start", minval=0.01, maxval=0.2, step=0.01, group=gSettingsNumbers)
-SAR_INCREMENT          = input.float(0.02, "SAR Increment", minval=0.01, maxval=0.1, step=0.01, group=gSettingsNumbers)
-SAR_MAX                = input.float(0.2, "SAR Max", minval=0.1, maxval=0.5, step=0.01, group=gSettingsNumbers)
-ALLIGATOR_JAW          = input.int(13, "Alligator Jaw", minval=5, maxval=30, group=gSettingsNumbers)
-ALLIGATOR_TEETH        = input.int(8, "Alligator Teeth", minval=3, maxval=20, group=gSettingsNumbers)
-ALLIGATOR_LIPS         = input.int(5, "Alligator Lips", minval=2, maxval=15, group=gSettingsNumbers)
-TRIX_LENGTH            = input.int(14, "TRIX Length", minval=5, maxval=30, group=gSettingsNumbers)
-TRIX_SIGNAL_LEN        = input.int(9, "TRIX Signal Length", minval=3, maxval=20, group=gSettingsNumbers)
-UO_PERIOD_1            = input.int(7, "UO Period 1", minval=3, maxval=20, group=gSettingsNumbers)
-UO_PERIOD_2            = input.int(14, "UO Period 2", minval=5, maxval=30, group=gSettingsNumbers)
-UO_PERIOD_3            = input.int(28, "UO Period 3", minval=10, maxval=50, group=gSettingsNumbers)
-KST_ROC_1              = input.int(10, "KST ROC 1", minval=5, maxval=30, group=gSettingsNumbers)
-KST_ROC_2              = input.int(15, "KST ROC 2", minval=5, maxval=40, group=gSettingsNumbers)
-KST_ROC_3              = input.int(20, "KST ROC 3", minval=5, maxval=50, group=gSettingsNumbers)
-KST_ROC_4              = input.int(30, "KST ROC 4", minval=10, maxval=60, group=gSettingsNumbers)
-KST_SMA_LEN            = input.int(10, "KST SMA Length", minval=5, maxval=30, group=gSettingsNumbers)
-DPO_LENGTH             = input.int(20, "DPO Length", minval=10, maxval=50, group=gSettingsNumbers)
-RVI_LENGTH             = input.int(14, "RVI Length", minval=5, maxval=30, group=gSettingsNumbers)
-SCHAFF_CYCLE           = input.int(10, "Schaff Cycle", minval=5, maxval=20, group=gSettingsNumbers)
-SCHAFF_SMOOTH_1        = input.int(23, "Schaff Smooth 1", minval=10, maxval=50, group=gSettingsNumbers)
-SCHAFF_SMOOTH_2        = input.int(50, "Schaff Smooth 2", minval=20, maxval=100, group=gSettingsNumbers)
-PGO_LENGTH             = input.int(14, "PGO Length", minval=5, maxval=30, group=gSettingsNumbers)
-COPPOCK_ROC_1          = input.int(11, "Coppock ROC 1", minval=5, maxval=20, group=gSettingsNumbers)
-COPPOCK_ROC_2          = input.int(14, "Coppock ROC 2", minval=8, maxval=25, group=gSettingsNumbers)
-COPPOCK_SMA            = input.int(10, "Coppock SMA", minval=5, maxval=25, group=gSettingsNumbers)
-MASS_SINGLE            = input.int(9, "Mass Single", minval=5, maxval=20, group=gSettingsNumbers)
-MASS_SUM               = input.int(25, "Mass Sum", minval=10, maxval=50, group=gSettingsNumbers)
-MASS_THRESHOLD         = input.float(27.0, "Mass Threshold", minval=20.0, maxval=35.0, step=1.0, group=gSettingsNumbers)
-AD_LINE_MA_LEN         = input.int(20, "AD Line MA Length", minval=10, maxval=50, group=gSettingsNumbers)
-PVT_MA_LEN             = input.int(20, "PVT MA Length", minval=10, maxval=50, group=gSettingsNumbers)
-EFI_LENGTH             = input.int(13, "EFI Length", minval=5, maxval=30, group=gSettingsNumbers)
-KVO_FAST               = input.int(34, "KVO Fast", minval=20, maxval=50, group=gSettingsNumbers)
-KVO_SLOW               = input.int(55, "KVO Slow", minval=40, maxval=80, group=gSettingsNumbers)
-KVO_SIGNAL             = input.int(13, "KVO Signal", minval=5, maxval=25, group=gSettingsNumbers)
-EOM_LENGTH             = input.int(14, "EOM Length", minval=5, maxval=30, group=gSettingsNumbers)
-NVI_PVI_MA_LEN         = input.int(255, "NVI/PVI MA Length", minval=100, maxval=500, group=gSettingsNumbers)
-III_LENGTH             = input.int(14, "III Length", minval=5, maxval=30, group=gSettingsNumbers)
-TWIGGS_LENGTH          = input.int(21, "Twiggs Length", minval=10, maxval=40, group=gSettingsNumbers)
-PIN_BAR_WICK_RATIO     = input.float(2.0, "Pin Bar Wick Ratio", minval=1.0, maxval=5.0, step=0.5, group=gSettingsNumbers)
-DOJI_BODY_PCT          = input.float(0.1, "Doji Body %", minval=0.05, maxval=0.3, step=0.05, group=gSettingsNumbers)
-TWEEZER_TOLERANCE      = input.float(0.1, "Tweazer Tolerance", minval=0.05, maxval=0.3, step=0.05, group=gSettingsNumbers)
-FVG_MIN_BODY_PCT       = input.float(0.5, "FVG Min Body %", minval=0.2, maxval=1.0, step=0.1, group=gSettingsNumbers)
-DISP_BODY_MULT         = input.float(1.5, "Displacement Body Mult", minval=1.0, maxval=3.0, step=0.5, group=gSettingsNumbers)
-OB_DISPLACEMENT_MULT   = input.float(1.5, "OB Displacement Mult", minval=1.0, maxval=3.0, step=0.5, group=gSettingsNumbers)
-Z_SCORE_LENGTH         = input.int(20, "Z-Score Length", minval=10, maxval=50, group=gSettingsNumbers)
-PRESSURE_LENGTH        = input.int(14, "Pressure Length", minval=5, maxval=30, group=gSettingsNumbers)
-WYCKOFF_LOOKBACK       = input.int(50, "Wyckoff Lookback", minval=20, maxval=100, group=gSettingsNumbers)
-ELDER_EMA_LEN          = input.int(13, "Elder EMA Length", minval=5, maxval=30, group=gSettingsNumbers)
-VW_RSI_LENGTH          = input.int(14, "VW RSI Length", minval=5, maxval=30, group=gSettingsNumbers)
-CORR_LENGTH            = input.int(20, "Corr Length", minval=10, maxval=50, group=gSettingsNumbers)
-CMO_LENGTH             = input.int(14, "CMO Length", minval=5, maxval=30, group=gSettingsNumbers)
-HULL_LENGTH            = input.int(20, "Hull Length", minval=5, maxval=50, group=gSettingsNumbers)
-VWMA_LENGTH            = input.int(20, "VWMA Length", minval=5, maxval=50, group=gSettingsNumbers)
-MCGINLEY_LENGTH        = input.int(14, "McGinley Length", minval=5, maxval=30, group=gSettingsNumbers)
-DEMA_LENGTH            = input.int(14, "DEMA Length", minval=5, maxval=30, group=gSettingsNumbers)
-TEMA_LENGTH            = input.int(14, "TEMA Length", minval=5, maxval=30, group=gSettingsNumbers)
-ST_FACTOR              = input.float(3.0, "SuperTrend Factor", minval=1.0, maxval=5.0, step=0.5, group=gSettingsNumbers)
-ST_ATR_LEN             = input.int(10, "SuperTrend ATR Length", minval=5, maxval=30, group=gSettingsNumbers)
-RSI_LENGTH             = input.int(14, "RSI Length", minval=5, maxval=30, group=gSettingsNumbers)
-RSI_BULL_OVERSOLD      = input.float(35.0, "RSI Bull Oversold", minval=20.0, maxval=45.0, step=1.0, group=gSettingsNumbers)
-RSI_BEAR_OVERSOLD      = input.float(25.0, "RSI Bear Oversold", minval=15.0, maxval=35.0, step=1.0, group=gSettingsNumbers)
-RSI_BULL_OVERBOUGHT    = input.float(75.0, "RSI Bull Overbought", minval=65.0, maxval=90.0, step=1.0, group=gSettingsNumbers)
-RSI_BEAR_OVERBOUGHT    = input.float(65.0, "RSI Bear Overbought", minval=55.0, maxval=80.0, step=1.0, group=gSettingsNumbers)
-MACD_FAST              = input.int(12, "MACD Fast", minval=5, maxval=25, group=gSettingsNumbers)
-MACD_SLOW              = input.int(26, "MACD Slow", minval=15, maxval=40, group=gSettingsNumbers)
-MACD_SIGNAL            = input.int(9, "MACD Signal", minval=5, maxval=20, group=gSettingsNumbers)
-RSI_OVERBOUGHT         = input.float(70.0, "RSI Overbought", minval=60.0, maxval=90.0, step=1.0, group=gSettingsNumbers)
-RSI_OVERSOLD           = input.float(30.0, "RSI Oversold", minval=10.0, maxval=40.0, step=1.0, group=gSettingsNumbers)
-STOCH_K                = input.int(14, "Stochastic K", minval=5, maxval=30, group=gSettingsNumbers)
-STOCH_D                = input.int(3, "Stochastic D", minval=2, maxval=10, group=gSettingsNumbers)
-STOCH_OVERBOUGHT       = input.int(80, "Stochastic Overbought", minval=70, maxval=95, group=gSettingsNumbers)
-STOCH_OVERSOLD         = input.int(20, "Stochastic Oversold", minval=5, maxval=30, group=gSettingsNumbers)
-ROC_LENGTH             = input.int(10, "ROC Length", minval=5, maxval=25, group=gSettingsNumbers)
-CCI_LENGTH             = input.int(20, "CCI Length", minval=10, maxval=50, group=gSettingsNumbers)
-WR_LENGTH              = input.int(14, "Williams %R Length", minval=5, maxval=30, group=gSettingsNumbers)
-FISHER_LENGTH          = input.int(10, "Fisher Length", minval=5, maxval=25, group=gSettingsNumbers)
-ATR_LENGTH             = input.int(14, "ATR Length", minval=5, maxval=30, group=gSettingsNumbers)
-ATR_MULTIPLIER_SL      = input.float(2.0, "ATR Multiplier SL", minval=1.0, maxval=5.0, step=0.5, group=gSettingsNumbers)
-ATR_MULTIPLIER_TP      = input.float(3.0, "ATR Multiplier TP", minval=1.0, maxval=6.0, step=0.5, group=gSettingsNumbers)
-BB_LENGTH              = input.int(20, "BB Length", minval=10, maxval=50, group=gSettingsNumbers)
-BB_MULTIPLIER          = input.float(2.0, "BB Multiplier", minval=1.0, maxval=3.0, step=0.1, group=gSettingsNumbers)
-KC_LENGTH              = input.int(20, "Keltner Length", minval=10, maxval=50, group=gSettingsNumbers)
-KC_MULT                = input.float(1.5, "Keltner Mult", minval=1.0, maxval=3.0, step=0.1, group=gSettingsNumbers)
-DONCHIAN_LENGTH        = input.int(20, "Donchian Length", minval=10, maxval=50, group=gSettingsNumbers)
-HV_LENGTH              = input.int(20, "HV Length", minval=10, maxval=50, group=gSettingsNumbers)
-HV_RANK_LENGTH         = input.int(252, "HV Rank Length", minval=100, maxval=500, group=gSettingsNumbers)
-SQUEEZE_LENGTH         = input.int(20, "Squeeze Length", minval=10, maxval=50, group=gSettingsNumbers)
-CHAND_LENGTH           = input.int(22, "Chandelier Length", minval=10, maxval=40, group=gSettingsNumbers)
-CHAND_MULT             = input.float(3.0, "Chandelier Mult", minval=2.0, maxval=5.0, step=0.5, group=gSettingsNumbers)
-VOLUME_LENGTH          = input.int(20, "Volume Length", minval=10, maxval=50, group=gSettingsNumbers)
-VOLUME_MULTIPLIER      = input.float(1.0, "Volume Multiplier", minval=0.5, maxval=2.0, step=0.1, group=gSettingsNumbers)
-VOLUME_TREND_BARS      = input.int(3, "Volume Trend Bars", minval=2, maxval=10, group=gSettingsNumbers)
-OBV_LENGTH             = input.int(5, "OBV Length", minval=3, maxval=15, group=gSettingsNumbers)
-CMF_LENGTH             = input.int(20, "CMF Length", minval=10, maxval=50, group=gSettingsNumbers)
-MFI_LENGTH             = input.int(14, "MFI Length", minval=5, maxval=30, group=gSettingsNumbers)
-SWING_LOOKBACK         = input.int(5, "Swing Lookback", minval=2, maxval=15, group=gSettingsNumbers)
-SL_SWING_LOOKBACK      = input.int(10, "SL Swing Lookback", minval=5, maxval=25, group=gSettingsNumbers)
-SWING_DISPLACEMENT_ATR = input.float(1.0, "Swing Displacement ATR", minval=0.5, maxval=2.0, step=0.1, group=gSettingsNumbers)
-FIB_LOOKBACK           = input.int(20, "Fib Lookback", minval=10, maxval=50, group=gSettingsNumbers)
-GAP_MIN_ATR            = input.float(0.0, "Gap Min ATR", minval=0.0, maxval=2.0, step=0.1, group=gSettingsNumbers)
-PD_LOOKBACK            = input.int(50, "PD Lookback", minval=20, maxval=100, group=gSettingsNumbers)
-AROON_LENGTH           = input.int(25, "Aroon Length", minval=10, maxval=50, group=gSettingsNumbers)
-LIN_REG_LENGTH         = input.int(20, "Lin Reg Length", minval=10, maxval=50, group=gSettingsNumbers)
-VORTEX_LENGTH          = input.int(14, "Vortex Length", minval=5, maxval=30, group=gSettingsNumbers)
-HTF_EMA_LENGTH         = input.int(50, "HTF EMA Length", minval=20, maxval=100, group=gSettingsNumbers)
-ADX_LENGTH             = input.int(14, "ADX Length", minval=5, maxval=30, group=gSettingsNumbers)
-ADX_THRESHOLD          = input.float(25.0, "ADX Threshold", minval=15.0, maxval=40.0, step=1.0, group=gSettingsNumbers)
-HTF_RSI_LENGTH         = input.int(14, "HTF RSI Length", minval=5, maxval=30, group=gSettingsNumbers)
-HTF_RSI_NOT_OVERBOUGHT = input.float(70.0, "HTF RSI Not Overbought", minval=60.0, maxval=90.0, step=1.0, group=gSettingsNumbers)
-HTF_RSI_NOT_OVERSOLD   = input.float(30.0, "HTF RSI Not Oversold", minval=10.0, maxval=40.0, step=1.0, group=gSettingsNumbers)
-ATR_MIN_PCT            = input.float(0.0, "ATR Min %", minval=0.0, maxval=5.0, step=0.1, group=gSettingsNumbers)
-ATR_MAX_PCT            = input.float(0.0, "ATR Max %", minval=0.0, maxval=10.0, step=0.5, group=gSettingsNumbers)
-MA_FAST_LEN            = input.int(9, "MA Fast Length", minval=5, maxval=20, group=gSettingsNumbers)
-MA_SLOW_LEN            = input.int(21, "MA Slow Length", minval=10, maxval=40, group=gSettingsNumbers)
-MA_SLOWER_LEN          = input.int(50, "MA Slower Length", minval=30, maxval=100, group=gSettingsNumbers)
+var gSettingsNumbers    = "Settings · Numbers"
+BUY_SELL_COOLDOWN       = input.int(5, "Signal Cooldown (bars)", minval=1, maxval=50, group=gSettingsNumbers)
+BUY_SELL_RR             = input.float(2.0, "Risk:Reward Ratio", minval=1.0, maxval=5.0, step=0.5, group=gSettingsNumbers)
+BUY_SELL_THRESHOLD      = input.float(70, "Signal Threshold (0-100)", minval=30, maxval=95, step=5, group=gSettingsNumbers)
+TP2_MIN_PCT             = input.float(8.0, "Min % for two TPs (when S/R not used)", minval=4.0, maxval=20.0, step=1.0, group=gSettingsNumbers)
+TP_MIN_DISTANCE_PCT     = input.float(2.0, "Min % distance between TP1 and TP2", minval=0.5, maxval=10.0, step=0.5, group=gSettingsNumbers)
+PREVIOUS_SELL_RR        = input.int(20, "Historical Signal Opacity", minval=5, maxval=50, step=5, group=gSettingsNumbers)
+VIX_SUPPRESS_BUY_LEVEL  = input.float(20.0, "VIX level: suppress buy above", minval=15.0, maxval=40.0, step=1.0, group=gSettingsNumbers)
+VIX_SUPPRESS_SELL_LEVEL = input.float(15.0, "VIX level: suppress sell below", minval=10.0, maxval=25.0, step=1.0, group=gSettingsNumbers)
+SL_MIN_PCT              = input.float(0.2, "Min SL distance %", minval=0.2, maxval=5.0, step=0.1, group=gSettingsNumbers)
+SR_ZONE_LOOKBACK        = input.int(120, "SR Zone Lookback", minval=50, maxval=300, group=gSettingsNumbers)
+SR_ZONE_PIVOT_LB        = input.int(5, "SR Zone Pivot LB", minval=3, maxval=20, group=gSettingsNumbers)
+SR_ZONE_WIDTH_ATR       = input.float(0.4, "SR Zone Width ATR", minval=0.1, maxval=2.0, step=0.1, group=gSettingsNumbers)
+SR_ZONE_MAX_ZONES       = input.int(2, "SR Zone Max Zones", minval=1, maxval=5, group=gSettingsNumbers)
+SR_ZONE_MIN_TOUCHES     = input.int(2, "SR Zone Min Touches", minval=1, maxval=5, group=gSettingsNumbers)
+ICH_CONVERSION          = input.int(9, "Ichimoku Conversion", minval=5, maxval=30, group=gSettingsNumbers)
+ICH_BASE                = input.int(26, "Ichimoku Base", minval=10, maxval=50, group=gSettingsNumbers)
+ICH_SPAN                = input.int(52, "Ichimoku Span", minval=30, maxval=100, group=gSettingsNumbers)
+SAR_START               = input.float(0.02, "SAR Start", minval=0.01, maxval=0.2, step=0.01, group=gSettingsNumbers)
+SAR_INCREMENT           = input.float(0.02, "SAR Increment", minval=0.01, maxval=0.1, step=0.01, group=gSettingsNumbers)
+SAR_MAX                 = input.float(0.2, "SAR Max", minval=0.1, maxval=0.5, step=0.01, group=gSettingsNumbers)
+ALLIGATOR_JAW           = input.int(13, "Alligator Jaw", minval=5, maxval=30, group=gSettingsNumbers)
+ALLIGATOR_TEETH         = input.int(8, "Alligator Teeth", minval=3, maxval=20, group=gSettingsNumbers)
+ALLIGATOR_LIPS          = input.int(5, "Alligator Lips", minval=2, maxval=15, group=gSettingsNumbers)
+TRIX_LENGTH             = input.int(14, "TRIX Length", minval=5, maxval=30, group=gSettingsNumbers)
+TRIX_SIGNAL_LEN         = input.int(9, "TRIX Signal Length", minval=3, maxval=20, group=gSettingsNumbers)
+UO_PERIOD_1             = input.int(7, "UO Period 1", minval=3, maxval=20, group=gSettingsNumbers)
+UO_PERIOD_2             = input.int(14, "UO Period 2", minval=5, maxval=30, group=gSettingsNumbers)
+UO_PERIOD_3             = input.int(28, "UO Period 3", minval=10, maxval=50, group=gSettingsNumbers)
+KST_ROC_1               = input.int(10, "KST ROC 1", minval=5, maxval=30, group=gSettingsNumbers)
+KST_ROC_2               = input.int(15, "KST ROC 2", minval=5, maxval=40, group=gSettingsNumbers)
+KST_ROC_3               = input.int(20, "KST ROC 3", minval=5, maxval=50, group=gSettingsNumbers)
+KST_ROC_4               = input.int(30, "KST ROC 4", minval=10, maxval=60, group=gSettingsNumbers)
+KST_SMA_LEN             = input.int(10, "KST SMA Length", minval=5, maxval=30, group=gSettingsNumbers)
+DPO_LENGTH              = input.int(20, "DPO Length", minval=10, maxval=50, group=gSettingsNumbers)
+RVI_LENGTH              = input.int(14, "RVI Length", minval=5, maxval=30, group=gSettingsNumbers)
+SCHAFF_CYCLE            = input.int(10, "Schaff Cycle", minval=5, maxval=20, group=gSettingsNumbers)
+SCHAFF_SMOOTH_1         = input.int(23, "Schaff Smooth 1", minval=10, maxval=50, group=gSettingsNumbers)
+SCHAFF_SMOOTH_2         = input.int(50, "Schaff Smooth 2", minval=20, maxval=100, group=gSettingsNumbers)
+PGO_LENGTH              = input.int(14, "PGO Length", minval=5, maxval=30, group=gSettingsNumbers)
+COPPOCK_ROC_1           = input.int(11, "Coppock ROC 1", minval=5, maxval=20, group=gSettingsNumbers)
+COPPOCK_ROC_2           = input.int(14, "Coppock ROC 2", minval=8, maxval=25, group=gSettingsNumbers)
+COPPOCK_SMA             = input.int(10, "Coppock SMA", minval=5, maxval=25, group=gSettingsNumbers)
+MASS_SINGLE             = input.int(9, "Mass Single", minval=5, maxval=20, group=gSettingsNumbers)
+MASS_SUM                = input.int(25, "Mass Sum", minval=10, maxval=50, group=gSettingsNumbers)
+MASS_THRESHOLD          = input.float(27.0, "Mass Threshold", minval=20.0, maxval=35.0, step=1.0, group=gSettingsNumbers)
+AD_LINE_MA_LEN          = input.int(20, "AD Line MA Length", minval=10, maxval=50, group=gSettingsNumbers)
+PVT_MA_LEN              = input.int(20, "PVT MA Length", minval=10, maxval=50, group=gSettingsNumbers)
+EFI_LENGTH              = input.int(13, "EFI Length", minval=5, maxval=30, group=gSettingsNumbers)
+KVO_FAST                = input.int(34, "KVO Fast", minval=20, maxval=50, group=gSettingsNumbers)
+KVO_SLOW                = input.int(55, "KVO Slow", minval=40, maxval=80, group=gSettingsNumbers)
+KVO_SIGNAL              = input.int(13, "KVO Signal", minval=5, maxval=25, group=gSettingsNumbers)
+EOM_LENGTH              = input.int(14, "EOM Length", minval=5, maxval=30, group=gSettingsNumbers)
+NVI_PVI_MA_LEN          = input.int(255, "NVI/PVI MA Length", minval=100, maxval=500, group=gSettingsNumbers)
+III_LENGTH              = input.int(14, "III Length", minval=5, maxval=30, group=gSettingsNumbers)
+TWIGGS_LENGTH           = input.int(21, "Twiggs Length", minval=10, maxval=40, group=gSettingsNumbers)
+PIN_BAR_WICK_RATIO      = input.float(2.0, "Pin Bar Wick Ratio", minval=1.0, maxval=5.0, step=0.5, group=gSettingsNumbers)
+DOJI_BODY_PCT           = input.float(0.1, "Doji Body %", minval=0.05, maxval=0.3, step=0.05, group=gSettingsNumbers)
+TWEEZER_TOLERANCE       = input.float(0.1, "Tweazer Tolerance", minval=0.05, maxval=0.3, step=0.05, group=gSettingsNumbers)
+FVG_MIN_BODY_PCT        = input.float(0.5, "FVG Min Body %", minval=0.2, maxval=1.0, step=0.1, group=gSettingsNumbers)
+DISP_BODY_MULT          = input.float(1.5, "Displacement Body Mult", minval=1.0, maxval=3.0, step=0.5, group=gSettingsNumbers)
+OB_DISPLACEMENT_MULT    = input.float(1.5, "OB Displacement Mult", minval=1.0, maxval=3.0, step=0.5, group=gSettingsNumbers)
+Z_SCORE_LENGTH          = input.int(20, "Z-Score Length", minval=10, maxval=50, group=gSettingsNumbers)
+PRESSURE_LENGTH         = input.int(14, "Pressure Length", minval=5, maxval=30, group=gSettingsNumbers)
+WYCKOFF_LOOKBACK        = input.int(50, "Wyckoff Lookback", minval=20, maxval=100, group=gSettingsNumbers)
+ELDER_EMA_LEN           = input.int(13, "Elder EMA Length", minval=5, maxval=30, group=gSettingsNumbers)
+VW_RSI_LENGTH           = input.int(14, "VW RSI Length", minval=5, maxval=30, group=gSettingsNumbers)
+CORR_LENGTH             = input.int(20, "Corr Length", minval=10, maxval=50, group=gSettingsNumbers)
+CMO_LENGTH              = input.int(14, "CMO Length", minval=5, maxval=30, group=gSettingsNumbers)
+HULL_LENGTH             = input.int(20, "Hull Length", minval=5, maxval=50, group=gSettingsNumbers)
+VWMA_LENGTH             = input.int(20, "VWMA Length", minval=5, maxval=50, group=gSettingsNumbers)
+MCGINLEY_LENGTH         = input.int(14, "McGinley Length", minval=5, maxval=30, group=gSettingsNumbers)
+DEMA_LENGTH             = input.int(14, "DEMA Length", minval=5, maxval=30, group=gSettingsNumbers)
+TEMA_LENGTH             = input.int(14, "TEMA Length", minval=5, maxval=30, group=gSettingsNumbers)
+ST_FACTOR               = input.float(3.0, "SuperTrend Factor", minval=1.0, maxval=5.0, step=0.5, group=gSettingsNumbers)
+ST_ATR_LEN              = input.int(10, "SuperTrend ATR Length", minval=5, maxval=30, group=gSettingsNumbers)
+RSI_LENGTH              = input.int(14, "RSI Length", minval=5, maxval=30, group=gSettingsNumbers)
+RSI_BULL_OVERSOLD       = input.float(35.0, "RSI Bull Oversold", minval=20.0, maxval=45.0, step=1.0, group=gSettingsNumbers)
+RSI_BEAR_OVERSOLD       = input.float(25.0, "RSI Bear Oversold", minval=15.0, maxval=35.0, step=1.0, group=gSettingsNumbers)
+RSI_BULL_OVERBOUGHT     = input.float(75.0, "RSI Bull Overbought", minval=65.0, maxval=90.0, step=1.0, group=gSettingsNumbers)
+RSI_BEAR_OVERBOUGHT     = input.float(65.0, "RSI Bear Overbought", minval=55.0, maxval=80.0, step=1.0, group=gSettingsNumbers)
+MACD_FAST               = input.int(12, "MACD Fast", minval=5, maxval=25, group=gSettingsNumbers)
+MACD_SLOW               = input.int(26, "MACD Slow", minval=15, maxval=40, group=gSettingsNumbers)
+MACD_SIGNAL             = input.int(9, "MACD Signal", minval=5, maxval=20, group=gSettingsNumbers)
+RSI_OVERBOUGHT          = input.float(70.0, "RSI Overbought", minval=60.0, maxval=90.0, step=1.0, group=gSettingsNumbers)
+RSI_OVERSOLD            = input.float(30.0, "RSI Oversold", minval=10.0, maxval=40.0, step=1.0, group=gSettingsNumbers)
+STOCH_K                 = input.int(14, "Stochastic K", minval=5, maxval=30, group=gSettingsNumbers)
+STOCH_D                 = input.int(3, "Stochastic D", minval=2, maxval=10, group=gSettingsNumbers)
+STOCH_OVERBOUGHT        = input.int(80, "Stochastic Overbought", minval=70, maxval=95, group=gSettingsNumbers)
+STOCH_OVERSOLD          = input.int(20, "Stochastic Oversold", minval=5, maxval=30, group=gSettingsNumbers)
+ROC_LENGTH              = input.int(10, "ROC Length", minval=5, maxval=25, group=gSettingsNumbers)
+CCI_LENGTH              = input.int(20, "CCI Length", minval=10, maxval=50, group=gSettingsNumbers)
+WR_LENGTH               = input.int(14, "Williams %R Length", minval=5, maxval=30, group=gSettingsNumbers)
+FISHER_LENGTH           = input.int(10, "Fisher Length", minval=5, maxval=25, group=gSettingsNumbers)
+ATR_LENGTH              = input.int(14, "ATR Length", minval=5, maxval=30, group=gSettingsNumbers)
+ATR_MULTIPLIER_SL       = input.float(2.0, "ATR Multiplier SL", minval=1.0, maxval=5.0, step=0.5, group=gSettingsNumbers)
+ATR_MULTIPLIER_TP       = input.float(3.0, "ATR Multiplier TP", minval=1.0, maxval=6.0, step=0.5, group=gSettingsNumbers)
+BB_LENGTH               = input.int(20, "BB Length", minval=10, maxval=50, group=gSettingsNumbers)
+BB_MULTIPLIER           = input.float(2.0, "BB Multiplier", minval=1.0, maxval=3.0, step=0.1, group=gSettingsNumbers)
+KC_LENGTH               = input.int(20, "Keltner Length", minval=10, maxval=50, group=gSettingsNumbers)
+KC_MULT                 = input.float(1.5, "Keltner Mult", minval=1.0, maxval=3.0, step=0.1, group=gSettingsNumbers)
+DONCHIAN_LENGTH         = input.int(20, "Donchian Length", minval=10, maxval=50, group=gSettingsNumbers)
+HV_LENGTH               = input.int(20, "HV Length", minval=10, maxval=50, group=gSettingsNumbers)
+HV_RANK_LENGTH          = input.int(252, "HV Rank Length", minval=100, maxval=500, group=gSettingsNumbers)
+SQUEEZE_LENGTH          = input.int(20, "Squeeze Length", minval=10, maxval=50, group=gSettingsNumbers)
+CHAND_LENGTH            = input.int(22, "Chandelier Length", minval=10, maxval=40, group=gSettingsNumbers)
+CHAND_MULT              = input.float(3.0, "Chandelier Mult", minval=2.0, maxval=5.0, step=0.5, group=gSettingsNumbers)
+VOLUME_LENGTH           = input.int(20, "Volume Length", minval=10, maxval=50, group=gSettingsNumbers)
+VOLUME_MULTIPLIER       = input.float(1.0, "Volume Multiplier", minval=0.5, maxval=2.0, step=0.1, group=gSettingsNumbers)
+VOLUME_TREND_BARS       = input.int(3, "Volume Trend Bars", minval=2, maxval=10, group=gSettingsNumbers)
+OBV_LENGTH              = input.int(5, "OBV Length", minval=3, maxval=15, group=gSettingsNumbers)
+CMF_LENGTH              = input.int(20, "CMF Length", minval=10, maxval=50, group=gSettingsNumbers)
+MFI_LENGTH              = input.int(14, "MFI Length", minval=5, maxval=30, group=gSettingsNumbers)
+SWING_LOOKBACK          = input.int(5, "Swing Lookback", minval=2, maxval=15, group=gSettingsNumbers)
+SL_SWING_LOOKBACK       = input.int(10, "SL Swing Lookback", minval=5, maxval=25, group=gSettingsNumbers)
+SWING_DISPLACEMENT_ATR  = input.float(1.0, "Swing Displacement ATR", minval=0.5, maxval=2.0, step=0.1, group=gSettingsNumbers)
+FIB_LOOKBACK            = input.int(20, "Fib Lookback", minval=10, maxval=50, group=gSettingsNumbers)
+GAP_MIN_ATR             = input.float(0.0, "Gap Min ATR", minval=0.0, maxval=2.0, step=0.1, group=gSettingsNumbers)
+PD_LOOKBACK             = input.int(50, "PD Lookback", minval=20, maxval=100, group=gSettingsNumbers)
+AROON_LENGTH            = input.int(25, "Aroon Length", minval=10, maxval=50, group=gSettingsNumbers)
+LIN_REG_LENGTH          = input.int(20, "Lin Reg Length", minval=10, maxval=50, group=gSettingsNumbers)
+VORTEX_LENGTH           = input.int(14, "Vortex Length", minval=5, maxval=30, group=gSettingsNumbers)
+HTF_EMA_LENGTH          = input.int(50, "HTF EMA Length", minval=20, maxval=100, group=gSettingsNumbers)
+ADX_LENGTH              = input.int(14, "ADX Length", minval=5, maxval=30, group=gSettingsNumbers)
+ADX_THRESHOLD           = input.float(25.0, "ADX Threshold", minval=15.0, maxval=40.0, step=1.0, group=gSettingsNumbers)
+HTF_RSI_LENGTH          = input.int(14, "HTF RSI Length", minval=5, maxval=30, group=gSettingsNumbers)
+HTF_RSI_NOT_OVERBOUGHT  = input.float(70.0, "HTF RSI Not Overbought", minval=60.0, maxval=90.0, step=1.0, group=gSettingsNumbers)
+HTF_RSI_NOT_OVERSOLD    = input.float(30.0, "HTF RSI Not Oversold", minval=10.0, maxval=40.0, step=1.0, group=gSettingsNumbers)
+ATR_MIN_PCT             = input.float(0.0, "ATR Min %", minval=0.0, maxval=5.0, step=0.1, group=gSettingsNumbers)
+ATR_MAX_PCT             = input.float(0.0, "ATR Max %", minval=0.0, maxval=10.0, step=0.5, group=gSettingsNumbers)
+MA_FAST_LEN             = input.int(9, "MA Fast Length", minval=5, maxval=20, group=gSettingsNumbers)
+MA_SLOW_LEN             = input.int(21, "MA Slow Length", minval=10, maxval=40, group=gSettingsNumbers)
+MA_SLOWER_LEN           = input.int(50, "MA Slower Length", minval=30, maxval=100, group=gSettingsNumbers)
 
 var gTheme       = "Theme & Colors"
 POSITIVE_COLOR   = input.color(color.rgb(0, 200, 83), "Positive", group=gTheme)
@@ -361,16 +366,13 @@ f_trendAlignScore(mtfD, mtf240, mtf60, mtf15, mtf5, htfTrendUp, adxStrong, vwRsi
     [math.min(bRaw / c, 1.0), math.min(sRaw / c, 1.0)]
 
 f_metaMultipliers(exhB, exhS, revB, revS, strB, strS, volB, volS, trdB, trdS, zScore, hvRank, adxValue, adxStrong, lagSellCount, lagEnabledCount, lagBuyCount, USE_SESSION_FILTER, inSession) =>
-    // STOCKS: Lower deviation - tighter thresholds (2.5σ vs 2.0σ), reduced impact
     zBuyM = zScore[1] < -2.5 ? 1.10 : zScore[1] < -1.5 ? 1.04 : zScore[1] > 2.5 ? 0.75 : zScore[1] > 1.5 ? 0.90 : 1.0
     zSellM = zScore[1] > 2.5 ? 1.10 : zScore[1] > 1.5 ? 1.04 : zScore[1] < -2.5 ? 0.75 : zScore[1] < -1.5 ? 0.90 : 1.0
     r2M = 1.0
     exhStrength = math.max(exhB, exhS)
-    // STOCKS: Stable vol = healthy trends, spikes need confirmation, add low-vol bonus
     vsM = hvRank[1] > 95 ? (exhStrength > 0.6 ? 1.06 : exhStrength > 0.4 ? 0.88 : 0.70) : hvRank[1] > 85 ? (exhStrength > 0.5 ? 1.03 : 0.92) : hvRank[1] < 30 ? 1.05 : 1.0
     adxFall = adxValue[1] < adxValue[4]
     adxRise = adxValue[1] > adxValue[4] and adxStrong
-    // STOCKS: Strong trends persist - only boost reversals if trend already weak
     adxM = adxFall and not adxStrong ? 1.04 : adxRise ? 0.90 : 1.0
     lagSellRatio = lagSellCount / math.max(lagEnabledCount, 1)
     lagBuyRatio = lagBuyCount / math.max(lagEnabledCount, 1)
@@ -380,18 +382,16 @@ f_metaMultipliers(exhB, exhS, revB, revS, strB, strS, volB, volS, trdB, trdS, zS
     exPenB = (lagNetBuy >= 0 and lagSellRatio >= 0.65) ? 1.0 : (lagSellRatio >= 0.75 ? 0.40 : (lagNetBuy < 0 ? (lagBuyRatio >= 0.82 ? 0.55 : lagBuyRatio >= 0.65 ? 0.75 : 1.0) : 1.0))
     exBoostS = lagNetSell >= 0 ? (lagBuyRatio >= 0.82 ? 1.15 : lagBuyRatio >= 0.65 ? 1.08 : 1.0) : 1.0
     exPenS = (lagNetSell >= 0 and lagBuyRatio >= 0.65) ? 1.0 : (lagBuyRatio >= 0.75 ? 0.40 : (lagNetSell < 0 ? (lagSellRatio >= 0.82 ? 0.55 : lagSellRatio >= 0.65 ? 0.75 : 1.0) : 1.0))
-    // STOCKS: Demand more confirmation - higher thresholds, increased rewards
     bAgreeStrong = (exhB > 0.50 ? 1 : 0) + (revB > 0.40 ? 1 : 0) + (strB > 0.40 ? 1 : 0) + (volB > 0.55 ? 1 : 0) + (trdB > 0.60 ? 1 : 0)
     bAgree = (exhB > 0.20 ? 1 : 0) + (revB > 0.12 ? 1 : 0) + (strB > 0.15 ? 1 : 0) + (volB > 0.25 ? 1 : 0) + (trdB > 0.30 ? 1 : 0)
     sAgreeStrong = (exhS > 0.50 ? 1 : 0) + (revS > 0.40 ? 1 : 0) + (strS > 0.40 ? 1 : 0) + (volS > 0.55 ? 1 : 0) + (trdS > 0.60 ? 1 : 0)
     sAgree = (exhS > 0.20 ? 1 : 0) + (revS > 0.12 ? 1 : 0) + (strS > 0.15 ? 1 : 0) + (volS > 0.25 ? 1 : 0) + (trdS > 0.30 ? 1 : 0)
     agreeB = bAgreeStrong >= 4 ? 1.18 : bAgreeStrong >= 3 ? 1.12 : (bAgreeStrong >= 2 and bAgree >= 4) ? 1.08 : bAgree >= 4 ? 1.05 : bAgree >= 3 ? 1.02 : 1.0
     agreeS = sAgreeStrong >= 4 ? 1.18 : sAgreeStrong >= 3 ? 1.12 : (sAgreeStrong >= 2 and sAgree >= 4) ? 1.08 : sAgree >= 4 ? 1.05 : sAgree >= 3 ? 1.02 : 1.0
-    // Indices: session multiplier disabled (no forex-style session gaps)
     sessM = 1.0
     [r2M, zBuyM, zSellM, vsM, adxM, exBoostB, exPenB, exBoostS, exPenS, agreeB, agreeS, sessM, bAgreeStrong, bAgree, sAgreeStrong, sAgree]
 
-f_signalTooltip(isBuy, slSource, finalBuyScore, finalSellScore, buyConfidence, sellConfidence, buyDominance, sellDominance, dominanceRatioBuy, dominanceRatioSell, exhBuyScore, exhSellScore, revBuyScore, revSellScore, structBuyScore, structSellScore, volBuyScore, volSellScore, trendAlignBuyScore, trendAlignSellScore, buyCatAgreeStrong, sellCatAgreeStrong, buyCatAgree, sellCatAgree, buySL, sellSL, buyTP, sellTP, buyActualRR, sellActualRR, buyTPSource, sellTPSource, bullishDivergence, bearishDivergence, USE_TWO_T_PS_BUY, USE_TWO_T_PS_SELL, buyTP1, sellTP1, buyTP2, sellTP2, inPremium, inDiscount, rSqValue, r2Reversal, r2Trend, zScore, hvRank, volSpikeMult, lagBuyCount, lagSellCount, lagEnabledCount, buyEntryPrice, sellEntryPrice) =>
+f_signalTooltip(isBuy, slSource, finalBuyScore, finalSellScore, buyConfidence, sellConfidence, buyDominance, sellDominance, dominanceRatioBuy, dominanceRatioSell, exhBuyScore, exhSellScore, revBuyScore, revSellScore, structBuyScore, structSellScore, volBuyScore, volSellScore, trendAlignBuyScore, trendAlignSellScore, buyCatAgreeStrong, sellCatAgreeStrong, buyCatAgree, sellCatAgree, buySL, sellSL, buyTP, sellTP, buyActualRR, sellActualRR, buyTPSource, sellTPSource, bullishDivergence, bearishDivergence, USE_TWO_T_PS_BUY, USE_TWO_T_PS_SELL, buyTP1, sellTP1, buyTP2, sellTP2, inPremium, inDiscount, rSqValue, r2Reversal, r2Trend, zScore, hvRank, volSpikeMult, lagBuyCount, lagSellCount, lagEnabledCount, buyEntryPrice, sellEntryPrice, vixOk, vixClose, vixSuppressBuy, vixSuppressSell) =>
     _score = isBuy ? finalBuyScore : finalSellScore
     _conf = isBuy ? buyConfidence : sellConfidence
     _dom = isBuy ? buyDominance : sellDominance
@@ -433,6 +433,7 @@ f_signalTooltip(isBuy, slSource, finalBuyScore, finalSellScore, buyConfidence, s
      + "HV Rank: " + str.tostring(hvRank[1], "#") + "%" + (volSpikeMult < 1.0 ? " ⚠" : "") + "\n"
      + "P/D Zone: " + _pdLabel + "\n"
      + "Lagging bull/bear: " + str.tostring(lagBuyCount) + "/" + str.tostring(lagSellCount) + " (of " + str.tostring(lagEnabledCount) + ")\n"
+     + "VIX regime: " + (vixOk ? (str.tostring(vixClose, "#.#") + (vixSuppressBuy ? " (suppress buy)" : vixSuppressSell ? " (suppress sell)" : " OK")) : "n/a") + "\n"
      + "Divergence: " + (_isDivergent ? "Yes (+8)" : "No") + "\n"
      + "━━━━━━━━━━━━━━━━━━━━\n"
      + "Entry: " + str.tostring(_entry, "#.##") + "\n"
@@ -1504,6 +1505,21 @@ f_dashMTFLevels(table dash, bool useMTF, bool mtf5, bool mtf15, bool mtf60, bool
     table.cell(dash, 3, 58, gapUp ? "Up" : gapDown ? "Dn" : "None", bgcolor=f_condColor3(gapUp, gapDown), text_color=TEXT_COLOR, text_size=size.tiny)
     table.cell(dash, 4, 58, "", bgcolor=f_rowBg(58))
 
+f_dashIntermarket(table dash, float vixC, bool vixO, bool vixSuppB, bool vixSuppS, bool contangoVal) =>
+    table.cell(dash, 0, 59, " INTERMARKET", bgcolor=color.new(ACCENT_COLOR, 30), text_color=color.white, text_size=size.tiny, text_font_family=font.family_monospace, text_halign=text.align_left)
+    table.cell(dash, 1, 59, "", bgcolor=color.new(ACCENT_COLOR, 75))
+    table.cell(dash, 2, 59, "", bgcolor=color.new(ACCENT_COLOR, 75))
+    table.cell(dash, 3, 59, "", bgcolor=color.new(ACCENT_COLOR, 75))
+    table.cell(dash, 4, 59, "", bgcolor=color.new(ACCENT_COLOR, 75))
+    table.merge_cells(dash, 0, 59, 4, 59)
+    vixStr = vixO ? str.tostring(vixC, "#.#") : "n/a"
+    regimeStr = vixSuppB ? "Suppress Buy" : vixSuppS ? "Suppress Sell" : contangoVal ? "Contango" : "OK"
+    table.cell(dash, 0, 60, "VIX", bgcolor=f_rowBg(60), text_color=TEXT_COLOR, text_size=size.tiny)
+    table.cell(dash, 1, 60, vixStr, bgcolor=vixSuppB ? color.new(WARNING_COLOR, 50) : vixSuppS ? color.new(POSITIVE_COLOR, 50) : color.new(NEUTRAL_COLOR, 50), text_color=TEXT_COLOR, text_size=size.tiny)
+    table.cell(dash, 2, 60, "Regime", bgcolor=f_rowBg(60), text_color=TEXT_COLOR, text_size=size.tiny)
+    table.cell(dash, 3, 60, regimeStr, bgcolor=vixSuppB ? color.new(WARNING_COLOR, 50) : vixSuppS ? color.new(POSITIVE_COLOR, 50) : f_condColor(true), text_color=TEXT_COLOR, text_size=size.tiny)
+    table.cell(dash, 4, 60, "", bgcolor=f_rowBg(60))
+
 f_calcSLTP(float slLastHigh, float slLastLow, int slAgeBuy, int slAgeSell, float slLastLow2, float slLastHigh2, int slAgeBuy2, int slAgeSell2, float cl, float openP, float atrP, float finBuy, float finSell, float atrMultSL, float rrMult, float minSlPct) =>
     atrSLDist = atrP * atrMultSL
     structDistBuy = cl - slLastLow
@@ -2101,6 +2117,26 @@ rsMA = ta.sma(rsRatio, CORR_LENGTH)
 rsBullish = rsRatio[1] > rsMA[1]
 rsBearish = rsRatio[1] < rsMA[1]
 
+vixClose = request.security("CBOE:VIX", "D", close, lookahead=barmerge.lookahead_off)
+[vixClosePrev, vixClosePrev2] = request.security("CBOE:VIX", "D", [close[1], close[2]], lookahead=barmerge.lookahead_off)
+vixOk = not na(vixClose)
+vixRoc5 = vixOk and not na(vixClosePrev) ? (vixClose - vixClosePrev) : 0.0
+vixRising = vixOk and vixRoc5 > 0
+contango = vixOk and vixRoc5 <= 0
+termStructureRising = vixRising
+vixSuppressBuy = USE_VIX_REGIME and vixOk and (vixClose > VIX_SUPPRESS_BUY_LEVEL) and (termStructureRising or vixRising)
+vixSuppressSell = USE_VIX_REGIME and vixOk and (vixClose < VIX_SUPPRESS_SELL_LEVEL) and contango
+
+t10y2y = request.security("FRED:T10Y2Y", "D", close, lookahead=barmerge.lookahead_off)
+t10y2yPrev = request.security("FRED:T10Y2Y", "D", close[1], lookahead=barmerge.lookahead_off)
+t10y2yOk = not na(t10y2y) and not na(t10y2yPrev)
+yieldCurveInverted = t10y2yOk and t10y2y < 0
+yieldCurveSteepening = t10y2yOk and t10y2y > t10y2yPrev
+yieldCurveDeepInversion = t10y2yOk and t10y2y < -0.5
+yieldCurveSuppressBuy = USE_YIELD_CURVE and t10y2yOk and yieldCurveDeepInversion and not yieldCurveSteepening
+yieldCurveOkBuy = not USE_YIELD_CURVE or not yieldCurveSuppressBuy
+yieldCurveOkSell = true
+
 [bullEngulfing, bearEngulfing, hammerBull, shootingStar, morningStar, eveningStar, doji, bullHarami, bearHarami, threeWhiteSoldiers, threeBlackCrows, tweezerBottom, tweezerTop, piercingLine, darkCloudCover, wickRejectionBuy, wickRejectionSell] = f_calcCandlePatterns(atr)
 
 zScore = (close - ta.sma(close, Z_SCORE_LENGTH)) / math.max(ta.stdev(close, Z_SCORE_LENGTH), 1e-10)
@@ -2255,8 +2291,10 @@ bodyMult = signalBodyPct > 0.6 ? 1.08 : signalBodyPct < 0.25 ? 0.85 : 1.0
 adxFalling = adxValue[1] < adxValue[4]
 adxRisingStrong = adxValue[1] > adxValue[4] and adxStrong
 
-multProductBuy = zScoreBuyMult * exhaustionBoostBuy * exhaustionPenaltyBuy * agreeMult * sessionMult * volSpikeMult * pdPenaltyBuy * mtfDivMultBuy * bodyMult * adxReversalMult
-multProductSell = zScoreSellMult * exhaustionBoostSell * exhaustionPenaltySell * agreeMsell * sessionMult * volSpikeMult * pdPenaltySell * mtfDivMultSell * bodyMult * adxReversalMult
+intermarketMultBuy = (vixSuppressBuy or yieldCurveSuppressBuy) ? 0.5 : 1.0
+intermarketMultSell = vixSuppressSell ? 0.5 : 1.0
+multProductBuy = zScoreBuyMult * exhaustionBoostBuy * exhaustionPenaltyBuy * agreeMult * sessionMult * volSpikeMult * pdPenaltyBuy * mtfDivMultBuy * bodyMult * adxReversalMult * intermarketMultBuy
+multProductSell = zScoreSellMult * exhaustionBoostSell * exhaustionPenaltySell * agreeMsell * sessionMult * volSpikeMult * pdPenaltySell * mtfDivMultSell * bodyMult * adxReversalMult * intermarketMultSell
 finalBuyScore = math.min((rawBuyScore + divBonusBuy + wyckBonusBuy + chochBonusBuy) * math.min(multProductBuy, 1.80), 100.0)
 finalSellScore = math.min((rawSellScore + divBonusSell + wyckBonusSell + chochBonusSell) * math.min(multProductSell, 1.80), 100.0)
 
@@ -2277,8 +2315,8 @@ signalBarBearish = close < open and signalBodyPct > 0.15
 signalBarInside = high <= high[1] and low >= low[1]
 r2RegimeOk = (rSqValue >= 0.15 and adxStrong) or (math.abs(zScore[1]) > 2.0)
 
-signalBuy = USE_BUY_SELL_SIGNAL and barstate.isconfirmed and finalBuyScore >= BUY_SELL_THRESHOLD and barsSinceLastBuy >= BUY_SELL_COOLDOWN and dominanceRatioBuy >= 1.25 and buyDominance >= 8.0 and r2RegimeOk and (lagSellRatio < 0.75 or finalBuyScore >= 85)
-signalSell = USE_BUY_SELL_SIGNAL and barstate.isconfirmed and finalSellScore >= BUY_SELL_THRESHOLD and barsSinceLastSell >= BUY_SELL_COOLDOWN and dominanceRatioSell >= 1.25 and sellDominance >= 8.0 and r2RegimeOk and (lagBuyRatio < 0.75 or finalSellScore >= 85)
+signalBuy = USE_BUY_SELL_SIGNAL and barstate.isconfirmed and finalBuyScore >= BUY_SELL_THRESHOLD and barsSinceLastBuy >= BUY_SELL_COOLDOWN and dominanceRatioBuy >= 1.25 and buyDominance >= 8.0 and r2RegimeOk and (lagSellRatio < 0.75 or finalBuyScore >= 85) and (not USE_VIX_REGIME or not vixSuppressBuy) and yieldCurveOkBuy
+signalSell = USE_BUY_SELL_SIGNAL and barstate.isconfirmed and finalSellScore >= BUY_SELL_THRESHOLD and barsSinceLastSell >= BUY_SELL_COOLDOWN and dominanceRatioSell >= 1.25 and sellDominance >= 8.0 and r2RegimeOk and (lagBuyRatio < 0.75 or finalSellScore >= 85) and (not USE_VIX_REGIME or not vixSuppressSell) and yieldCurveOkSell
 
 if signalBuy
     barsSinceLastBuy := 0
@@ -2292,7 +2330,7 @@ var string activeSLType = "-"
 var float activeTP = na
 var float activeSL = na
 
-if USE_DASHBOARD and isRightVisibleBar
+if USE_DASHBOARD and (isRightVisibleBar or barstate.islast)
     var table dash = table.new(position.top_right, 5, 61, border_width=0, frame_width=0)
     f_dashBuySellSignal(dash, USE_BUY_SELL_SIGNAL, finalBuyScore, finalSellScore, buyCatAgree, sellCatAgree, barsSinceLastBuy, barsSinceLastSell)
     f_dashTrend(dash, hullTrend, stBullish, adxValue[1], ADX_THRESHOLD, adxStrong, sarBullish, ichBullish, ichBearish, aroonUp[1], aroonDown[1], aroonBullish, linRegSlope[1], linRegBullish, vwmaBullish, htfTrendUp, maStackUp, maStackDown, donchianBullish, mcginleyBullish, demaBullish, gmmaBullish, alligatorBullish, alligatorBearish, vortexBullish)
@@ -2301,6 +2339,7 @@ if USE_DASHBOARD and isRightVisibleBar
     f_dashVolatility(dash, bbPercent[1], bbNotExtremes, ttmSqueezeOn, ttmFirBull, ttmFirBear, kcBullish, chandBullish, atrInRange, massValue[1], massBulge, bbBullish)
     f_dashRegimeMetaRisk(dash, inDiscount, premiumDiscountOkBuy, htfRsiPrev, htfRsiOkBuy, rsBullish, corrValue[1], corrBullish, corrBearish, hvRank[1], hvLow, hvHigh, wyckSpring, wyckUpthrust, rSqValue, zScore[1], dominantPeriod, adxStrong, trendUp, trendDown, atrPrev, activeSL, activeSLType, activeTP, ATR_MULTIPLIER_SL, ATR_MULTIPLIER_TP, activeRR, BUY_SELL_RR)
     f_dashMTFLevels(dash, USE_MTF_HEATMAP, mtf5, mtf15, mtf60, mtf240, mtfD, pivotP[1], pivotR1, pivotS1, USE_PIVOTS, nearPivotR1, nearPivotS1, fib50[1], gapUp, gapDown)
+    f_dashIntermarket(dash, vixClose, vixOk, vixSuppressBuy, vixSuppressSell, contango)
 
 slSwingHigh = ta.pivothigh(high, SL_SWING_LOOKBACK, SL_SWING_LOOKBACK)
 slSwingLow = ta.pivotlow(low, SL_SWING_LOOKBACK, SL_SWING_LOOKBACK)
@@ -2421,7 +2460,7 @@ if USE_PATTERN_MARKERS and darkCloudCover
 var line donchianUpperLine = na
 var line donchianLowerLine = na
 var line donchianMidLine = na
-if isRightVisibleBar
+if isRightVisibleBar or barstate.islast
     [dU, dL, dM] = f_updateDonchianLines(donchianUpperLine, donchianLowerLine, donchianMidLine, bar_index, USE_DONCHIAN, donchianUpper, donchianLower, donchianMid)
     donchianUpperLine := dU
     donchianLowerLine := dL
@@ -2447,7 +2486,7 @@ var line pivotR2Line = na
 var line pivotS1Line = na
 var line pivotS2Line = na
 
-if isRightVisibleBar and USE_PIVOTS
+if (isRightVisibleBar or barstate.islast) and USE_PIVOTS
     [pP, pR1, pR2, pS1, pS2] = f_updatePivotLines(pivotPLine, pivotR1Line, pivotR2Line, pivotS1Line, pivotS2Line, bar_index, pivotP, pivotR1, pivotR2, pivotS1, pivotS2)
     pivotPLine := pP
     pivotR1Line := pR1
@@ -2459,7 +2498,7 @@ var line fib50Line  = na
 var line fib382Line = na
 var line fib618Line = na
 
-if isRightVisibleBar and USE_FIB_LEVELS
+if (isRightVisibleBar or barstate.islast) and USE_FIB_LEVELS
     [f50, f382, f618] = f_updateFibLines(fib50Line, fib382Line, fib618Line, bar_index, fib50, fib382, fib618)
     fib50Line := f50
     fib382Line := f382
@@ -2536,7 +2575,7 @@ if BUY_SELL_AUTO_EXPIRE
             buySignalRightExtent := na
         else
             buySignalRightExtent := math.max(nz(buySignalRightExtent), bar_index)
-            extentBuy = na(rightVisibleBarIndex) ? nz(buySignalRightExtent) : math.min(nz(buySignalRightExtent), rightVisibleBarIndex)
+            extentBuy = na(rightVisibleBarIndex) ? math.min(nz(buySignalRightExtent), bar_index) : math.min(nz(buySignalRightExtent), rightVisibleBarIndex, bar_index)
             f_extendBuySignalDrawings(buySLLine, buyTPLine, buyEntryLine, buyRiskZone, buyRewardZone, buyEntryZone, buySLLabel, buyTPLabel, buyEntryLabel, not na(buyEntryZone), extentBuy, buyTP2Line, buyTP2Label, buyRewardZone2)
     if not na(sellSignalBarIndex)
         barsSinceSellSignal = bar_index - sellSignalBarIndex
@@ -2563,21 +2602,21 @@ if BUY_SELL_AUTO_EXPIRE
             sellSignalRightExtent := na
         else
             sellSignalRightExtent := math.max(nz(sellSignalRightExtent), bar_index)
-            extentSell = na(rightVisibleBarIndex) ? nz(sellSignalRightExtent) : math.min(nz(sellSignalRightExtent), rightVisibleBarIndex)
+            extentSell = na(rightVisibleBarIndex) ? math.min(nz(sellSignalRightExtent), bar_index) : math.min(nz(sellSignalRightExtent), rightVisibleBarIndex, bar_index)
             f_extendSellSignalDrawings(sellSLLine, sellTPLine, sellEntryLine, sellRiskZone, sellRewardZone, sellEntryZone, sellSLLabel, sellTPLabel, sellEntryLabel, not na(sellEntryZone), extentSell, sellTP2Line, sellTP2Label, sellRewardZone2)
 else
     if not na(buySignalBarIndex)
         buySignalRightExtent := math.max(nz(buySignalRightExtent), bar_index)
-        extentBuy = na(rightVisibleBarIndex) ? nz(buySignalRightExtent) : math.min(nz(buySignalRightExtent), rightVisibleBarIndex)
+        extentBuy = na(rightVisibleBarIndex) ? math.min(nz(buySignalRightExtent), bar_index) : math.min(nz(buySignalRightExtent), rightVisibleBarIndex, bar_index)
         f_extendBuySignalDrawings(buySLLine, buyTPLine, buyEntryLine, buyRiskZone, buyRewardZone, buyEntryZone, buySLLabel, buyTPLabel, buyEntryLabel, not na(buyEntryZone), extentBuy, buyTP2Line, buyTP2Label, buyRewardZone2)
     if not na(sellSignalBarIndex)
         sellSignalRightExtent := math.max(nz(sellSignalRightExtent), bar_index)
-        extentSell = na(rightVisibleBarIndex) ? nz(sellSignalRightExtent) : math.min(nz(sellSignalRightExtent), rightVisibleBarIndex)
+        extentSell = na(rightVisibleBarIndex) ? math.min(nz(sellSignalRightExtent), bar_index) : math.min(nz(sellSignalRightExtent), rightVisibleBarIndex, bar_index)
         f_extendSellSignalDrawings(sellSLLine, sellTPLine, sellEntryLine, sellRiskZone, sellRewardZone, sellEntryZone, sellSLLabel, sellTPLabel, sellEntryLabel, not na(sellEntryZone), extentSell, sellTP2Line, sellTP2Label, sellRewardZone2)
 
 if signalBuy
     buySLSource = structSLBuyOk ? "[Swing]" : structSLBuyOk2 ? "[SwingMomentum]" : "[ATR]"
-    buyTooltip = f_signalTooltip(true, buySLSource, finalBuyScore, finalSellScore, buyConfidence, sellConfidence, buyDominance, sellDominance, dominanceRatioBuy, dominanceRatioSell, exhBuyScore, exhSellScore, revBuyScore, revSellScore, structBuyScore, structSellScore, volBuyScore, volSellScore, trendAlignBuyScore, trendAlignSellScore, buyCatAgreeStrong, sellCatAgreeStrong, buyCatAgree, sellCatAgree, buySL, sellSL, buyTP, sellTP, buyActualRR, sellActualRR, buyTPSource, sellTPSource, bullishDivergence, bearishDivergence, USE_TWO_T_PS_BUY, USE_TWO_T_PS_SELL, buyTP1, sellTP1, buyTP2, sellTP2, inPremium, inDiscount, rSqValue, r2Reversal, r2Trend, zScore, hvRank, volSpikeMult, lagBuyCount, lagSellCount, lagEnabledCount, buyEntryPrice, sellEntryPrice)
+    buyTooltip = f_signalTooltip(true, buySLSource, finalBuyScore, finalSellScore, buyConfidence, sellConfidence, buyDominance, sellDominance, dominanceRatioBuy, dominanceRatioSell, exhBuyScore, exhSellScore, revBuyScore, revSellScore, structBuyScore, structSellScore, volBuyScore, volSellScore, trendAlignBuyScore, trendAlignSellScore, buyCatAgreeStrong, sellCatAgreeStrong, buyCatAgree, sellCatAgree, buySL, sellSL, buyTP, sellTP, buyActualRR, sellActualRR, buyTPSource, sellTPSource, bullishDivergence, bearishDivergence, USE_TWO_T_PS_BUY, USE_TWO_T_PS_SELL, buyTP1, sellTP1, buyTP2, sellTP2, inPremium, inDiscount, rSqValue, r2Reversal, r2Trend, zScore, hvRank, volSpikeMult, lagBuyCount, lagSellCount, lagEnabledCount, buyEntryPrice, sellEntryPrice, vixOk, vixClose, vixSuppressBuy, vixSuppressSell)
     if USE_PREVIOUS_SIGNALS
         [grayLine, grayLabel, grayTxt, grayBox, grayBoxBorder, grayEntryLine, grayEntryLabel, grayEntryTxt, grayEntryBox, grayEntryBoxBorder] = f_prevSignalGrayColors(PREVIOUS_SELL_RR)
         f_applyGrayToAllSignals(grayLine, grayLabel, grayTxt, grayBox, grayBoxBorder, grayEntryLine, grayEntryLabel, grayEntryTxt, grayEntryBox, grayEntryBoxBorder, buyEntryLine, buyEntryLabel, buyEntryZone, buyZoneLabel, buySLLine, buyTPLine, buySLLabel, buyTPLabel, buyRiskZone, buyRewardZone, buyTP2Line, buyTP2Label, buyRewardZone2, sellEntryLine, sellEntryLabel, sellEntryZone, sellZoneLabel, sellSLLine, sellTPLine, sellSLLabel, sellTPLabel, sellRiskZone, sellRewardZone, sellTP2Line, sellTP2Label, sellRewardZone2)
@@ -2635,7 +2674,7 @@ if signalBuy
 
 if signalSell
     sellSLSource = structSLSellOk ? "[Swing]" : structSLSellOk2 ? "[SwingMomentum]" : "[ATR]"
-    sellTooltip = f_signalTooltip(false, sellSLSource, finalBuyScore, finalSellScore, buyConfidence, sellConfidence, buyDominance, sellDominance, dominanceRatioBuy, dominanceRatioSell, exhBuyScore, exhSellScore, revBuyScore, revSellScore, structBuyScore, structSellScore, volBuyScore, volSellScore, trendAlignBuyScore, trendAlignSellScore, buyCatAgreeStrong, sellCatAgreeStrong, buyCatAgree, sellCatAgree, buySL, sellSL, buyTP, sellTP, buyActualRR, sellActualRR, buyTPSource, sellTPSource, bullishDivergence, bearishDivergence, USE_TWO_T_PS_BUY, USE_TWO_T_PS_SELL, buyTP1, sellTP1, buyTP2, sellTP2, inPremium, inDiscount, rSqValue, r2Reversal, r2Trend, zScore, hvRank, volSpikeMult, lagBuyCount, lagSellCount, lagEnabledCount, buyEntryPrice, sellEntryPrice)
+    sellTooltip = f_signalTooltip(false, sellSLSource, finalBuyScore, finalSellScore, buyConfidence, sellConfidence, buyDominance, sellDominance, dominanceRatioBuy, dominanceRatioSell, exhBuyScore, exhSellScore, revBuyScore, revSellScore, structBuyScore, structSellScore, volBuyScore, volSellScore, trendAlignBuyScore, trendAlignSellScore, buyCatAgreeStrong, sellCatAgreeStrong, buyCatAgree, sellCatAgree, buySL, sellSL, buyTP, sellTP, buyActualRR, sellActualRR, buyTPSource, sellTPSource, bullishDivergence, bearishDivergence, USE_TWO_T_PS_BUY, USE_TWO_T_PS_SELL, buyTP1, sellTP1, buyTP2, sellTP2, inPremium, inDiscount, rSqValue, r2Reversal, r2Trend, zScore, hvRank, volSpikeMult, lagBuyCount, lagSellCount, lagEnabledCount, buyEntryPrice, sellEntryPrice, vixOk, vixClose, vixSuppressBuy, vixSuppressSell)
     if USE_PREVIOUS_SIGNALS
         [grayLine, grayLabel, grayTxt, grayBox, grayBoxBorder, grayEntryLine, grayEntryLabel, grayEntryTxt, grayEntryBox, grayEntryBoxBorder] = f_prevSignalGrayColors(PREVIOUS_SELL_RR)
         f_applyGrayToAllSignals(grayLine, grayLabel, grayTxt, grayBox, grayBoxBorder, grayEntryLine, grayEntryLabel, grayEntryTxt, grayEntryBox, grayEntryBoxBorder, buyEntryLine, buyEntryLabel, buyEntryZone, buyZoneLabel, buySLLine, buyTPLine, buySLLabel, buyTPLabel, buyRiskZone, buyRewardZone, buyTP2Line, buyTP2Label, buyRewardZone2, sellEntryLine, sellEntryLabel, sellEntryZone, sellZoneLabel, sellSLLine, sellTPLine, sellSLLabel, sellTPLabel, sellRiskZone, sellRewardZone, sellTP2Line, sellTP2Label, sellRewardZone2)
