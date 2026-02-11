@@ -71,7 +71,6 @@ USE_ATR_FILTER           = input.bool(false, "Use ATR Range Filter", group=gSett
 USE_PREMIUM_DISCOUNT     = input.bool(false, "Filter Prem/Disc", group=gSettingsBooleans)
 USE_MA_STACK             = input.bool(true, "Use MA Stack Filter", group=gSettingsBooleans)
 USE_YIELD_CURVE          = input.bool(false, "Use 10Y-2Y yield curve filter", group=gSettingsBooleans)
-USE_CREDIT_SPREAD        = input.bool(false, "Use credit spread filter (HY-IG)", group=gSettingsBooleans)
 USE_VIX_REGIME           = input.bool(true, "Use VIX regime filter", group=gSettingsBooleans)
 
 var gSettingsNumbers    = "Settings · Numbers"
@@ -286,7 +285,6 @@ f_reversalScore(macdCrossUpFresh, rsiCrossUpFresh, stochCrossUpFresh, macdHistTu
 
 f_structureScore(bullEngulfing, hammerBull, morningStar, piercingLine, tweezerBottom, threeWhiteSoldiers, doji, rsiPrev, bullHarami, bearEngulfing, shootingStar, eveningStar, darkCloudCover, tweezerTop, threeBlackCrows, bearHarami, pivotCrossUpR1, pivotCrossDownS1, donchianBreakoutUp, donchianBreakoutDown, nearSupport, wyckSpring, bullishDivergence, bosBull, chochBullish, sfpBull, liqSweepBuy, bullFVG, nearBullOB, wickRejectionBuy, bullDisplacement, nearPivotS1, nearResistance, wyckUpthrust, bearishDivergence, bosBear, chochBearish, sfpBear, liqSweepSell, bearFVG, nearBearOB, wickRejectionSell, bearDisplacement, nearPivotR1) =>
     c = 9.5
-    // Indices: only strongest patterns (Engulfing, Hammer/Shooting Star, Morning/Evening Star)
     candleBullRaw = (bullEngulfing ? 1.5 : 0.0) + (hammerBull ? 1.5 : 0.0) + (morningStar ? 1.5 : 0.0)
     candleBullCapped = math.min(candleBullRaw, 2.5)
     candleBearRaw = (bearEngulfing ? 1.5 : 0.0) + (shootingStar ? 1.5 : 0.0) + (eveningStar ? 1.5 : 0.0)
@@ -324,38 +322,24 @@ f_structureScore(bullEngulfing, hammerBull, morningStar, piercingLine, tweezerBo
     [math.min(bRaw / c, 1.0), math.min(sRaw / c, 1.0)]
 
 f_volumeScore(volumeConfirm, volumeRising, pressureBullish, pressureBearish, obvBullish, cmfBullish, klingerBullish, twiggsBullish, iiiBullish, eomBullish, nviBullish, pviBullish, efiBullish, adLineBullish, obvBearish, cmfBearish, klingerBearish, twiggsBearish, iiiBearish, eomBearish, nviBearish, pviBearish, efiBearish, adLineBearish) =>
-    c = 4.0
     confBuy = volumeConfirm and close[1] > open[1]
     confSell = volumeConfirm and close[1] < open[1]
     risBuyOnly = volumeRising and not pressureBullish
     risSellOnly = volumeRising and not pressureBearish
-    bRaw = (confBuy ? 1.2 : 0.0)
-         + (risBuyOnly ? 0.6 : 0.0)
-         + (obvBullish ? 1.0 : 0.0)
-         + (cmfBullish ? 1.0 : 0.0)
-         + (pressureBullish ? (volumeRising ? 1.5 : 1.0) : 0.0)
-         + (klingerBullish ? 0.8 : 0.0)
-         + (twiggsBullish ? 0.7 : 0.0)
-         + (iiiBullish ? 0.5 : 0.0)
-         + (eomBullish ? 0.5 : 0.0)
-         + (nviBullish ? 0.5 : 0.0)
-         + (pviBullish ? 0.4 : 0.0)
-         + (efiBullish ? 0.6 : 0.0)
-         + (adLineBullish ? 0.5 : 0.0)
-    sRaw = (confSell ? 1.2 : 0.0)
-         + (risSellOnly ? 0.6 : 0.0)
-         + (obvBearish ? 1.0 : 0.0)
-         + (cmfBearish ? 1.0 : 0.0)
-         + (pressureBearish ? (volumeRising ? 1.5 : 1.0) : 0.0)
-         + (klingerBearish ? 0.8 : 0.0)
-         + (twiggsBearish ? 0.7 : 0.0)
-         + (iiiBearish ? 0.5 : 0.0)
-         + (eomBearish ? 0.5 : 0.0)
-         + (nviBearish ? 0.5 : 0.0)
-         + (pviBearish ? 0.4 : 0.0)
-         + (efiBearish ? 0.6 : 0.0)
-         + (adLineBearish ? 0.5 : 0.0)
-    [math.min(bRaw / c, 1.0), math.min(sRaw / c, 1.0)]
+    cumFlowBull = (obvBullish ? 1 : 0) + (cmfBullish ? 1 : 0) + (adLineBullish ? 1 : 0) + (klingerBullish ? 1 : 0) + (twiggsBullish ? 1 : 0)
+    cumFlowBear = (obvBearish ? 1 : 0) + (cmfBearish ? 1 : 0) + (adLineBearish ? 1 : 0) + (klingerBearish ? 1 : 0) + (twiggsBearish ? 1 : 0)
+    cumFlowVote = cumFlowBull > cumFlowBear ? 1 : cumFlowBear > cumFlowBull ? -1 : 0
+    spotBull = (confBuy ? 1 : 0) + (risBuyOnly ? 1 : 0) + (pressureBullish ? 1 : 0)
+    spotBear = (confSell ? 1 : 0) + (risSellOnly ? 1 : 0) + (pressureBearish ? 1 : 0)
+    spotVote = spotBull > spotBear ? 1 : spotBear > spotBull ? -1 : 0
+    instVote = (nviBullish and pviBullish) ? 1 : (nviBearish and pviBearish) ? -1 : 0
+    flowMomBull = (iiiBullish ? 1 : 0) + (eomBullish ? 1 : 0) + (efiBullish ? 1 : 0)
+    flowMomBear = (iiiBearish ? 1 : 0) + (eomBearish ? 1 : 0) + (efiBearish ? 1 : 0)
+    flowMomVote = flowMomBull > flowMomBear ? 1 : flowMomBear > flowMomBull ? -1 : 0
+    voteSum = cumFlowVote + spotVote + instVote + flowMomVote
+    volBuyScore = math.max(0.0, math.min((voteSum + 4) / 8, 1.0))
+    volSellScore = math.max(0.0, math.min((4 - voteSum) / 8, 1.0))
+    [volBuyScore, volSellScore]
 
 f_trendAlignScore(mtfD, mtf240, mtf60, mtf15, mtf5, htfTrendUp, adxStrong, vwRsiBullish, vortexBullish, vwapBullish, mcginleyBullish, alligatorBullish, vwRsiBearish, vortexBearish, vwapBearish, mcginleyBearish, alligatorBearish, bullHidden, bearHidden) =>
     c = 10.0
