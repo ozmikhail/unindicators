@@ -22,6 +22,7 @@ USE_BUY_SELL_SIGNAL     = input.bool(true, "Display Buy/Sell Signal", group=gDis
 USE_BUY_SELL_SLTP_ENTRY = input.bool(true, "Display SL/TP Levels", group=gDisplay)
 SLTP_DISPLAY_MODE       = input.string("Zones", "SL/TP Display Mode", options=["Lines", "Zones"], group=gDisplay)
 USE_DASHBOARD           = input.bool(true, "Display Dashboard", group=gDisplay)
+USE_PREVIOUS_SIGNALS     = input.bool(false, "Display Historical Signals", group=gDisplay)
 USE_HULL_MA             = input.bool(false, "Display Hull MA", group=gDisplay)
 USE_VWAP_LINE           = input.bool(true, "Display VWAP Line", group=gDisplay)
 USE_BACKGROUND          = input.bool(false, "Display Trend Background", group=gDisplay)
@@ -45,7 +46,6 @@ USE_GAP                 = input.bool(false, "Display Gap Detection", group=gDisp
 var gSettingsBooleans    = "Settings · Booleans"
 USE_SINGLE_TP            = input.bool(true, "Single TP at R:R (indices)", group=gSettingsBooleans)
 TP2_USE_SR               = input.bool(true, "Use S/R for TP1/TP2", group=gSettingsBooleans)
-USE_PREVIOUS_SIGNALS     = input.bool(false, "Display Historical Signals", group=gSettingsBooleans)
 BUY_SELL_AUTO_EXPIRE     = input.bool(true, "Auto-Expire Signals", group=gSettingsBooleans)
 USE_EXTENDED_OSCILLATORS = input.bool(false, "Use extended oscillators (TRIX, KST, Schaff, etc.)", group=gSettingsBooleans)
 USE_RSI_REGIME           = input.bool(true, "Trend-Adjusted RSI", group=gSettingsBooleans)
