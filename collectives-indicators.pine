@@ -1,5 +1,6 @@
 //@version=6
-indicator("Universal Indicators", overlay=true, max_bars_back=500, max_lines_count=500, max_labels_count=500, max_boxes_count=500, max_polylines_count=100, explicit_plot_zorder=true)
+// M.Ozolins Author
+indicator("Indices & Funds Indicators", overlay=true, max_bars_back=500, max_lines_count=500, max_labels_count=500, max_boxes_count=500, max_polylines_count=100, explicit_plot_zorder=true)
 
 isRightVisibleBar = (time == chart.right_visible_bar_time)
 var int rightVisibleBarIndex = na
@@ -7,16 +8,17 @@ if isRightVisibleBar
     rightVisibleBarIndex := bar_index
 
 // ==================================================================================
-// INPUT PARAMETERS
+// CONSTANTS
 // ==================================================================================
 
 TF_SEC           = timeframe.in_seconds(timeframe.period)
 HTF_TIMEFRAME    = TF_SEC >= 604800 ? "M" : TF_SEC >= 86400 ? "W" : "D"
 PIVOT_TIMEFRAME  = HTF_TIMEFRAME
 SESSION_STR      = syminfo.timezone == "America/New_York" ? "0930-1600" : syminfo.timezone == "Europe/London" ? "0800-1630" : "0800-1700"
-BENCHMARK_SYMBOL = syminfo.currency == "USD" ? "SPY" : syminfo.currency == "EUR" ? "STOXX50E" : "SPY"
+BENCHMARK_SYMBOL = syminfo.currency == "USD" ? "SPY" : syminfo.currency == "EUR" ? "SX5E" : "SPY"
 
 var gDisplay        = "Display Indicators"
+USE_BUY_SELL_SIGNAL = input.bool(true, "Display Buy/Sell Signal", group=gDisplay)
 USE_DASHBOARD       = input.bool(true, "Display Dashboard", group=gDisplay)
 USE_HULL_MA         = input.bool(false, "Display Hull MA", group=gDisplay)
 USE_VWAP_LINE       = input.bool(true, "Display VWAP Line", group=gDisplay)
@@ -37,187 +39,169 @@ USE_SAR             = input.bool(false, "Display Parabolic SAR", group=gDisplay)
 USE_ICHIMOKU        = input.bool(false, "Display Ichimoku Cloud", group=gDisplay)
 USE_TTM_SQUEEZE     = input.bool(false, "Display TTM Squeeze", group=gDisplay)
 USE_GAP             = input.bool(false, "Display Gap Detection", group=gDisplay)
-USE_SR_ZONES       = input.bool(true, "Display S/R Zones (Current TF)", group=gDisplay)
 
-var gSRZones        = "S/R Zones (Visual Only)"
-SR_ZONE_LOOKBACK    = input.int(120, "Lookback Bars", minval=30, maxval=500, group=gSRZones)
-SR_ZONE_PIVOT_LB    = input.int(5, "Pivot Left/Right Bars", minval=2, maxval=15, group=gSRZones)
-SR_ZONE_WIDTH_ATR   = input.float(0.4, "Zone Width (ATR mult)", minval=0.1, maxval=2.0, step=0.1, group=gSRZones)
-SR_ZONE_BREAK_ATR   = input.float(0.3, "Break Beyond Zone (ATR mult)", minval=0.1, maxval=1.0, step=0.1, group=gSRZones)
-SR_ZONE_MAX_ZONES   = input.int(2, "Max Zones Per Side", minval=1, maxval=3, group=gSRZones)
-SR_ZONE_MIN_TOUCHES = input.int(2, "Min Touches for Zone", minval=1, maxval=5, group=gSRZones)
+var gSettingsBooleans    = "Settings · Booleans"
+USE_BUY_SELL_SLTP_ENTRY  = input.bool(true, "Display SL/TP Levels", group=gSettingsBooleans)
+SLTP_DISPLAY_MODE        = input.string("Zones", "SL/TP Display Mode", options=["Lines", "Zones"], group=gSettingsBooleans)
+USE_SINGLE_TP            = input.bool(true, "Single TP at R:R (indices)", group=gSettingsBooleans)
+TP2_USE_SR               = input.bool(true, "Use S/R for TP1/TP2", group=gSettingsBooleans)
+USE_PREVIOUS_SIGNALS     = input.bool(false, "Display Historical Signals", group=gSettingsBooleans)
+PREVIOUS_SELL_RR         = input.int(20, "Historical Signal Opacity", minval=5, maxval=50, step=5, group=gSettingsBooleans)
+BUY_SELL_AUTO_EXPIRE     = input.bool(false, "Auto-Expire Signals", group=gSettingsBooleans)
+USE_EXTENDED_OSCILLATORS = input.bool(false, "Use extended oscillators (TRIX, KST, Schaff, etc.)", group=gSettingsBooleans)
+USE_RSI_REGIME           = input.bool(true, "Trend-Adjusted RSI", group=gSettingsBooleans)
+USE_STOCH                = input.bool(true, "Use Stochastic", group=gSettingsBooleans)
+USE_ROC                  = input.bool(true, "Use ROC", group=gSettingsBooleans)
+USE_MACD_HIST            = input.bool(true, "Use MACD Histogram", group=gSettingsBooleans)
+USE_BB_NOT_EXTREMES      = input.bool(true, "BB: Not at Band Extremes", group=gSettingsBooleans)
+USE_NO_SQUEEZE           = input.bool(false, "Avoid BB Squeeze", group=gSettingsBooleans)
+USE_ATR_EXPANDING        = input.bool(false, "Require ATR Expanding", group=gSettingsBooleans)
+USE_VOLUME_TREND         = input.bool(true, "Volume Trend Up", group=gSettingsBooleans)
+USE_OBV                  = input.bool(true, "Use OBV Alignment", group=gSettingsBooleans)
+USE_STRUCTURE            = input.bool(true, "Use Structure Filter", group=gSettingsBooleans)
+USE_BREAKOUT             = input.bool(true, "Require Breakout", group=gSettingsBooleans)
+USE_BOS_BODY             = input.bool(true, "BOS: Require Close", group=gSettingsBooleans)
+USE_C_HO_CH_FILTER       = input.bool(true, "Disable Trend Entries on CHoCH", group=gSettingsBooleans)
+USE_SMC                  = input.bool(false, "Use SMC (BOS/FVG/CHoCH/Liq Sweep/Order Blocks)", group=gSettingsBooleans)
+USE_WYCKOFF              = input.bool(false, "Use Wyckoff Spring/Upthrust", group=gSettingsBooleans)
+USE_FVG                  = input.bool(false, "Use Fair Value Gaps", group=gSettingsBooleans)
+USE_CANDLE_FILTER        = input.bool(true, "Candle Direction Filter", group=gSettingsBooleans)
+USE_HTFRSI               = input.bool(true, "Use HTF RSI Filter", group=gSettingsBooleans)
+USE_SESSION_FILTER       = input.bool(false, "Use Session Filter", group=gSettingsBooleans)
+USE_ATR_FILTER           = input.bool(false, "Use ATR Range Filter", group=gSettingsBooleans)
+USE_PREMIUM_DISCOUNT     = input.bool(false, "Filter Prem/Disc", group=gSettingsBooleans)
+USE_MA_STACK             = input.bool(true, "Use MA Stack Filter", group=gSettingsBooleans)
 
-var gBuySell            = "Signal Strategy Settings"
-USE_BUY_SELL_SIGNAL     = input.bool(true, "Enable Signal System", group=gBuySell)
-BUY_SELL_THRESHOLD      = input.float(70, "Signal Threshold (0-100)", minval=30, maxval=95, step=5, group=gBuySell)
-BUY_SELL_COOLDOWN       = input.int(5, "Signal Cooldown (bars)", minval=1, maxval=50, group=gBuySell)
-USE_BUY_SELL_SLTP_ENTRY = input.bool(true, "Display SL/TP Levels", group=gBuySell)
-SLTP_DISPLAY_MODE       = input.string("Zones", "SL/TP Display Mode", options=["Lines", "Zones"], group=gBuySell)
-BUY_SELL_RR             = input.float(2.0, "Risk:Reward Ratio", minval=1.0, maxval=5.0, step=0.5, group=gBuySell)
-TP2_USE_SR              = input.bool(true, "Use S/R for TP1/TP2", group=gBuySell)
-TP2_MIN_PCT             = input.float(8.0, "Min % for two TPs (when S/R not used)", minval=4.0, maxval=20.0, step=1.0, group=gBuySell)
-USE_PREVIOUS_SIGNALS    = input.bool(false, "Display Historical Signals", group=gBuySell)
-PREVIOUS_SELL_RR        = input.int(20, "Historical Signal Opacity", minval=5, maxval=50, step=5, group=gBuySell)
-BUY_SELL_AUTO_EXPIRE    = input.bool(false, "Auto-Expire Signals", group=gBuySell)
-
-var gTrend      = "Settings · Trend & Moving Averages"
-HULL_LENGTH     = input.int(20, "Hull MA Length", group=gTrend)
-VWMA_LENGTH     = input.int(20, "VWMA Length", group=gTrend)
-MCGINLEY_LENGTH = input.int(14, "McGinley Length", group=gTrend)
-DEMA_LENGTH     = input.int(14, "DEMA Length", group=gTrend)
-TEMA_LENGTH     = input.int(14, "TEMA Length", group=gTrend)
-ICH_CONVERSION  = input.int(9, "Ichimoku Conversion", group=gTrend)
-ICH_BASE        = input.int(26, "Ichimoku Base", group=gTrend)
-ICH_SPAN        = input.int(52, "Ichimoku Span B", group=gTrend)
-ST_FACTOR       = input.float(3.0, "SuperTrend Factor", group=gTrend)
-ST_ATR_LEN      = input.int(10, "SuperTrend ATR", group=gTrend)
-SAR_START       = input.float(0.02, "SAR Start", group=gTrend)
-SAR_INCREMENT   = input.float(0.02, "SAR Increment", group=gTrend)
-SAR_MAX         = input.float(0.2, "SAR Max", group=gTrend)
-GMMA_SHORT      = input.string("3,5,8,10,12,15", "GMMA Short Periods", group=gTrend)
-GMMA_LONG       = input.string("30,35,40,45,50,60", "GMMA Long Periods", group=gTrend)
-ALLIGATOR_JAW   = input.int(13, "Alligator Jaw", group=gTrend)
-ALLIGATOR_TEETH = input.int(8, "Alligator Teeth", group=gTrend)
-ALLIGATOR_LIPS  = input.int(5, "Alligator Lips", group=gTrend)
-
-var gMomentum                 = "Settings · Momentum & Oscillators"
-RSI_LENGTH                    = input.int(14, "RSI Length", group=gMomentum)
-USE_RSI_REGIME                = input.bool(false, "Trend-Adjusted RSI", group=gMomentum)
-RSI_BULL_OVERSOLD             = input.float(35, "RSI Bull Oversold", minval=0, maxval=50, group=gMomentum)
-RSI_BEAR_OVERSOLD             = input.float(25, "RSI Bear Oversold", minval=0, maxval=50, group=gMomentum)
-RSI_BULL_OVERBOUGHT           = input.float(75, "RSI Bull Overbought", minval=50, maxval=100, group=gMomentum)
-RSI_BEAR_OVERBOUGHT           = input.float(65, "RSI Bear Overbought", minval=50, maxval=100, group=gMomentum)
-MACD_FAST                     = input.int(12, "MACD Fast", group=gMomentum)
-MACD_SLOW                     = input.int(26, "MACD Slow", group=gMomentum)
-MACD_SIGNAL                   = input.int(9, "MACD Signal", group=gMomentum)
-RSI_OVERBOUGHT                = input.float(70, "RSI Overbought", minval=50, maxval=100, group=gMomentum)
-RSI_OVERSOLD                  = input.float(30, "RSI Oversold", minval=0, maxval=50, group=gMomentum)
-RSI_POSITIVE_COLOR_OVERSOLD   = input.float(40, "RSI POSITIVE_COLOR Oversold", group=gMomentum)
-RSI_POSITIVE_COLOR_OVERBOUGHT = input.float(80, "RSI POSITIVE_COLOR Overbought", group=gMomentum)
-RSI_NEGATIVE_COLOR_OVERSOLD   = input.float(20, "RSI NEGATIVE_COLOR Oversold", group=gMomentum)
-RSI_NEGATIVE_COLOR_OVERBOUGHT = input.float(60, "RSI NEGATIVE_COLOR Overbought", group=gMomentum)
-USE_STOCH                     = input.bool(true, "Use Stochastic", group=gMomentum)
-STOCH_K                       = input.int(14, "Stochastic %K", group=gMomentum)
-STOCH_D                       = input.int(3, "Stochastic %D", group=gMomentum)
-STOCH_OVERBOUGHT              = input.int(80, "Stochastic Overbought", group=gMomentum)
-STOCH_OVERSOLD                = input.int(20, "Stochastic Oversold", group=gMomentum)
-USE_ROC                       = input.bool(true, "Use ROC", group=gMomentum)
-ROC_LENGTH                    = input.int(10, "ROC Length", group=gMomentum)
-USE_MACD_HIST                 = input.bool(true, "Use MACD Histogram", group=gMomentum)
-CCI_LENGTH                    = input.int(20, "CCI Length", group=gMomentum)
-WR_LENGTH                     = input.int(14, "Williams %R Length", group=gMomentum)
-FISHER_LENGTH                 = input.int(10, "Fisher Length", group=gMomentum)
-TRIX_LENGTH                   = input.int(14, "TRIX Length", group=gMomentum)
-TRIX_SIGNAL_LEN               = input.int(9, "TRIX Signal Length", group=gMomentum)
-UO_PERIOD_1                   = input.int(7, "Ultimate Osc P1", group=gMomentum)
-UO_PERIOD_2                   = input.int(14, "Ultimate Osc P2", group=gMomentum)
-UO_PERIOD_3                   = input.int(28, "Ultimate Osc P3", group=gMomentum)
-KST_ROC_1                     = input.int(10, "KST ROC 1", group=gMomentum)
-KST_ROC_2                     = input.int(15, "KST ROC 2", group=gMomentum)
-KST_ROC_3                     = input.int(20, "KST ROC 3", group=gMomentum)
-KST_ROC_4                     = input.int(30, "KST ROC 4", group=gMomentum)
-KST_SMA_LEN                   = input.int(10, "KST Signal SMA", group=gMomentum)
-DPO_LENGTH                    = input.int(20, "DPO Length", group=gMomentum)
-RVI_LENGTH                    = input.int(14, "RVI Length", group=gMomentum)
-SCHAFF_CYCLE                  = input.int(10, "Schaff Cycle", group=gMomentum)
-SCHAFF_SMOOTH_1               = input.int(23, "Schaff Smooth 1", group=gMomentum)
-SCHAFF_SMOOTH_2               = input.int(50, "Schaff Smooth 2", group=gMomentum)
-PGO_LENGTH                    = input.int(14, "PGO Length", group=gMomentum)
-COPPOCK_ROC_1                 = input.int(11, "Coppock ROC 1", group=gMomentum)
-COPPOCK_ROC_2                 = input.int(14, "Coppock ROC 2", group=gMomentum)
-COPPOCK_SMA                   = input.int(10, "Coppock SMA", group=gMomentum)
-MASS_SINGLE                   = input.int(9, "Mass Single EMA", group=gMomentum)
-MASS_SUM                      = input.int(25, "Mass Sum Period", group=gMomentum)
-MASS_THRESHOLD                = input.float(27, "Mass Bulge Threshold", group=gMomentum)
-
-var gVolatility     = "Settings · Volatility & Bands"
-ATR_LENGTH          = input.int(14, "ATR Length", group=gVolatility)
-ATR_MULTIPLIER_SL   = input.float(2.0, "ATR SL Multiplier", group=gVolatility)
-ATR_MULTIPLIER_TP   = input.float(3.0, "ATR TP Multiplier", group=gVolatility)
-BB_LENGTH           = input.int(20, "Bollinger Length", group=gVolatility)
-BB_MULTIPLIER       = input.float(2.0, "Bollinger StdDev", group=gVolatility)
-USE_BB_NOT_EXTREMES = input.bool(true, "BB: Not at Band Extremes", group=gVolatility)
-USE_NO_SQUEEZE      = input.bool(false, "Avoid BB Squeeze", group=gVolatility)
-USE_ATR_EXPANDING   = input.bool(false, "Require ATR Expanding", group=gVolatility)
-KC_LENGTH           = input.int(20, "Keltner Length", group=gVolatility)
-KC_MULT             = input.float(1.5, "Keltner ATR Mult", group=gVolatility)
-DONCHIAN_LENGTH     = input.int(20, "Donchian Length", group=gVolatility)
-HV_LENGTH           = input.int(20, "HV Calculation Length", group=gVolatility)
-HV_RANK_LENGTH      = input.int(252, "HV Rank Lookback", group=gVolatility)
-SQUEEZE_LENGTH      = input.int(20, "Squeeze Length", group=gVolatility)
-CHAND_LENGTH        = input.int(22, "Chandelier Length", group=gVolatility)
-CHAND_MULT          = input.float(3.0, "Chandelier ATR Mult", group=gVolatility)
-
-var gVolume        = "Settings · Volume & Flow"
-VOLUME_LENGTH      = input.int(20, "Volume MA Length", group=gVolume)
-VOLUME_MULTIPLIER  = input.float(1.0, "Volume Multiplier", group=gVolume)
-USE_VOLUME_TREND   = input.bool(true, "Volume Trend Up", group=gVolume)
-VOLUME_TREND_BARS  = input.int(3, "Volume Trend Bars", group=gVolume)
-USE_OBV            = input.bool(true, "Use OBV Alignment", group=gVolume)
-OBV_LENGTH         = input.int(5, "OBV MA Length", group=gVolume)
-CMF_LENGTH         = input.int(20, "CMF Length", group=gVolume)
-MFI_LENGTH         = input.int(14, "MFI Length", group=gVolume)
-AD_LINE_MA_LEN     = input.int(20, "A/D MA Length", group=gVolume)
-PVT_MA_LEN         = input.int(20, "PVT MA Length", group=gVolume)
-EFI_LENGTH         = input.int(13, "EFI EMA Length", group=gVolume)
-KVO_FAST           = input.int(34, "KVO Fast", group=gVolume)
-KVO_SLOW           = input.int(55, "KVO Slow", group=gVolume)
-KVO_SIGNAL         = input.int(13, "KVO Signal", group=gVolume)
-EOM_LENGTH         = input.int(14, "EOM Length", group=gVolume)
-NVI_PVI_MA_LEN     = input.int(255, "NVI/PVI MA Length", group=gVolume)
-III_LENGTH         = input.int(14, "III Smooth Length", group=gVolume)
-TWIGGS_LENGTH      = input.int(21, "Twiggs Length", group=gVolume)
-
-var gStructure         = "Settings · Structure & Price Action"
-USE_STRUCTURE          = input.bool(true, "Use Structure Filter", group=gStructure)
-SWING_LOOKBACK         = input.int(5, "Swing Lookback", group=gStructure)
-SL_SWING_LOOKBACK      = input.int(10, "SL Swing Lookback", group=gStructure)
-USE_BREAKOUT           = input.bool(true, "Require Breakout", group=gStructure)
-SWING_DISPLACEMENT_ATR = input.float(1.0, "Swing Displacement (ATR mult)", group=gStructure)
-USE_BOS_BODY           = input.bool(true, "BOS: Require Close", group=gStructure)
-USE_C_HO_CH_FILTER     = input.bool(true, "Disable Trend Entries on CHoCH", group=gStructure)
-PIN_BAR_WICK_RATIO     = input.float(2.0, "Pin Bar Wick Ratio", group=gStructure)
-DOJI_BODY_PCT          = input.float(0.1, "Doji Body %", group=gStructure)
-TWEEZER_TOLERANCE      = input.float(0.1, "Tweezer Tolerance", group=gStructure)
-USE_FVG                = input.bool(false, "Use Fair Value Gaps", group=gStructure)
-FVG_MIN_BODY_PCT       = input.float(0.5, "FVG Min Body % of Range", group=gStructure)
-FIB_LOOKBACK           = input.int(20, "Fib Lookback", group=gStructure)
-GAP_MIN_ATR            = input.float(0, "Gap Min ATR", group=gStructure)
-PD_LOOKBACK            = input.int(50, "Range Lookback Bars", group=gStructure)
-DISP_BODY_MULT         = input.float(1.5, "Displacement Body Mult", group=gStructure)
-AROON_LENGTH           = input.int(25, "Aroon Length", group=gStructure)
-LIN_REG_LENGTH         = input.int(20, "LinReg Length", group=gStructure)
-CORR_LENGTH            = input.int(20, "Correlation Length", group=gStructure)
-CMO_LENGTH             = input.int(14, "CMO Length", group=gStructure)
-OB_DISPLACEMENT_MULT   = input.float(1.5, "OB Displacement ATR Mult", group=gStructure)
-Z_SCORE_LENGTH         = input.int(20, "Z-Score Length", group=gStructure)
-PRESSURE_LENGTH        = input.int(14, "Pressure Length", group=gStructure)
-WYCKOFF_LOOKBACK       = input.int(50, "Wyckoff Range Lookback", group=gStructure)
-VORTEX_LENGTH          = input.int(14, "Vortex Length", group=gStructure)
-ELDER_EMA_LEN          = input.int(13, "Elder EMA Length", group=gStructure)
-VW_RSI_LENGTH          = input.int(14, "VW-RSI Length", group=gStructure)
-
-var gFilters           = "Settings · Logic Filters"
-USE_HTF                = input.bool(true, "Use HTF Trend Filter", group=gFilters)
-HTF_EMA_LENGTH         = input.int(50, "HTF EMA Length", group=gFilters)
-ADX_LENGTH             = input.int(14, "ADX Length", group=gFilters)
-ADX_THRESHOLD          = input.float(25, "ADX Trend Strength", group=gFilters)
-USE_CANDLE_FILTER      = input.bool(true, "Candle Direction Filter", group=gFilters)
-USE_HTFRSI             = input.bool(true, "Use HTF RSI Filter", group=gFilters)
-HTF_RSI_LENGTH         = input.int(14, "HTF RSI Length", group=gFilters)
-HTF_RSI_NOT_OVERBOUGHT = input.float(70, "HTF RSI Max (buy when below)", group=gFilters)
-HTF_RSI_NOT_OVERSOLD   = input.float(30, "HTF RSI Min (sell when above)", group=gFilters)
-USE_SESSION_FILTER     = input.bool(false, "Use Session Filter", group=gFilters)
-USE_ATR_FILTER         = input.bool(false, "Use ATR Range Filter", group=gFilters)
-ATR_MIN_PCT            = input.float(0, "ATR Min (% of avg, 0=off)", group=gFilters)
-ATR_MAX_PCT            = input.float(0, "ATR Max (% of avg, 0=off)", group=gFilters)
-USE_PREMIUM_DISCOUNT   = input.bool(false, "Filter Prem/Disc", group=gFilters)
-
-var gMAAlign   = "Settings · MA Alignment"
-USE_MA_STACK   = input.bool(true, "Use MA Stack Filter", group=gMAAlign)
-MA_FAST_LEN    = input.int(9, "Fast MA Length", group=gMAAlign)
-MA_SLOW_LEN    = input.int(21, "Slow MA Length", group=gMAAlign)
-MA_SLOWER_LEN  = input.int(50, "Slower MA Length", group=gMAAlign)
+var gSettingsNumbers   = "Settings · Numbers"
+BUY_SELL_COOLDOWN      = input.int(5, "Signal Cooldown (bars)", minval=1, maxval=50, group=gSettingsNumbers)
+BUY_SELL_RR            = input.float(2.0, "Risk:Reward Ratio", minval=1.0, maxval=5.0, step=0.5, group=gSettingsNumbers)
+BUY_SELL_THRESHOLD     = input.float(70, "Signal Threshold (0-100)", minval=30, maxval=95, step=5, group=gSettingsNumbers)
+TP2_MIN_PCT            = input.float(8.0, "Min % for two TPs (when S/R not used)", minval=4.0, maxval=20.0, step=1.0, group=gSettingsNumbers)
+TP_MIN_DISTANCE_PCT    = input.float(2.0, "Min % distance between TP1 and TP2", minval=0.5, maxval=10.0, step=0.5, group=gSettingsNumbers)
+SL_MIN_PCT             = input.float(0.2, "Min SL distance %", minval=0.2, maxval=5.0, step=0.1, group=gSettingsNumbers)
+SR_ZONE_LOOKBACK       = input.int(120, "SR Zone Lookback", minval=50, maxval=300, group=gSettingsNumbers)
+SR_ZONE_PIVOT_LB       = input.int(5, "SR Zone Pivot LB", minval=3, maxval=20, group=gSettingsNumbers)
+SR_ZONE_WIDTH_ATR      = input.float(0.4, "SR Zone Width ATR", minval=0.1, maxval=2.0, step=0.1, group=gSettingsNumbers)
+SR_ZONE_MAX_ZONES      = input.int(2, "SR Zone Max Zones", minval=1, maxval=5, group=gSettingsNumbers)
+SR_ZONE_MIN_TOUCHES    = input.int(2, "SR Zone Min Touches", minval=1, maxval=5, group=gSettingsNumbers)
+ICH_CONVERSION         = input.int(9, "Ichimoku Conversion", minval=5, maxval=30, group=gSettingsNumbers)
+ICH_BASE               = input.int(26, "Ichimoku Base", minval=10, maxval=50, group=gSettingsNumbers)
+ICH_SPAN               = input.int(52, "Ichimoku Span", minval=30, maxval=100, group=gSettingsNumbers)
+SAR_START              = input.float(0.02, "SAR Start", minval=0.01, maxval=0.2, step=0.01, group=gSettingsNumbers)
+SAR_INCREMENT          = input.float(0.02, "SAR Increment", minval=0.01, maxval=0.1, step=0.01, group=gSettingsNumbers)
+SAR_MAX                = input.float(0.2, "SAR Max", minval=0.1, maxval=0.5, step=0.01, group=gSettingsNumbers)
+ALLIGATOR_JAW          = input.int(13, "Alligator Jaw", minval=5, maxval=30, group=gSettingsNumbers)
+ALLIGATOR_TEETH        = input.int(8, "Alligator Teeth", minval=3, maxval=20, group=gSettingsNumbers)
+ALLIGATOR_LIPS         = input.int(5, "Alligator Lips", minval=2, maxval=15, group=gSettingsNumbers)
+TRIX_LENGTH            = input.int(14, "TRIX Length", minval=5, maxval=30, group=gSettingsNumbers)
+TRIX_SIGNAL_LEN        = input.int(9, "TRIX Signal Length", minval=3, maxval=20, group=gSettingsNumbers)
+UO_PERIOD_1            = input.int(7, "UO Period 1", minval=3, maxval=20, group=gSettingsNumbers)
+UO_PERIOD_2            = input.int(14, "UO Period 2", minval=5, maxval=30, group=gSettingsNumbers)
+UO_PERIOD_3            = input.int(28, "UO Period 3", minval=10, maxval=50, group=gSettingsNumbers)
+KST_ROC_1              = input.int(10, "KST ROC 1", minval=5, maxval=30, group=gSettingsNumbers)
+KST_ROC_2              = input.int(15, "KST ROC 2", minval=5, maxval=40, group=gSettingsNumbers)
+KST_ROC_3              = input.int(20, "KST ROC 3", minval=5, maxval=50, group=gSettingsNumbers)
+KST_ROC_4              = input.int(30, "KST ROC 4", minval=10, maxval=60, group=gSettingsNumbers)
+KST_SMA_LEN            = input.int(10, "KST SMA Length", minval=5, maxval=30, group=gSettingsNumbers)
+DPO_LENGTH             = input.int(20, "DPO Length", minval=10, maxval=50, group=gSettingsNumbers)
+RVI_LENGTH             = input.int(14, "RVI Length", minval=5, maxval=30, group=gSettingsNumbers)
+SCHAFF_CYCLE           = input.int(10, "Schaff Cycle", minval=5, maxval=20, group=gSettingsNumbers)
+SCHAFF_SMOOTH_1        = input.int(23, "Schaff Smooth 1", minval=10, maxval=50, group=gSettingsNumbers)
+SCHAFF_SMOOTH_2        = input.int(50, "Schaff Smooth 2", minval=20, maxval=100, group=gSettingsNumbers)
+PGO_LENGTH             = input.int(14, "PGO Length", minval=5, maxval=30, group=gSettingsNumbers)
+COPPOCK_ROC_1          = input.int(11, "Coppock ROC 1", minval=5, maxval=20, group=gSettingsNumbers)
+COPPOCK_ROC_2          = input.int(14, "Coppock ROC 2", minval=8, maxval=25, group=gSettingsNumbers)
+COPPOCK_SMA            = input.int(10, "Coppock SMA", minval=5, maxval=25, group=gSettingsNumbers)
+MASS_SINGLE            = input.int(9, "Mass Single", minval=5, maxval=20, group=gSettingsNumbers)
+MASS_SUM               = input.int(25, "Mass Sum", minval=10, maxval=50, group=gSettingsNumbers)
+MASS_THRESHOLD         = input.float(27.0, "Mass Threshold", minval=20.0, maxval=35.0, step=1.0, group=gSettingsNumbers)
+AD_LINE_MA_LEN         = input.int(20, "AD Line MA Length", minval=10, maxval=50, group=gSettingsNumbers)
+PVT_MA_LEN             = input.int(20, "PVT MA Length", minval=10, maxval=50, group=gSettingsNumbers)
+EFI_LENGTH             = input.int(13, "EFI Length", minval=5, maxval=30, group=gSettingsNumbers)
+KVO_FAST               = input.int(34, "KVO Fast", minval=20, maxval=50, group=gSettingsNumbers)
+KVO_SLOW               = input.int(55, "KVO Slow", minval=40, maxval=80, group=gSettingsNumbers)
+KVO_SIGNAL             = input.int(13, "KVO Signal", minval=5, maxval=25, group=gSettingsNumbers)
+EOM_LENGTH             = input.int(14, "EOM Length", minval=5, maxval=30, group=gSettingsNumbers)
+NVI_PVI_MA_LEN         = input.int(255, "NVI/PVI MA Length", minval=100, maxval=500, group=gSettingsNumbers)
+III_LENGTH             = input.int(14, "III Length", minval=5, maxval=30, group=gSettingsNumbers)
+TWIGGS_LENGTH          = input.int(21, "Twiggs Length", minval=10, maxval=40, group=gSettingsNumbers)
+PIN_BAR_WICK_RATIO     = input.float(2.0, "Pin Bar Wick Ratio", minval=1.0, maxval=5.0, step=0.5, group=gSettingsNumbers)
+DOJI_BODY_PCT          = input.float(0.1, "Doji Body %", minval=0.05, maxval=0.3, step=0.05, group=gSettingsNumbers)
+TWEEZER_TOLERANCE      = input.float(0.1, "Tweazer Tolerance", minval=0.05, maxval=0.3, step=0.05, group=gSettingsNumbers)
+FVG_MIN_BODY_PCT       = input.float(0.5, "FVG Min Body %", minval=0.2, maxval=1.0, step=0.1, group=gSettingsNumbers)
+DISP_BODY_MULT         = input.float(1.5, "Displacement Body Mult", minval=1.0, maxval=3.0, step=0.5, group=gSettingsNumbers)
+OB_DISPLACEMENT_MULT   = input.float(1.5, "OB Displacement Mult", minval=1.0, maxval=3.0, step=0.5, group=gSettingsNumbers)
+Z_SCORE_LENGTH         = input.int(20, "Z-Score Length", minval=10, maxval=50, group=gSettingsNumbers)
+PRESSURE_LENGTH        = input.int(14, "Pressure Length", minval=5, maxval=30, group=gSettingsNumbers)
+WYCKOFF_LOOKBACK       = input.int(50, "Wyckoff Lookback", minval=20, maxval=100, group=gSettingsNumbers)
+ELDER_EMA_LEN          = input.int(13, "Elder EMA Length", minval=5, maxval=30, group=gSettingsNumbers)
+VW_RSI_LENGTH          = input.int(14, "VW RSI Length", minval=5, maxval=30, group=gSettingsNumbers)
+CORR_LENGTH            = input.int(20, "Corr Length", minval=10, maxval=50, group=gSettingsNumbers)
+CMO_LENGTH             = input.int(14, "CMO Length", minval=5, maxval=30, group=gSettingsNumbers)
+HULL_LENGTH            = input.int(20, "Hull Length", minval=5, maxval=50, group=gSettingsNumbers)
+VWMA_LENGTH            = input.int(20, "VWMA Length", minval=5, maxval=50, group=gSettingsNumbers)
+MCGINLEY_LENGTH        = input.int(14, "McGinley Length", minval=5, maxval=30, group=gSettingsNumbers)
+DEMA_LENGTH            = input.int(14, "DEMA Length", minval=5, maxval=30, group=gSettingsNumbers)
+TEMA_LENGTH            = input.int(14, "TEMA Length", minval=5, maxval=30, group=gSettingsNumbers)
+ST_FACTOR              = input.float(3.0, "SuperTrend Factor", minval=1.0, maxval=5.0, step=0.5, group=gSettingsNumbers)
+ST_ATR_LEN             = input.int(10, "SuperTrend ATR Length", minval=5, maxval=30, group=gSettingsNumbers)
+RSI_LENGTH             = input.int(14, "RSI Length", minval=5, maxval=30, group=gSettingsNumbers)
+RSI_BULL_OVERSOLD      = input.float(35.0, "RSI Bull Oversold", minval=20.0, maxval=45.0, step=1.0, group=gSettingsNumbers)
+RSI_BEAR_OVERSOLD      = input.float(25.0, "RSI Bear Oversold", minval=15.0, maxval=35.0, step=1.0, group=gSettingsNumbers)
+RSI_BULL_OVERBOUGHT    = input.float(75.0, "RSI Bull Overbought", minval=65.0, maxval=90.0, step=1.0, group=gSettingsNumbers)
+RSI_BEAR_OVERBOUGHT    = input.float(65.0, "RSI Bear Overbought", minval=55.0, maxval=80.0, step=1.0, group=gSettingsNumbers)
+MACD_FAST              = input.int(12, "MACD Fast", minval=5, maxval=25, group=gSettingsNumbers)
+MACD_SLOW              = input.int(26, "MACD Slow", minval=15, maxval=40, group=gSettingsNumbers)
+MACD_SIGNAL            = input.int(9, "MACD Signal", minval=5, maxval=20, group=gSettingsNumbers)
+RSI_OVERBOUGHT         = input.float(70.0, "RSI Overbought", minval=60.0, maxval=90.0, step=1.0, group=gSettingsNumbers)
+RSI_OVERSOLD           = input.float(30.0, "RSI Oversold", minval=10.0, maxval=40.0, step=1.0, group=gSettingsNumbers)
+STOCH_K                = input.int(14, "Stochastic K", minval=5, maxval=30, group=gSettingsNumbers)
+STOCH_D                = input.int(3, "Stochastic D", minval=2, maxval=10, group=gSettingsNumbers)
+STOCH_OVERBOUGHT       = input.int(80, "Stochastic Overbought", minval=70, maxval=95, group=gSettingsNumbers)
+STOCH_OVERSOLD         = input.int(20, "Stochastic Oversold", minval=5, maxval=30, group=gSettingsNumbers)
+ROC_LENGTH             = input.int(10, "ROC Length", minval=5, maxval=25, group=gSettingsNumbers)
+CCI_LENGTH             = input.int(20, "CCI Length", minval=10, maxval=50, group=gSettingsNumbers)
+WR_LENGTH              = input.int(14, "Williams %R Length", minval=5, maxval=30, group=gSettingsNumbers)
+FISHER_LENGTH          = input.int(10, "Fisher Length", minval=5, maxval=25, group=gSettingsNumbers)
+ATR_LENGTH             = input.int(14, "ATR Length", minval=5, maxval=30, group=gSettingsNumbers)
+ATR_MULTIPLIER_SL      = input.float(2.0, "ATR Multiplier SL", minval=1.0, maxval=5.0, step=0.5, group=gSettingsNumbers)
+ATR_MULTIPLIER_TP      = input.float(3.0, "ATR Multiplier TP", minval=1.0, maxval=6.0, step=0.5, group=gSettingsNumbers)
+BB_LENGTH              = input.int(20, "BB Length", minval=10, maxval=50, group=gSettingsNumbers)
+BB_MULTIPLIER          = input.float(2.0, "BB Multiplier", minval=1.0, maxval=3.0, step=0.1, group=gSettingsNumbers)
+KC_LENGTH              = input.int(20, "Keltner Length", minval=10, maxval=50, group=gSettingsNumbers)
+KC_MULT                = input.float(1.5, "Keltner Mult", minval=1.0, maxval=3.0, step=0.1, group=gSettingsNumbers)
+DONCHIAN_LENGTH        = input.int(20, "Donchian Length", minval=10, maxval=50, group=gSettingsNumbers)
+HV_LENGTH              = input.int(20, "HV Length", minval=10, maxval=50, group=gSettingsNumbers)
+HV_RANK_LENGTH         = input.int(252, "HV Rank Length", minval=100, maxval=500, group=gSettingsNumbers)
+SQUEEZE_LENGTH         = input.int(20, "Squeeze Length", minval=10, maxval=50, group=gSettingsNumbers)
+CHAND_LENGTH           = input.int(22, "Chandelier Length", minval=10, maxval=40, group=gSettingsNumbers)
+CHAND_MULT             = input.float(3.0, "Chandelier Mult", minval=2.0, maxval=5.0, step=0.5, group=gSettingsNumbers)
+VOLUME_LENGTH          = input.int(20, "Volume Length", minval=10, maxval=50, group=gSettingsNumbers)
+VOLUME_MULTIPLIER      = input.float(1.0, "Volume Multiplier", minval=0.5, maxval=2.0, step=0.1, group=gSettingsNumbers)
+VOLUME_TREND_BARS      = input.int(3, "Volume Trend Bars", minval=2, maxval=10, group=gSettingsNumbers)
+OBV_LENGTH             = input.int(5, "OBV Length", minval=3, maxval=15, group=gSettingsNumbers)
+CMF_LENGTH             = input.int(20, "CMF Length", minval=10, maxval=50, group=gSettingsNumbers)
+MFI_LENGTH             = input.int(14, "MFI Length", minval=5, maxval=30, group=gSettingsNumbers)
+SWING_LOOKBACK         = input.int(5, "Swing Lookback", minval=2, maxval=15, group=gSettingsNumbers)
+SL_SWING_LOOKBACK      = input.int(10, "SL Swing Lookback", minval=5, maxval=25, group=gSettingsNumbers)
+SWING_DISPLACEMENT_ATR = input.float(1.0, "Swing Displacement ATR", minval=0.5, maxval=2.0, step=0.1, group=gSettingsNumbers)
+FIB_LOOKBACK           = input.int(20, "Fib Lookback", minval=10, maxval=50, group=gSettingsNumbers)
+GAP_MIN_ATR            = input.float(0.0, "Gap Min ATR", minval=0.0, maxval=2.0, step=0.1, group=gSettingsNumbers)
+PD_LOOKBACK            = input.int(50, "PD Lookback", minval=20, maxval=100, group=gSettingsNumbers)
+AROON_LENGTH           = input.int(25, "Aroon Length", minval=10, maxval=50, group=gSettingsNumbers)
+LIN_REG_LENGTH         = input.int(20, "Lin Reg Length", minval=10, maxval=50, group=gSettingsNumbers)
+VORTEX_LENGTH          = input.int(14, "Vortex Length", minval=5, maxval=30, group=gSettingsNumbers)
+HTF_EMA_LENGTH         = input.int(50, "HTF EMA Length", minval=20, maxval=100, group=gSettingsNumbers)
+ADX_LENGTH             = input.int(14, "ADX Length", minval=5, maxval=30, group=gSettingsNumbers)
+ADX_THRESHOLD          = input.float(25.0, "ADX Threshold", minval=15.0, maxval=40.0, step=1.0, group=gSettingsNumbers)
+HTF_RSI_LENGTH         = input.int(14, "HTF RSI Length", minval=5, maxval=30, group=gSettingsNumbers)
+HTF_RSI_NOT_OVERBOUGHT = input.float(70.0, "HTF RSI Not Overbought", minval=60.0, maxval=90.0, step=1.0, group=gSettingsNumbers)
+HTF_RSI_NOT_OVERSOLD   = input.float(30.0, "HTF RSI Not Oversold", minval=10.0, maxval=40.0, step=1.0, group=gSettingsNumbers)
+ATR_MIN_PCT            = input.float(0.0, "ATR Min %", minval=0.0, maxval=5.0, step=0.1, group=gSettingsNumbers)
+ATR_MAX_PCT            = input.float(0.0, "ATR Max %", minval=0.0, maxval=10.0, step=0.5, group=gSettingsNumbers)
+MA_FAST_LEN            = input.int(9, "MA Fast Length", minval=5, maxval=20, group=gSettingsNumbers)
+MA_SLOW_LEN            = input.int(21, "MA Slow Length", minval=10, maxval=40, group=gSettingsNumbers)
+MA_SLOWER_LEN          = input.int(50, "MA Slower Length", minval=30, maxval=100, group=gSettingsNumbers)
 
 var gTheme       = "Theme & Colors"
 POSITIVE_COLOR   = input.color(color.rgb(0, 200, 83), "Positive", group=gTheme)
@@ -235,99 +219,98 @@ MUTED_COLOR      = input.color(color.rgb(90, 90, 105), "Muted (historical)", gro
 
 f_exhaustionScore(rsiPrev, stochKVal, mfiValue, wrValue, bbPercent, zScore, cciValue, schaffVal, uoValue, volClimaxBuy, extendedBearRun, massBulge, cmoValue, volClimaxSell, extendedBullRun, useStoch) =>
     c = 7.0
+    ext = USE_EXTENDED_OSCILLATORS
     bRaw = (rsiPrev < 35 ? 2.0 : rsiPrev < 45 ? 1.0 : 0.0)
          + (useStoch and stochKVal[1] < 25 ? 1.5 : 0.0)
-         + (mfiValue[1] < 30 ? 1.0 : 0.0)
-         + (wrValue[1] < -75 ? 1.0 : 0.0)
+         + (ext and mfiValue[1] < 30 ? 1.0 : 0.0)
+         + (ext and wrValue[1] < -75 ? 1.0 : 0.0)
          + (bbPercent[1] < 0.15 ? 1.5 : 0.0)
          + (zScore[1] < -1.5 ? 2.0 : 0.0)
-         + (cciValue[1] < -100 ? 1.0 : 0.0)
-         + (schaffVal[1] < 20 ? 0.8 : 0.0)
-         + (uoValue[1] < 30 ? 0.8 : 0.0)
+         + (ext and cciValue[1] < -100 ? 1.0 : 0.0)
+         + (ext and schaffVal[1] < 20 ? 0.8 : 0.0)
+         + (ext and uoValue[1] < 30 ? 0.8 : 0.0)
          + (volClimaxBuy ? 2.5 : 0.0)
          + (extendedBearRun ? 1.5 : 0.0)
-         + (massBulge and rsiPrev < 40 ? 1.5 : 0.0)
-         + (cmoValue[1] < -50 ? 0.8 : 0.0)
+         + (ext and massBulge and rsiPrev < 40 ? 1.5 : 0.0)
+         + (ext and cmoValue[1] < -50 ? 0.8 : 0.0)
     sRaw = (rsiPrev > 65 ? 2.0 : rsiPrev > 55 ? 1.0 : 0.0)
          + (useStoch and stochKVal[1] > 75 ? 1.5 : 0.0)
-         + (mfiValue[1] > 70 ? 1.0 : 0.0)
-         + (wrValue[1] > -25 ? 1.0 : 0.0)
+         + (ext and mfiValue[1] > 70 ? 1.0 : 0.0)
+         + (ext and wrValue[1] > -25 ? 1.0 : 0.0)
          + (bbPercent[1] > 0.85 ? 1.5 : 0.0)
          + (zScore[1] > 1.5 ? 2.0 : 0.0)
-         + (cciValue[1] > 100 ? 1.0 : 0.0)
-         + (schaffVal[1] > 80 ? 0.8 : 0.0)
-         + (uoValue[1] > 70 ? 0.8 : 0.0)
+         + (ext and cciValue[1] > 100 ? 1.0 : 0.0)
+         + (ext and schaffVal[1] > 80 ? 0.8 : 0.0)
+         + (ext and uoValue[1] > 70 ? 0.8 : 0.0)
          + (volClimaxSell ? 2.5 : 0.0)
          + (extendedBullRun ? 1.5 : 0.0)
-         + (massBulge and rsiPrev > 60 ? 1.5 : 0.0)
-         + (cmoValue[1] > 50 ? 0.8 : 0.0)
+         + (ext and massBulge and rsiPrev > 60 ? 1.5 : 0.0)
+         + (ext and cmoValue[1] > 50 ? 0.8 : 0.0)
     [math.min(bRaw / c, 1.0), math.min(sRaw / c, 1.0)]
 
 f_reversalScore(macdCrossUpFresh, rsiCrossUpFresh, stochCrossUpFresh, macdHistTurningUp, fisherBullish, trixBullish, kstBullish, sineBullish, coppockBullish, rviBullish, elderImpulseBull, dpoBullish, rsiAccelBuy, chandBullish, ttmFirBull, macdCrossDownFresh, rsiCrossDownFresh, stochCrossDownFresh, macdHistTurningDown, fisherBearish, trixBearish, kstBearish, sineBearish, coppockBearish, rviBearish, elderImpulseBear, dpoBearish, rsiAccelSell, chandBearish, ttmFirBear) =>
     c = 5.0
+    ext = USE_EXTENDED_OSCILLATORS
     bRaw = macdCrossUpFresh + rsiCrossUpFresh + stochCrossUpFresh
          + (macdHistTurningUp ? 1.5 : 0.0)
-         + (fisherBullish ? 1.0 : 0.0)
-         + (trixBullish ? 1.0 : 0.0)
-         + (kstBullish ? 1.0 : 0.0)
-         + (sineBullish ? 0.8 : 0.0)
-         + (coppockBullish ? 0.8 : 0.0)
-         + (rviBullish ? 0.7 : 0.0)
-         + (elderImpulseBull ? 0.8 : 0.0)
-         + (dpoBullish ? 0.6 : 0.0)
-         + (rsiAccelBuy ? 1.2 : 0.0)
-         + (chandBullish ? 0.8 : 0.0)
-         + (ttmFirBull ? 1.0 : 0.0)
+         + (ext and fisherBullish ? 1.0 : 0.0)
+         + (ext and trixBullish ? 1.0 : 0.0)
+         + (ext and kstBullish ? 1.0 : 0.0)
+         + (ext and sineBullish ? 0.8 : 0.0)
+         + (ext and coppockBullish ? 0.8 : 0.0)
+         + (ext and rviBullish ? 0.7 : 0.0)
+         + (ext and elderImpulseBull ? 0.8 : 0.0)
+         + (ext and dpoBullish ? 0.6 : 0.0)
+         + (ext and rsiAccelBuy ? 1.2 : 0.0)
+         + (ext and chandBullish ? 0.8 : 0.0)
+         + (ext and ttmFirBull ? 1.0 : 0.0)
     sRaw = macdCrossDownFresh + rsiCrossDownFresh + stochCrossDownFresh
          + (macdHistTurningDown ? 1.5 : 0.0)
-         + (fisherBearish ? 1.0 : 0.0)
-         + (trixBearish ? 1.0 : 0.0)
-         + (kstBearish ? 1.0 : 0.0)
-         + (sineBearish ? 0.8 : 0.0)
-         + (coppockBearish ? 0.8 : 0.0)
-         + (rviBearish ? 0.7 : 0.0)
-         + (elderImpulseBear ? 0.8 : 0.0)
-         + (dpoBearish ? 0.6 : 0.0)
-         + (rsiAccelSell ? 1.2 : 0.0)
-         + (chandBearish ? 0.8 : 0.0)
-         + (ttmFirBear ? 1.0 : 0.0)
+         + (ext and fisherBearish ? 1.0 : 0.0)
+         + (ext and trixBearish ? 1.0 : 0.0)
+         + (ext and kstBearish ? 1.0 : 0.0)
+         + (ext and sineBearish ? 0.8 : 0.0)
+         + (ext and coppockBearish ? 0.8 : 0.0)
+         + (ext and rviBearish ? 0.7 : 0.0)
+         + (ext and elderImpulseBear ? 0.8 : 0.0)
+         + (ext and dpoBearish ? 0.6 : 0.0)
+         + (ext and rsiAccelSell ? 1.2 : 0.0)
+         + (ext and chandBearish ? 0.8 : 0.0)
+         + (ext and ttmFirBear ? 1.0 : 0.0)
     [math.min(bRaw / c, 1.0), math.min(sRaw / c, 1.0)]
 
 f_structureScore(bullEngulfing, hammerBull, morningStar, piercingLine, tweezerBottom, threeWhiteSoldiers, doji, rsiPrev, bullHarami, bearEngulfing, shootingStar, eveningStar, darkCloudCover, tweezerTop, threeBlackCrows, bearHarami, pivotCrossUpR1, pivotCrossDownS1, donchianBreakoutUp, donchianBreakoutDown, nearSupport, wyckSpring, bullishDivergence, bosBull, chochBullish, sfpBull, liqSweepBuy, bullFVG, nearBullOB, wickRejectionBuy, bullDisplacement, nearPivotS1, nearResistance, wyckUpthrust, bearishDivergence, bosBear, chochBearish, sfpBear, liqSweepSell, bearFVG, nearBearOB, wickRejectionSell, bearDisplacement, nearPivotR1) =>
     c = 9.5
+    // Indices: only strongest patterns (Engulfing, Hammer/Shooting Star, Morning/Evening Star)
     candleBullRaw = (bullEngulfing ? 1.5 : 0.0) + (hammerBull ? 1.5 : 0.0) + (morningStar ? 1.5 : 0.0)
-         + (piercingLine ? 1.0 : 0.0) + (tweezerBottom ? 1.0 : 0.0) + (threeWhiteSoldiers ? 1.0 : 0.0)
-         + (doji and rsiPrev < 40 ? 0.5 : 0.0) + (bullHarami ? 0.8 : 0.0)
     candleBullCapped = math.min(candleBullRaw, 2.5)
     candleBearRaw = (bearEngulfing ? 1.5 : 0.0) + (shootingStar ? 1.5 : 0.0) + (eveningStar ? 1.5 : 0.0)
-         + (darkCloudCover ? 1.0 : 0.0) + (tweezerTop ? 1.0 : 0.0) + (threeBlackCrows ? 1.0 : 0.0)
-         + (doji and rsiPrev > 60 ? 0.5 : 0.0) + (bearHarami ? 0.8 : 0.0)
     candleBearCapped = math.min(candleBearRaw, 2.5)
     pivotBreakUpFresh = pivotCrossUpR1[1] ? 1.8 : pivotCrossUpR1[2] ? 1.2 : pivotCrossUpR1[3] ? 0.6 : 0.0
     pivotBreakDownFresh = pivotCrossDownS1[1] ? 1.8 : pivotCrossDownS1[2] ? 1.2 : pivotCrossDownS1[3] ? 0.6 : 0.0
     donchianBreakoutUpFresh = donchianBreakoutUp[1] ? 1.2 : donchianBreakoutUp[2] ? 0.8 : donchianBreakoutUp[3] ? 0.4 : 0.0
     donchianBreakoutDownFresh = donchianBreakoutDown[1] ? 1.2 : donchianBreakoutDown[2] ? 0.8 : donchianBreakoutDown[3] ? 0.4 : 0.0
     bRaw = (nearSupport ? 2.0 : 0.0)
-         + (wyckSpring ? 2.5 : 0.0)
+         + (USE_WYCKOFF and wyckSpring ? 2.5 : 0.0)
          + (bullishDivergence ? 2.5 : 0.0)
-         + math.max(bosBull ? 1.5 : 0.0, chochBullish ? 2.0 : 0.0)
-         + math.max(sfpBull ? 1.5 : 0.0, liqSweepBuy ? 2.0 : 0.0)
-         + (bullFVG ? 1.0 : 0.0)
+         + (USE_SMC ? math.max(bosBull ? 1.5 : 0.0, chochBullish ? 2.0 : 0.0) : 0.0)
+         + (USE_SMC ? math.max(sfpBull ? 1.5 : 0.0, liqSweepBuy ? 2.0 : 0.0) : 0.0)
+         + (USE_SMC and bullFVG ? 1.0 : 0.0)
          + candleBullCapped
-         + (nearBullOB ? 1.5 : 0.0)
+         + (USE_SMC and nearBullOB ? 1.5 : 0.0)
          + (wickRejectionBuy ? 1.0 : 0.0)
          + (bullDisplacement ? 1.2 : 0.0)
          + pivotBreakUpFresh
          + (nearPivotS1 ? 0.9 : 0.0)
          + donchianBreakoutUpFresh
     sRaw = (nearResistance ? 2.0 : 0.0)
-         + (wyckUpthrust ? 2.5 : 0.0)
+         + (USE_WYCKOFF and wyckUpthrust ? 2.5 : 0.0)
          + (bearishDivergence ? 2.5 : 0.0)
-         + math.max(bosBear ? 1.5 : 0.0, chochBearish ? 2.0 : 0.0)
-         + math.max(sfpBear ? 1.5 : 0.0, liqSweepSell ? 2.0 : 0.0)
-         + (bearFVG ? 1.0 : 0.0)
+         + (USE_SMC ? math.max(bosBear ? 1.5 : 0.0, chochBearish ? 2.0 : 0.0) : 0.0)
+         + (USE_SMC ? math.max(sfpBear ? 1.5 : 0.0, liqSweepSell ? 2.0 : 0.0) : 0.0)
+         + (USE_SMC and bearFVG ? 1.0 : 0.0)
          + candleBearCapped
-         + (nearBearOB ? 1.5 : 0.0)
+         + (USE_SMC and nearBearOB ? 1.5 : 0.0)
          + (wickRejectionSell ? 1.0 : 0.0)
          + (bearDisplacement ? 1.2 : 0.0)
          + pivotBreakDownFresh
@@ -373,36 +356,39 @@ f_trendAlignScore(mtfD, mtf240, mtf60, mtf15, mtf5, htfTrendUp, adxStrong, vwRsi
     c = 10.0
     mtfBuy = (mtfD ? 2.5 : 0.0) + (mtf240 ? 2.0 : 0.0) + (mtf60 ? 1.0 : 0.0) + (mtf15 ? 0.6 : 0.0) + (mtf5 ? 0.4 : 0.0)
     mtfSell = (not mtfD ? 2.5 : 0.0) + (not mtf240 ? 2.0 : 0.0) + (not mtf60 ? 1.0 : 0.0) + (not mtf15 ? 0.6 : 0.0) + (not mtf5 ? 0.4 : 0.0)
-    bRaw = mtfBuy + (htfTrendUp ? 2.0 : 0.0) + (adxStrong ? 0.5 : 0.0) + (vwRsiBullish ? 0.8 : 0.0) + (vortexBullish ? 0.6 : 0.0) + (vwapBullish ? 0.7 : 0.0) + (mcginleyBullish ? 0.7 : 0.0) + (alligatorBullish ? 0.8 : 0.0) + (bullHidden ? 2.0 : 0.0)
-    sRaw = mtfSell + (not htfTrendUp ? 2.0 : 0.0) + (adxStrong ? 0.5 : 0.0) + (vwRsiBearish ? 0.8 : 0.0) + (vortexBearish ? 0.6 : 0.0) + (vwapBearish ? 0.7 : 0.0) + (mcginleyBearish ? 0.7 : 0.0) + (alligatorBearish ? 0.8 : 0.0) + (bearHidden ? 2.0 : 0.0)
+    bRaw = mtfBuy + (htfTrendUp ? 2.0 : 0.0) + (adxStrong ? 0.5 : 0.0) + (vwRsiBullish ? 0.8 : 0.0) + (vortexBullish ? 0.6 : 0.0) + (vwapBullish ? 0.7 : 0.0) + (mcginleyBullish ? 0.7 : 0.0) + (alligatorBullish ? 0.8 : 0.0)
+    sRaw = mtfSell + (not htfTrendUp ? 2.0 : 0.0) + (adxStrong ? 0.5 : 0.0) + (vwRsiBearish ? 0.8 : 0.0) + (vortexBearish ? 0.6 : 0.0) + (vwapBearish ? 0.7 : 0.0) + (mcginleyBearish ? 0.7 : 0.0) + (alligatorBearish ? 0.8 : 0.0)
     [math.min(bRaw / c, 1.0), math.min(sRaw / c, 1.0)]
 
 f_metaMultipliers(exhB, exhS, revB, revS, strB, strS, volB, volS, trdB, trdS, zScore, hvRank, adxValue, adxStrong, lagSellCount, lagEnabledCount, lagBuyCount, USE_SESSION_FILTER, inSession) =>
-    zBuyM = zScore[1] < -2.0 ? 1.15 : zScore[1] < -1.0 ? 1.05 : zScore[1] > 2.0 ? 0.65 : zScore[1] > 1.5 ? 0.85 : 1.0
-    zSellM = zScore[1] > 2.0 ? 1.15 : zScore[1] > 1.0 ? 1.05 : zScore[1] < -2.0 ? 0.65 : zScore[1] < -1.5 ? 0.85 : 1.0
+    // STOCKS: Lower deviation - tighter thresholds (2.5σ vs 2.0σ), reduced impact
+    zBuyM = zScore[1] < -2.5 ? 1.10 : zScore[1] < -1.5 ? 1.04 : zScore[1] > 2.5 ? 0.75 : zScore[1] > 1.5 ? 0.90 : 1.0
+    zSellM = zScore[1] > 2.5 ? 1.10 : zScore[1] > 1.5 ? 1.04 : zScore[1] < -2.5 ? 0.75 : zScore[1] < -1.5 ? 0.90 : 1.0
     r2M = 1.0
     exhStrength = math.max(exhB, exhS)
-    vsM = hvRank[1] > 95 ? (exhStrength > 0.5 ? 1.08 : exhStrength > 0.3 ? 0.85 : 0.65) : hvRank[1] > 90 ? (exhStrength > 0.5 ? 1.04 : exhStrength > 0.3 ? 0.88 : 0.75) : hvRank[1] > 80 ? 0.92 : 1.0
+    // STOCKS: Stable vol = healthy trends, spikes need confirmation, add low-vol bonus
+    vsM = hvRank[1] > 95 ? (exhStrength > 0.6 ? 1.06 : exhStrength > 0.4 ? 0.88 : 0.70) : hvRank[1] > 85 ? (exhStrength > 0.5 ? 1.03 : 0.92) : hvRank[1] < 30 ? 1.05 : 1.0
     adxFall = adxValue[1] < adxValue[4]
     adxRise = adxValue[1] > adxValue[4] and adxStrong
-    adxM = adxFall ? 1.06 : adxRise ? 0.85 : 1.0
+    // STOCKS: Strong trends persist - only boost reversals if trend already weak
+    adxM = adxFall and not adxStrong ? 1.04 : adxRise ? 0.90 : 1.0
     lagSellRatio = lagSellCount / math.max(lagEnabledCount, 1)
     lagBuyRatio = lagBuyCount / math.max(lagEnabledCount, 1)
     lagNetBuy = lagSellRatio - lagBuyRatio
     lagNetSell = lagBuyRatio - lagSellRatio
     exBoostB = lagNetBuy >= 0 ? (lagSellRatio >= 0.82 ? 1.15 : lagSellRatio >= 0.65 ? 1.08 : 1.0) : 1.0
-    exPenB = lagNetBuy < 0 ? (lagBuyRatio >= 0.82 ? 0.55 : lagBuyRatio >= 0.65 ? 0.75 : 1.0) : 1.0
+    exPenB = lagSellRatio >= 0.75 ? 0.40 : (lagNetBuy < 0 ? (lagBuyRatio >= 0.82 ? 0.55 : lagBuyRatio >= 0.65 ? 0.75 : 1.0) : 1.0)
     exBoostS = lagNetSell >= 0 ? (lagBuyRatio >= 0.82 ? 1.15 : lagBuyRatio >= 0.65 ? 1.08 : 1.0) : 1.0
-    exPenS = lagNetSell < 0 ? (lagSellRatio >= 0.82 ? 0.55 : lagSellRatio >= 0.65 ? 0.75 : 1.0) : 1.0
-    bAgreeStrong = (exhB > 0.55 ? 1 : 0) + (revB > 0.45 ? 1 : 0) + (strB > 0.35 ? 1 : 0) + (volB > 0.50 ? 1 : 0) + (trdB > 0.55 ? 1 : 0)
-    bAgree = (exhB > 0.25 ? 1 : 0) + (revB > 0.15 ? 1 : 0) + (strB > 0.10 ? 1 : 0) + (volB > 0.20 ? 1 : 0) + (trdB > 0.25 ? 1 : 0)
-    sAgreeStrong = (exhS > 0.55 ? 1 : 0) + (revS > 0.45 ? 1 : 0) + (strS > 0.35 ? 1 : 0) + (volS > 0.50 ? 1 : 0) + (trdS > 0.55 ? 1 : 0)
-    sAgree = (exhS > 0.25 ? 1 : 0) + (revS > 0.15 ? 1 : 0) + (strS > 0.10 ? 1 : 0) + (volS > 0.20 ? 1 : 0) + (trdS > 0.25 ? 1 : 0)
-    agreeB = bAgreeStrong >= 3 ? 1.15 : (bAgreeStrong >= 2 and bAgree >= 4) ? 1.10 : bAgree >= 4 ? 1.06 : bAgree >= 3 ? 1.03 : 1.0
-    agreeS = sAgreeStrong >= 3 ? 1.15 : (sAgreeStrong >= 2 and sAgree >= 4) ? 1.10 : sAgree >= 4 ? 1.06 : sAgree >= 3 ? 1.03 : 1.0
-    hod = hour(time, syminfo.timezone)
-    midSess = hod >= 10 and hod <= 14
-    sessM = USE_SESSION_FILTER ? (inSession ? (midSess ? 1.05 : 1.0) : 0.90) : 1.0
+    exPenS = lagBuyRatio >= 0.75 ? 0.40 : (lagNetSell < 0 ? (lagSellRatio >= 0.82 ? 0.55 : lagSellRatio >= 0.65 ? 0.75 : 1.0) : 1.0)
+    // STOCKS: Demand more confirmation - higher thresholds, increased rewards
+    bAgreeStrong = (exhB > 0.50 ? 1 : 0) + (revB > 0.40 ? 1 : 0) + (strB > 0.40 ? 1 : 0) + (volB > 0.55 ? 1 : 0) + (trdB > 0.60 ? 1 : 0)
+    bAgree = (exhB > 0.20 ? 1 : 0) + (revB > 0.12 ? 1 : 0) + (strB > 0.15 ? 1 : 0) + (volB > 0.25 ? 1 : 0) + (trdB > 0.30 ? 1 : 0)
+    sAgreeStrong = (exhS > 0.50 ? 1 : 0) + (revS > 0.40 ? 1 : 0) + (strS > 0.40 ? 1 : 0) + (volS > 0.55 ? 1 : 0) + (trdS > 0.60 ? 1 : 0)
+    sAgree = (exhS > 0.20 ? 1 : 0) + (revS > 0.12 ? 1 : 0) + (strS > 0.15 ? 1 : 0) + (volS > 0.25 ? 1 : 0) + (trdS > 0.30 ? 1 : 0)
+    agreeB = bAgreeStrong >= 4 ? 1.18 : bAgreeStrong >= 3 ? 1.12 : (bAgreeStrong >= 2 and bAgree >= 4) ? 1.08 : bAgree >= 4 ? 1.05 : bAgree >= 3 ? 1.02 : 1.0
+    agreeS = sAgreeStrong >= 4 ? 1.18 : sAgreeStrong >= 3 ? 1.12 : (sAgreeStrong >= 2 and sAgree >= 4) ? 1.08 : sAgree >= 4 ? 1.05 : sAgree >= 3 ? 1.02 : 1.0
+    // Indices: session multiplier disabled (no forex-style session gaps)
+    sessM = 1.0
     [r2M, zBuyM, zSellM, vsM, adxM, exBoostB, exPenB, exBoostS, exPenS, agreeB, agreeS, sessM, bAgreeStrong, bAgree, sAgreeStrong, sAgree]
 
 f_signalTooltip(isBuy, slSource, finalBuyScore, finalSellScore, buyConfidence, sellConfidence, buyDominance, sellDominance, dominanceRatioBuy, dominanceRatioSell, exhBuyScore, exhSellScore, revBuyScore, revSellScore, structBuyScore, structSellScore, volBuyScore, volSellScore, trendAlignBuyScore, trendAlignSellScore, buyCatAgreeStrong, sellCatAgreeStrong, buyCatAgree, sellCatAgree, buySL, sellSL, buyTP, sellTP, buyActualRR, sellActualRR, buyTPSource, sellTPSource, bullishDivergence, bearishDivergence, USE_TWO_T_PS_BUY, USE_TWO_T_PS_SELL, buyTP1, sellTP1, buyTP2, sellTP2, inPremium, inDiscount, rSqValue, r2Reversal, r2Trend, zScore, hvRank, volSpikeMult, lagBuyCount, lagSellCount, lagEnabledCount) =>
@@ -1518,7 +1504,7 @@ f_dashMTFLevels(table dash, bool useMTF, bool mtf5, bool mtf15, bool mtf60, bool
     table.cell(dash, 3, 58, gapUp ? "Up" : gapDown ? "Dn" : "None", bgcolor=f_condColor3(gapUp, gapDown), text_color=TEXT_COLOR, text_size=size.tiny)
     table.cell(dash, 4, 58, "", bgcolor=f_rowBg(58))
 
-f_calcSLTP(float slLastHigh, float slLastLow, int slAgeBuy, int slAgeSell, float slLastLow2, float slLastHigh2, int slAgeBuy2, int slAgeSell2, float cl, float atrP, float finBuy, float finSell, float atrMultSL, float rrMult) =>
+f_calcSLTP(float slLastHigh, float slLastLow, int slAgeBuy, int slAgeSell, float slLastLow2, float slLastHigh2, int slAgeBuy2, int slAgeSell2, float cl, float openP, float atrP, float finBuy, float finSell, float atrMultSL, float rrMult, float minSlPct) =>
     atrSLDist = atrP * atrMultSL
     structDistBuy = cl - slLastLow
     structSLBuyOk = not na(slLastLow) and slLastLow > 0 and slAgeBuy <= 30 and structDistBuy >= atrP * 0.5 and structDistBuy <= atrP * 4.5
@@ -1532,13 +1518,19 @@ f_calcSLTP(float slLastHigh, float slLastLow, int slAgeBuy, int slAgeSell, float
     slBufferSell = finSell >= 80 ? 0.30 : finSell >= 65 ? 0.40 : 0.50
     buySL = structSLBuyOk ? (slLastLow - atrP * slBufferBuy) : structSLBuyOk2 ? (slLastLow2 - atrP * slBufferBuy) : (cl - atrSLDist)
     sellSL = structSLSellOk ? (slLastHigh + atrP * slBufferSell) : structSLSellOk2 ? (slLastHigh2 + atrP * slBufferSell) : (cl + atrSLDist)
-    buySL := math.min(buySL, cl - atrP * 1.0)
-    sellSL := math.max(sellSL, cl + atrP * 1.0)
+    zoneMultBuy = finBuy >= 80 ? 0.5 : finBuy >= 65 ? 0.7 : 0.9
+    zoneMultSell = finSell >= 80 ? 0.5 : finSell >= 65 ? 0.7 : 0.9
+    buyEntryApprox = math.min(openP, cl) + atrP * zoneMultBuy * 0.35
+    sellEntryApprox = math.max(openP, cl) - atrP * zoneMultSell * 0.35
+    minSlDistBuy = buyEntryApprox * (minSlPct / 100)
+    minSlDistSell = sellEntryApprox * (minSlPct / 100)
+    buySL := math.min(buySL, buyEntryApprox - math.max(atrP * 1.0, minSlDistBuy))
+    sellSL := math.max(sellSL, sellEntryApprox + math.max(atrP * 1.0, minSlDistSell))
     fixedBuyTP = cl + (cl - buySL) * rrMult
     fixedSellTP = cl - (sellSL - cl) * rrMult
     [buySL, sellSL, fixedBuyTP, fixedSellTP, structSLBuyOk, structSLBuyOk2, structSLSellOk, structSLSellOk2]
 
-f_calcTPTargets(float lastSwH, float lastSwL, float pR1, float pS1, float pR2, float pS2, float lastBearOBH, float lastBullOBL, float fib38, float fib61, float vwap, float bbUp, float bbLo, float ema200, float prevDH, float prevDL, float cl, float atrP, bool usePivots, float buySL, float sellSL, float fixedBuyTP, float fixedSellTP, float finBuy, float finSell, float openP, float atrMultTP, bool trendUp, bool trendDown, bool adxStr, float trendAlignBuySc, float trendAlignSellSc) =>
+f_calcTPTargets(float lastSwH, float lastSwL, float pR1, float pS1, float pR2, float pS2, float lastBearOBH, float lastBullOBL, float fib38, float fib61, float vwap, float bbUp, float bbLo, float ema200, float prevDH, float prevDL, float cl, float atrP, bool usePivots, float buySL, float sellSL, float fixedBuyTP, float fixedSellTP, float finBuy, float finSell, float openP, float atrMultTP, bool trendUp, bool trendDown, bool adxStr, float trendAlignBuySc, float trendAlignSellSc, float srR1Top, float srR2Top, float srS1Bot, float srS2Bot, bool tp2UseSR, float tp2MinPct, float tpMinDistPct) =>
     entryZoneMultPre = finBuy >= 80 ? 0.5 : finBuy >= 65 ? 0.7 : 0.9
     buyZoneHighPre = math.min(openP, cl) + atrP * entryZoneMultPre
     sellZoneLowPre = math.max(openP, cl) - atrP * (finSell >= 80 ? 0.5 : finSell >= 65 ? 0.7 : 0.9)
@@ -1546,36 +1538,37 @@ f_calcTPTargets(float lastSwH, float lastSwL, float pR1, float pS1, float pR2, f
     minRRStructural = 1.35
     nearBuyTarget = fixedBuyTP
     buyTPSource = "R:R"
-    if lastSwH > cl + atrP * 0.15 and (lastSwH - cl) / buyRisk >= minRRStructural
-        nearBuyTarget := math.min(nearBuyTarget, lastSwH)
-        buyTPSource := "S/R"
-    if usePivots and pR1 > cl + atrP * 0.15 and (pR1 - cl) / buyRisk >= minRRStructural
-        nearBuyTarget := math.min(nearBuyTarget, pR1)
-        buyTPSource := "R1"
-    if not na(lastBearOBH) and lastBearOBH > cl + atrP * 0.15 and (lastBearOBH - cl) / buyRisk >= minRRStructural
-        nearBuyTarget := math.min(nearBuyTarget, lastBearOBH)
-        buyTPSource := "OB"
-    if fib38 > cl + atrP * 0.15 and fib38 < cl + atrP * 6 and (fib38 - cl) / buyRisk >= minRRStructural
-        nearBuyTarget := math.min(nearBuyTarget, fib38)
-        buyTPSource := "Fib38"
-    if fib61 > cl + atrP * 0.15 and fib61 < cl + atrP * 6 and (fib61 - cl) / buyRisk >= minRRStructural
-        nearBuyTarget := math.min(nearBuyTarget, fib61)
-        buyTPSource := "Fib62"
-    if vwap > cl + atrP * 0.15 and (vwap - cl) / buyRisk >= minRRStructural
-        nearBuyTarget := math.min(nearBuyTarget, vwap)
-        buyTPSource := "VWAP"
-    if bbUp > cl + atrP * 0.15 and (bbUp - cl) / buyRisk >= minRRStructural
-        nearBuyTarget := math.min(nearBuyTarget, bbUp)
-        buyTPSource := "BB"
-    if ema200 > cl + atrP * 0.15 and (ema200 - cl) / buyRisk >= minRRStructural
-        nearBuyTarget := math.min(nearBuyTarget, ema200)
-        buyTPSource := "EMA200"
-    if not na(prevDH) and prevDH > cl + atrP * 0.15 and (prevDH - cl) / buyRisk >= minRRStructural
-        nearBuyTarget := math.min(nearBuyTarget, prevDH)
-        buyTPSource := "PDH"
-    if usePivots and pR2 > cl + atrP * 0.15 and (pR2 - cl) / buyRisk >= minRRStructural
-        nearBuyTarget := math.min(nearBuyTarget, pR2)
-        buyTPSource := "R2"
+    if not USE_SINGLE_TP
+        if lastSwH > cl + atrP * 0.15 and (lastSwH - cl) / buyRisk >= minRRStructural
+            nearBuyTarget := math.min(nearBuyTarget, lastSwH)
+            buyTPSource := "S/R"
+        if usePivots and pR1 > cl + atrP * 0.15 and (pR1 - cl) / buyRisk >= minRRStructural
+            nearBuyTarget := math.min(nearBuyTarget, pR1)
+            buyTPSource := "R1"
+        if not na(lastBearOBH) and lastBearOBH > cl + atrP * 0.15 and (lastBearOBH - cl) / buyRisk >= minRRStructural
+            nearBuyTarget := math.min(nearBuyTarget, lastBearOBH)
+            buyTPSource := "OB"
+        if fib38 > cl + atrP * 0.15 and fib38 < cl + atrP * 6 and (fib38 - cl) / buyRisk >= minRRStructural
+            nearBuyTarget := math.min(nearBuyTarget, fib38)
+            buyTPSource := "Fib38"
+        if fib61 > cl + atrP * 0.15 and fib61 < cl + atrP * 6 and (fib61 - cl) / buyRisk >= minRRStructural
+            nearBuyTarget := math.min(nearBuyTarget, fib61)
+            buyTPSource := "Fib62"
+        if vwap > cl + atrP * 0.15 and (vwap - cl) / buyRisk >= minRRStructural
+            nearBuyTarget := math.min(nearBuyTarget, vwap)
+            buyTPSource := "VWAP"
+        if bbUp > cl + atrP * 0.15 and (bbUp - cl) / buyRisk >= minRRStructural
+            nearBuyTarget := math.min(nearBuyTarget, bbUp)
+            buyTPSource := "BB"
+        if ema200 > cl + atrP * 0.15 and (ema200 - cl) / buyRisk >= minRRStructural
+            nearBuyTarget := math.min(nearBuyTarget, ema200)
+            buyTPSource := "EMA200"
+        if not na(prevDH) and prevDH > cl + atrP * 0.15 and (prevDH - cl) / buyRisk >= minRRStructural
+            nearBuyTarget := math.min(nearBuyTarget, prevDH)
+            buyTPSource := "PDH"
+        if usePivots and pR2 > cl + atrP * 0.15 and (pR2 - cl) / buyRisk >= minRRStructural
+            nearBuyTarget := math.min(nearBuyTarget, pR2)
+            buyTPSource := "R2"
     trendExtendBuy = trendUp and trendAlignBuySc > 0.35 and (adxStr or trendAlignBuySc > 0.55)
     buyTP = (trendExtendBuy and nearBuyTarget < fixedBuyTP) ? fixedBuyTP : nearBuyTarget
     if trendExtendBuy and nearBuyTarget < fixedBuyTP
@@ -1586,36 +1579,37 @@ f_calcTPTargets(float lastSwH, float lastSwL, float pR1, float pS1, float pR2, f
     sellRisk = sellSL - cl
     nearSellTarget = fixedSellTP
     sellTPSource = "R:R"
-    if lastSwL < cl - atrP * 0.15 and (cl - lastSwL) / sellRisk >= minRRStructural
-        nearSellTarget := math.max(nearSellTarget, lastSwL)
-        sellTPSource := "S/R"
-    if usePivots and pS1 < cl - atrP * 0.15 and (cl - pS1) / sellRisk >= minRRStructural
-        nearSellTarget := math.max(nearSellTarget, pS1)
-        sellTPSource := "S1"
-    if not na(lastBullOBL) and lastBullOBL < cl - atrP * 0.15 and (cl - lastBullOBL) / sellRisk >= minRRStructural
-        nearSellTarget := math.max(nearSellTarget, lastBullOBL)
-        sellTPSource := "OB"
-    if fib61 < cl - atrP * 0.15 and fib61 > cl - atrP * 6 and (cl - fib61) / sellRisk >= minRRStructural
-        nearSellTarget := math.max(nearSellTarget, fib61)
-        sellTPSource := "Fib62"
-    if fib38 < cl - atrP * 0.15 and fib38 > cl - atrP * 6 and (cl - fib38) / sellRisk >= minRRStructural
-        nearSellTarget := math.max(nearSellTarget, fib38)
-        sellTPSource := "Fib38"
-    if vwap < cl - atrP * 0.15 and (cl - vwap) / sellRisk >= minRRStructural
-        nearSellTarget := math.max(nearSellTarget, vwap)
-        sellTPSource := "VWAP"
-    if bbLo < cl - atrP * 0.15 and (cl - bbLo) / sellRisk >= minRRStructural
-        nearSellTarget := math.max(nearSellTarget, bbLo)
-        sellTPSource := "BB"
-    if ema200 < cl - atrP * 0.15 and (cl - ema200) / sellRisk >= minRRStructural
-        nearSellTarget := math.max(nearSellTarget, ema200)
-        sellTPSource := "EMA200"
-    if not na(prevDL) and prevDL < cl - atrP * 0.15 and (cl - prevDL) / sellRisk >= minRRStructural
-        nearSellTarget := math.max(nearSellTarget, prevDL)
-        sellTPSource := "PDL"
-    if usePivots and pS2 < cl - atrP * 0.15 and (cl - pS2) / sellRisk >= minRRStructural
-        nearSellTarget := math.max(nearSellTarget, pS2)
-        sellTPSource := "S2"
+    if not USE_SINGLE_TP
+        if lastSwL < cl - atrP * 0.15 and (cl - lastSwL) / sellRisk >= minRRStructural
+            nearSellTarget := math.max(nearSellTarget, lastSwL)
+            sellTPSource := "S/R"
+        if usePivots and pS1 < cl - atrP * 0.15 and (cl - pS1) / sellRisk >= minRRStructural
+            nearSellTarget := math.max(nearSellTarget, pS1)
+            sellTPSource := "S1"
+        if not na(lastBullOBL) and lastBullOBL < cl - atrP * 0.15 and (cl - lastBullOBL) / sellRisk >= minRRStructural
+            nearSellTarget := math.max(nearSellTarget, lastBullOBL)
+            sellTPSource := "OB"
+        if fib61 < cl - atrP * 0.15 and fib61 > cl - atrP * 6 and (cl - fib61) / sellRisk >= minRRStructural
+            nearSellTarget := math.max(nearSellTarget, fib61)
+            sellTPSource := "Fib62"
+        if fib38 < cl - atrP * 0.15 and fib38 > cl - atrP * 6 and (cl - fib38) / sellRisk >= minRRStructural
+            nearSellTarget := math.max(nearSellTarget, fib38)
+            sellTPSource := "Fib38"
+        if vwap < cl - atrP * 0.15 and (cl - vwap) / sellRisk >= minRRStructural
+            nearSellTarget := math.max(nearSellTarget, vwap)
+            sellTPSource := "VWAP"
+        if bbLo < cl - atrP * 0.15 and (cl - bbLo) / sellRisk >= minRRStructural
+            nearSellTarget := math.max(nearSellTarget, bbLo)
+            sellTPSource := "BB"
+        if ema200 < cl - atrP * 0.15 and (cl - ema200) / sellRisk >= minRRStructural
+            nearSellTarget := math.max(nearSellTarget, ema200)
+            sellTPSource := "EMA200"
+        if not na(prevDL) and prevDL < cl - atrP * 0.15 and (cl - prevDL) / sellRisk >= minRRStructural
+            nearSellTarget := math.max(nearSellTarget, prevDL)
+            sellTPSource := "PDL"
+        if usePivots and pS2 < cl - atrP * 0.15 and (cl - pS2) / sellRisk >= minRRStructural
+            nearSellTarget := math.max(nearSellTarget, pS2)
+            sellTPSource := "S2"
     trendExtendSell = trendDown and trendAlignSellSc > 0.35 and (adxStr or trendAlignSellSc > 0.55)
     sellTP = (trendExtendSell and nearSellTarget > fixedSellTP) ? fixedSellTP : nearSellTarget
     if trendExtendSell and nearSellTarget > fixedSellTP
@@ -1623,7 +1617,46 @@ f_calcTPTargets(float lastSwH, float lastSwL, float pR1, float pS1, float pR2, f
     sellTP := math.min(sellTP, sellZoneLowPre - atrP * 0.2)
     sellTP := math.max(sellTP, cl - atrP * atrMultTP)
     sellActualRR = sellRisk > 0 ? (cl - sellTP) / sellRisk : 2.0
-    [nearBuyTarget, buyTPSource, buyTP, buyActualRR, nearSellTarget, sellTPSource, sellTP, sellActualRR, trendExtendBuy, trendExtendSell]
+    buyTPPct = (buyTP - cl) / cl * 100
+    sellTPPct = (cl - sellTP) / cl * 100
+    useTwoTPsBuy = false
+    useTwoTPsSell = false
+    buyTP1 = buyTP
+    buyTP2 = buyTP
+    sellTP1 = sellTP
+    sellTP2 = sellTP
+    if not USE_SINGLE_TP
+        buyR1Valid = not na(srR1Top) and srR1Top > cl
+        buyR2Valid = not na(srR2Top) and srR2Top > cl
+        buyFirstR = buyR1Valid ? srR1Top : (buyR2Valid ? srR2Top : na)
+        buySecondR = (buyR1Valid and buyR2Valid) ? srR2Top : na
+        buyFirstRValid = not na(buyFirstR)
+        useSRBuy = tp2UseSR and buyFirstRValid and buyTP > buyFirstR
+        useTwoTPsBuy := useSRBuy or (buyTPPct > tp2MinPct)
+        buyTP1 := useSRBuy ? buyFirstR : (buyTPPct > tp2MinPct ? cl + (buyTP - cl) * 0.5 : buyTP)
+        buyTP2 := useSRBuy ? (not na(buySecondR) ? math.min(buyTP, buySecondR) : buyTP) : (buyTPPct > tp2MinPct ? buyTP : buyTP)
+        sellS1Valid = not na(srS1Bot) and srS1Bot < cl
+        sellS2Valid = not na(srS2Bot) and srS2Bot < cl
+        sellFirstS = sellS1Valid ? srS1Bot : (sellS2Valid ? srS2Bot : na)
+        sellSecondS = (sellS1Valid and sellS2Valid) ? srS2Bot : na
+        sellFirstSValid = not na(sellFirstS)
+        useSRSell = tp2UseSR and sellFirstSValid and sellTP < sellFirstS
+        useTwoTPsSell := useSRSell or (sellTPPct > tp2MinPct)
+        sellTP1 := useSRSell ? sellFirstS : (sellTPPct > tp2MinPct ? cl - (cl - sellTP) * 0.5 : sellTP)
+        sellTP2 := useSRSell ? (not na(sellSecondS) ? math.max(sellTP, sellSecondS) : sellTP) : (sellTPPct > tp2MinPct ? sellTP : sellTP)
+        buyTPDistPct = (buyTP2 - buyTP1) / cl * 100
+        sellTPDistPct = (sellTP1 - sellTP2) / cl * 100
+        buyTPsTooClose = useTwoTPsBuy and buyTPDistPct < tpMinDistPct
+        sellTPsTooClose = useTwoTPsSell and sellTPDistPct < tpMinDistPct
+        if buyTPsTooClose
+            useTwoTPsBuy := false
+            buyTP1 := buyTP
+            buyTP2 := buyTP
+        if sellTPsTooClose
+            useTwoTPsSell := false
+            sellTP1 := sellTP
+            sellTP2 := sellTP
+    [nearBuyTarget, buyTPSource, buyTP, buyActualRR, nearSellTarget, sellTPSource, sellTP, sellActualRR, trendExtendBuy, trendExtendSell, useTwoTPsBuy, useTwoTPsSell, buyTP1, buyTP2, sellTP1, sellTP2]
 
 f_calcResistanceZones(array<float> phPrices, array<int> phBars, float zoneWidth, int lookback, int minTouches, int maxZones) =>
     float r1T = na
@@ -1670,22 +1703,40 @@ f_calcResistanceZones(array<float> phPrices, array<int> phBars, float zoneWidth,
             if array.get(rTouches, j) >= minTouches and array.get(rTouches, j) > bestRt
                 bestRt := array.get(rTouches, j)
                 bestR := j
+        mergeThreshold = zoneWidth * 2.0
+        mergedR1Lo = bestR >= 0 ? array.get(rLo, bestR) : na
+        mergedR1Hi = bestR >= 0 ? array.get(rHi, bestR) : na
+        mergedR1Start = bestR >= 0 ? array.get(rStartB, bestR) : 2147483647
+        for j = 0 to numR - 1
+            if j != bestR and bestR >= 0 and array.get(rTouches, j) >= minTouches
+                bestCenter = (array.get(rLo, bestR) + array.get(rHi, bestR)) / 2
+                candidateCenter = (array.get(rLo, j) + array.get(rHi, j)) / 2
+                separation = math.abs(candidateCenter - bestCenter)
+                if separation < mergeThreshold
+                    mergedR1Lo := math.min(mergedR1Lo, array.get(rLo, j))
+                    mergedR1Hi := math.max(mergedR1Hi, array.get(rHi, j))
+                    mergedR1Start := math.min(mergedR1Start, array.get(rStartB, j))
+        mergedR1Touches = 0
+        if not na(mergedR1Lo)
+            for k = 1 to math.min(lookback, bar_index)
+                if high[k] >= mergedR1Lo and low[k] <= mergedR1Hi
+                    mergedR1Touches += 1
         secondR = -1
         secondRt = 0
-        minSeparation = zoneWidth * 2.0
+        minSeparation = zoneWidth
         for j = 0 to numR - 1
             if j != bestR and array.get(rTouches, j) >= minTouches
-                bestCenter = bestR >= 0 ? (array.get(rLo, bestR) + array.get(rHi, bestR)) / 2 : na
+                bestCenter = bestR >= 0 ? (mergedR1Lo + mergedR1Hi) / 2 : na
                 candidateCenter = (array.get(rLo, j) + array.get(rHi, j)) / 2
                 separation = not na(bestCenter) ? math.abs(candidateCenter - bestCenter) : 999999
-                qualityRatio = array.get(rTouches, j) / math.max(bestRt, 1)
+                qualityRatio = array.get(rTouches, j) / math.max(mergedR1Touches, 1)
                 if separation >= minSeparation and qualityRatio >= 0.7 and array.get(rTouches, j) > secondRt
                     secondRt := array.get(rTouches, j)
                     secondR := j
         if bestR >= 0
-            r1T := array.get(rHi, bestR)
-            r1B := array.get(rLo, bestR)
-            r1S := array.get(rStartB, bestR)
+            r1T := mergedR1Hi
+            r1B := mergedR1Lo
+            r1S := mergedR1Start
         if secondR >= 0 and maxZones >= 2
             r2T := array.get(rHi, secondR)
             r2B := array.get(rLo, secondR)
@@ -1737,22 +1788,40 @@ f_calcSupportZones(array<float> plPrices, array<int> plBars, float zoneWidth, in
             if array.get(sTouches, j) >= minTouches and array.get(sTouches, j) > bestSt
                 bestSt := array.get(sTouches, j)
                 bestS := j
+        mergeThreshold = zoneWidth * 2.0
+        mergedS1Lo = bestS >= 0 ? array.get(sLo, bestS) : na
+        mergedS1Hi = bestS >= 0 ? array.get(sHi, bestS) : na
+        mergedS1Start = bestS >= 0 ? array.get(sStartB, bestS) : 2147483647
+        for j = 0 to numS - 1
+            if j != bestS and bestS >= 0 and array.get(sTouches, j) >= minTouches
+                bestCenter = (array.get(sLo, bestS) + array.get(sHi, bestS)) / 2
+                candidateCenter = (array.get(sLo, j) + array.get(sHi, j)) / 2
+                separation = math.abs(candidateCenter - bestCenter)
+                if separation < mergeThreshold
+                    mergedS1Lo := math.min(mergedS1Lo, array.get(sLo, j))
+                    mergedS1Hi := math.max(mergedS1Hi, array.get(sHi, j))
+                    mergedS1Start := math.min(mergedS1Start, array.get(sStartB, j))
+        mergedS1Touches = 0
+        if not na(mergedS1Lo)
+            for k = 1 to math.min(lookback, bar_index)
+                if high[k] >= mergedS1Lo and low[k] <= mergedS1Hi
+                    mergedS1Touches += 1
         secondS = -1
         secondSt = 0
-        minSeparation = zoneWidth * 2.0
+        minSeparation = zoneWidth
         for j = 0 to numS - 1
             if j != bestS and array.get(sTouches, j) >= minTouches
-                bestCenter = bestS >= 0 ? (array.get(sLo, bestS) + array.get(sHi, bestS)) / 2 : na
+                bestCenter = bestS >= 0 ? (mergedS1Lo + mergedS1Hi) / 2 : na
                 candidateCenter = (array.get(sLo, j) + array.get(sHi, j)) / 2
                 separation = not na(bestCenter) ? math.abs(candidateCenter - bestCenter) : 999999
-                qualityRatio = array.get(sTouches, j) / math.max(bestSt, 1)
+                qualityRatio = array.get(sTouches, j) / math.max(mergedS1Touches, 1)
                 if separation >= minSeparation and qualityRatio >= 0.7 and array.get(sTouches, j) > secondSt
                     secondSt := array.get(sTouches, j)
                     secondS := j
         if bestS >= 0
-            s1T := array.get(sHi, bestS)
-            s1B := array.get(sLo, bestS)
-            s1S := array.get(sStartB, bestS)
+            s1T := mergedS1Hi
+            s1B := mergedS1Lo
+            s1S := mergedS1Start
         if secondS >= 0 and maxZones >= 2
             s2T := array.get(sHi, secondS)
             s2B := array.get(sLo, secondS)
@@ -1791,38 +1860,6 @@ f_updateFibLines(line ex50, line ex382, line ex618, int barIdx, float fib50, flo
     [line.new(barIdx - 200, fib50, barIdx + 20, fib50, color=color.new(ACCENT_COLOR, 70), width=1, style=line.style_dotted),
      line.new(barIdx - 200, fib382, barIdx + 20, fib382, color=color.new(ACCENT_COLOR, 80), width=1, style=line.style_dotted),
      line.new(barIdx - 200, fib618, barIdx + 20, fib618, color=color.new(ACCENT_COLOR, 80), width=1, style=line.style_dotted)]
-
-f_updateSRDrawings(line exR1L, line exR2L, line exS1L, line exS2L, label exR1Lbl, label exR2Lbl, label exS1Lbl, label exS2Lbl, int barIdx, int r1Start, float r1Top, int r2Start, float r2Top, int s1Start, float s1Bot, int s2Start, float s2Bot) =>
-    line.delete(exR1L)
-    line.delete(exR2L)
-    line.delete(exS1L)
-    line.delete(exS2L)
-    label.delete(exR1Lbl)
-    label.delete(exR2Lbl)
-    label.delete(exS1Lbl)
-    label.delete(exS2Lbl)
-    rightExt = barIdx + 20
-    line newR1L = na
-    line newR2L = na
-    line newS1L = na
-    line newS2L = na
-    label newR1Lbl = na
-    label newR2Lbl = na
-    label newS1Lbl = na
-    label newS2Lbl = na
-    if not na(r1Start) and not na(r1Top)
-        newR1L := line.new(r1Start, r1Top, rightExt, r1Top, color=color.new(NEGATIVE_COLOR, 50), width=2, style=line.style_solid)
-        newR1Lbl := label.new(rightExt, r1Top, "RESISTANCE", style=label.style_label_up, color=color.new(NEGATIVE_COLOR, 30), textcolor=color.white, size=size.small)
-    if not na(r2Start) and not na(r2Top)
-        newR2L := line.new(r2Start, r2Top, rightExt, r2Top, color=color.new(NEGATIVE_COLOR, 80), width=2, style=line.style_solid)
-        newR2Lbl := label.new(rightExt, r2Top, "RESISTANCE", style=label.style_label_up, color=color.new(NEGATIVE_COLOR, 70), textcolor=color.white, size=size.small)
-    if not na(s1Start) and not na(s1Bot)
-        newS1L := line.new(s1Start, s1Bot, rightExt, s1Bot, color=color.new(POSITIVE_COLOR, 50), width=2, style=line.style_solid)
-        newS1Lbl := label.new(rightExt, s1Bot, "SUPPORT", style=label.style_label_up, color=color.new(POSITIVE_COLOR, 30), textcolor=color.white, size=size.small)
-    if not na(s2Start) and not na(s2Bot)
-        newS2L := line.new(s2Start, s2Bot, rightExt, s2Bot, color=color.new(POSITIVE_COLOR, 80), width=2, style=line.style_solid)
-        newS2Lbl := label.new(rightExt, s2Bot, "SUPPORT", style=label.style_label_up, color=color.new(POSITIVE_COLOR, 70), textcolor=color.white, size=size.small)
-    [newR1L, newR2L, newS1L, newS2L, newR1Lbl, newR2Lbl, newS1Lbl, newS2Lbl]
 
 f_createBuySignalDrawings(int barIdx, float openP, float closeP, float atrP, float atrPrevP, float finBuy, float bSL, float bTP, float bTP1, float bTP2, float bRR, string bTPSrc, float vwapV, float fib50v, float lastBullOBH, bool useSLTP, string sltpMode, bool useTwoTPs, string tooltipStr, bool structOK, bool structOK2) =>
     entryZoneMult = finBuy >= 80 ? 0.5 : finBuy >= 65 ? 0.7 : 0.9
@@ -1866,15 +1903,15 @@ f_createBuySignalDrawings(int barIdx, float openP, float closeP, float atrP, flo
             else
                 buyRewZ := box.new(barIdx, bTP, barIdx, buyZoneHigh, border_color=color.new(POSITIVE_COLOR, 40), bgcolor=color.new(POSITIVE_COLOR, 85), border_width=1)
         buySLn := line.new(barIdx, bSL, barIdx, bSL, color=color.new(NEGATIVE_COLOR, 25), style=line.style_dashed, width=2)
-        buySLbl := label.new(barIdx, bSL, "SL " + str.tostring(bSL, "#.##") + " (" + str.tostring((bSL - closeP) / closeP * 100, "#.#") + "%)", style=label.style_label_left, color=color.new(NEGATIVE_COLOR, 45), textcolor=color.white, size=size.tiny)
+        buySLbl := label.new(barIdx, bSL, "SL " + str.tostring(bSL, "#.##") + " (" + str.tostring((buyEntryPrice - bSL) / buyEntryPrice * 100, "#.#") + "%)", style=label.style_label_left, color=color.new(NEGATIVE_COLOR, 45), textcolor=color.white, size=size.tiny)
         if useTwoTPs
             buyTPLn := line.new(barIdx, bTP1, barIdx, bTP1, color=color.new(POSITIVE_COLOR, 25), style=line.style_dashed, width=1)
-            buyTPLbl := label.new(barIdx, bTP1, "TP1 " + str.tostring(bTP1, "#.##") + " (" + str.tostring((bTP1 - closeP) / closeP * 100, "#.#") + "%) " + bTPSrc, style=label.style_label_left, color=color.new(POSITIVE_COLOR, 45), textcolor=color.white, size=size.tiny)
+            buyTPLbl := label.new(barIdx, bTP1, "TP1 " + str.tostring(bTP1, "#.##") + " (" + str.tostring((bTP1 - buyEntryPrice) / buyEntryPrice * 100, "#.#") + "%) " + bTPSrc, style=label.style_label_left, color=color.new(POSITIVE_COLOR, 45), textcolor=color.white, size=size.tiny)
             buyTP2Ln := line.new(barIdx, bTP2, barIdx, bTP2, color=color.new(POSITIVE_COLOR, 20), style=line.style_dashed, width=1)
-            buyTP2Lbl := label.new(barIdx, bTP2, "TP2 " + str.tostring(bTP2, "#.##") + " (" + str.tostring((bTP2 - closeP) / closeP * 100, "#.#") + "%) (1:" + str.tostring(bRR, "#.#") + ")", style=label.style_label_left, color=color.new(POSITIVE_COLOR, 40), textcolor=color.white, size=size.tiny)
+            buyTP2Lbl := label.new(barIdx, bTP2, "TP2 " + str.tostring(bTP2, "#.##") + " (" + str.tostring((bTP2 - buyEntryPrice) / buyEntryPrice * 100, "#.#") + "%) (1:" + str.tostring(bRR, "#.#") + ")", style=label.style_label_left, color=color.new(POSITIVE_COLOR, 40), textcolor=color.white, size=size.tiny)
         else
             buyTPLn := line.new(barIdx, bTP, barIdx, bTP, color=color.new(POSITIVE_COLOR, 25), style=line.style_dashed, width=1)
-            buyTPLbl := label.new(barIdx, bTP, "TP " + str.tostring(bTP, "#.##") + " (" + str.tostring((bTP - closeP) / closeP * 100, "#.#") + "%) " + bTPSrc + " (1:" + str.tostring(bRR, "#.#") + ")", style=label.style_label_left, color=color.new(POSITIVE_COLOR, 45), textcolor=color.white, size=size.tiny)
+            buyTPLbl := label.new(barIdx, bTP, "TP " + str.tostring(bTP, "#.##") + " (" + str.tostring((bTP - buyEntryPrice) / buyEntryPrice * 100, "#.#") + "%) " + bTPSrc + " (1:" + str.tostring(bRR, "#.#") + ")", style=label.style_label_left, color=color.new(POSITIVE_COLOR, 45), textcolor=color.white, size=size.tiny)
     activeSLT = structOK ? "Swing" : structOK2 ? "SwingMomentum" : "ATR"
     [buyEntL, buyEntLbl, buyEntZone, buyZoneLbl, buySLn, buyTPLn, buySLbl, buyTPLbl, buyRiskZ, buyRewZ, buyTP2Ln, buyTP2Lbl, buyRewZ2, bRR, activeSLT, bTP, bSL]
 
@@ -1920,15 +1957,15 @@ f_createSellSignalDrawings(int barIdx, float openP, float closeP, float atrP, fl
                 sellRewZ := box.new(barIdx, sellZoneLow, barIdx, sTP, border_color=color.new(POSITIVE_COLOR, 40), bgcolor=color.new(POSITIVE_COLOR, 85), border_width=1)
             sellRiskZ := box.new(barIdx, sSL, barIdx, sellZoneHigh, border_color=color.new(NEGATIVE_COLOR, 40), bgcolor=color.new(NEGATIVE_COLOR, 85), border_width=1)
         sellSLn := line.new(barIdx, sSL, barIdx, sSL, color=color.new(NEGATIVE_COLOR, 25), style=line.style_dashed, width=2)
-        sellSLbl := label.new(barIdx, sSL, "SL " + str.tostring(sSL, "#.##") + " (" + str.tostring((sSL - closeP) / closeP * 100, "#.#") + "%)", style=label.style_label_left, color=color.new(NEGATIVE_COLOR, 45), textcolor=color.white, size=size.tiny)
+        sellSLbl := label.new(barIdx, sSL, "SL " + str.tostring(sSL, "#.##") + " (" + str.tostring((sSL - sellEntryPrice) / sellEntryPrice * 100, "#.#") + "%)", style=label.style_label_left, color=color.new(NEGATIVE_COLOR, 45), textcolor=color.white, size=size.tiny)
         if useTwoTPs
             sellTPLn := line.new(barIdx, sTP1, barIdx, sTP1, color=color.new(POSITIVE_COLOR, 25), style=line.style_dashed, width=1)
-            sellTPLbl := label.new(barIdx, sTP1, "TP1 " + str.tostring(sTP1, "#.##") + " (" + str.tostring((sTP1 - closeP) / closeP * 100, "#.#") + "%) " + sTPSrc, style=label.style_label_left, color=color.new(POSITIVE_COLOR, 45), textcolor=color.white, size=size.tiny)
+            sellTPLbl := label.new(barIdx, sTP1, "TP1 " + str.tostring(sTP1, "#.##") + " (" + str.tostring((sellEntryPrice - sTP1) / sellEntryPrice * 100, "#.#") + "%) " + sTPSrc, style=label.style_label_left, color=color.new(POSITIVE_COLOR, 45), textcolor=color.white, size=size.tiny)
             sellTP2Ln := line.new(barIdx, sTP2, barIdx, sTP2, color=color.new(POSITIVE_COLOR, 20), style=line.style_dashed, width=1)
-            sellTP2Lbl := label.new(barIdx, sTP2, "TP2 " + str.tostring(sTP2, "#.##") + " (" + str.tostring((sTP2 - closeP) / closeP * 100, "#.#") + "%) (1:" + str.tostring(sRR, "#.#") + ")", style=label.style_label_left, color=color.new(POSITIVE_COLOR, 40), textcolor=color.white, size=size.tiny)
+            sellTP2Lbl := label.new(barIdx, sTP2, "TP2 " + str.tostring(sTP2, "#.##") + " (" + str.tostring((sellEntryPrice - sTP2) / sellEntryPrice * 100, "#.#") + "%) (1:" + str.tostring(sRR, "#.#") + ")", style=label.style_label_left, color=color.new(POSITIVE_COLOR, 40), textcolor=color.white, size=size.tiny)
         else
             sellTPLn := line.new(barIdx, sTP, barIdx, sTP, color=color.new(POSITIVE_COLOR, 25), style=line.style_dashed, width=1)
-            sellTPLbl := label.new(barIdx, sTP, "TP " + str.tostring(sTP, "#.##") + " (" + str.tostring((sTP - closeP) / closeP * 100, "#.#") + "%) " + sTPSrc + " (1:" + str.tostring(sRR, "#.#") + ")", style=label.style_label_left, color=color.new(POSITIVE_COLOR, 45), textcolor=color.white, size=size.tiny)
+            sellTPLbl := label.new(barIdx, sTP, "TP " + str.tostring(sTP, "#.##") + " (" + str.tostring((sellEntryPrice - sTP) / sellEntryPrice * 100, "#.#") + "%) " + sTPSrc + " (1:" + str.tostring(sRR, "#.#") + ")", style=label.style_label_left, color=color.new(POSITIVE_COLOR, 45), textcolor=color.white, size=size.tiny)
     activeSLT = structOK ? "Swing" : structOK2 ? "SwingMomentum" : "ATR"
     [sellEntL, sellEntLbl, sellEntZone, sellZoneLbl, sellSLn, sellTPLn, sellSLbl, sellTPLbl, sellRiskZ, sellRewZ, sellTP2Ln, sellTP2Lbl, sellRewZ2, sRR, activeSLT, sTP, sSL]
 
@@ -1950,8 +1987,8 @@ bullDivAny = rsiBullDiv or macdBullDiv
 bearDivAny = rsiBearDiv or macdBearDiv
 bullHiddenAny = rsiBullHidden or macdBullHidden
 bearHiddenAny = rsiBearHidden or macdBearHidden
-bullishDivergence = bullDivAny or bullHiddenAny
-bearishDivergence = bearDivAny or bearHiddenAny
+bullishDivergence = bullDivAny
+bearishDivergence = bearDivAny
 
 plusDIPrev = plusDI[1]
 minusDIPrev = minusDI[1]
@@ -2155,42 +2192,9 @@ if not na(srPivotLow)
     if array.size(srPlPrices) > 50
         array.shift(srPlPrices)
         array.shift(srPlBars)
-
 srZoneWidth = atr * SR_ZONE_WIDTH_ATR
-srBreakMarg = atr * SR_ZONE_BREAK_ATR
-var float srR1Top = na
-var float srR1Bot = na
-var int   srR1Start = na
-var float srR2Top = na
-var float srR2Bot = na
-var int   srR2Start = na
-var float srS1Top = na
-var float srS1Bot = na
-var int   srS1Start = na
-var float srS2Top = na
-var float srS2Bot = na
-var int   srS2Start = na
-
-if USE_SR_ZONES
-    [r1T, r1B, r1S, r2T, r2B, r2S] = f_calcResistanceZones(srPhPrices, srPhBars, srZoneWidth, SR_ZONE_LOOKBACK, SR_ZONE_MIN_TOUCHES, SR_ZONE_MAX_ZONES)
-    srR1Top := r1T
-    srR1Bot := r1B
-    srR1Start := r1S
-    srR2Top := r2T
-    srR2Bot := r2B
-    srR2Start := r2S
-    [s1T, s1B, s1S, s2T, s2B, s2S] = f_calcSupportZones(srPlPrices, srPlBars, srZoneWidth, SR_ZONE_LOOKBACK, SR_ZONE_MIN_TOUCHES, SR_ZONE_MAX_ZONES)
-    srS1Top := s1T
-    srS1Bot := s1B
-    srS1Start := s1S
-    srS2Top := s2T
-    srS2Bot := s2B
-    srS2Start := s2S
-
-srR1Broken = USE_SR_ZONES and not na(srR1Top) and close > srR1Top + srBreakMarg
-srR2Broken = USE_SR_ZONES and not na(srR2Top) and close > srR2Top + srBreakMarg
-srS1Broken = USE_SR_ZONES and not na(srS1Bot) and close < srS1Bot - srBreakMarg
-srS2Broken = USE_SR_ZONES and not na(srS2Bot) and close < srS2Bot - srBreakMarg
+[srR1Top, _, _, srR2Top, _, _] = f_calcResistanceZones(srPhPrices, srPhBars, srZoneWidth, SR_ZONE_LOOKBACK, SR_ZONE_MIN_TOUCHES, SR_ZONE_MAX_ZONES)
+[_, srS1Bot, _, _, srS2Bot, _] = f_calcSupportZones(srPlPrices, srPlBars, srZoneWidth, SR_ZONE_LOOKBACK, SR_ZONE_MIN_TOUCHES, SR_ZONE_MAX_ZONES)
 
 [viPlus, viMinus, vortexBullish, vortexBearish, elderEma, elderEmaRising, elderImpulseBull, elderImpulseBear, vwPrice, vwRsiValue, vwRsiBullish, vwRsiBearish, twiggsValue, twiggsBullish, twiggsBearish] = f_calcVortexElderVWRsiTwiggs(macdHist)
 
@@ -2215,6 +2219,8 @@ rsiAccelSell = rsiPrev > 60 and rsiVelocity < -8
 lagEnabledCount = 8 + (USE_MA_STACK ? 1 : 0) + (USE_SUPER_TREND ? 1 : 0) + (USE_SAR ? 1 : 0) + (USE_ICHIMOKU ? 1 : 0) + (USE_STOCH ? 1 : 0) + 1 + (USE_GMMA ? 1 : 0) + 1 + (USE_ROC ? 1 : 0)
 lagBuyCount = (trendUp ? 1 : 0) + (USE_MA_STACK and maStackUp ? 1 : 0) + (USE_SUPER_TREND and stBullish ? 1 : 0) + (USE_SAR and sarBullish ? 1 : 0) + (USE_ICHIMOKU and ichBullish ? 1 : 0) + (aroonBullish ? 1 : 0) + (linRegBullish ? 1 : 0) + (donchianBullish ? 1 : 0) + (mcginleyBullish ? 1 : 0) + (alligatorBullish ? 1 : 0) + (vortexBullish ? 1 : 0) + (demaBullish ? 1 : 0) + (temaBullish ? 1 : 0) + (USE_GMMA and gmmaBullish ? 1 : 0) + (macdBullish ? 1 : 0) + (rsiBullish ? 1 : 0) + (USE_ROC and rocBullish ? 1 : 0)
 lagSellCount = (trendDown ? 1 : 0) + (USE_MA_STACK and maStackDown ? 1 : 0) + (USE_SUPER_TREND and stBearish ? 1 : 0) + (USE_SAR and sarBearish ? 1 : 0) + (USE_ICHIMOKU and ichBearish ? 1 : 0) + (aroonBearish ? 1 : 0) + (linRegBearish ? 1 : 0) + (donchianBearish ? 1 : 0) + (mcginleyBearish ? 1 : 0) + (alligatorBearish ? 1 : 0) + (vortexBearish ? 1 : 0) + (demaBearish ? 1 : 0) + (temaBearish ? 1 : 0) + (USE_GMMA and gmmaBearish ? 1 : 0) + (macdBearish ? 1 : 0) + (rsiBearish ? 1 : 0) + (USE_ROC and rocBearish ? 1 : 0)
+lagBuyRatio = lagBuyCount / math.max(lagEnabledCount, 1)
+lagSellRatio = lagSellCount / math.max(lagEnabledCount, 1)
 
 [exhBuyScore, exhSellScore] = f_exhaustionScore(rsiPrev, stochKVal, mfiValue, wrValue, bbPercent, zScore, cciValue, schaffVal, uoValue, volClimaxBuy, extendedBearRun, massBulge, cmoValue, volClimaxSell, extendedBullRun, USE_STOCH)
 [revBuyScore, revSellScore] = f_reversalScore(macdCrossUpFresh, rsiCrossUpFresh, USE_STOCH ? stochCrossUpFresh : 0.0, macdHistTurningUp, fisherBullish, trixBullish, kstBullish, sineBullish, coppockBullish, rviBullish, elderImpulseBull, dpoBullish, rsiAccelBuy, chandBullish, ttmFirBull, macdCrossDownFresh, rsiCrossDownFresh, USE_STOCH ? stochCrossDownFresh : 0.0, macdHistTurningDown, fisherBearish, trixBearish, kstBearish, sineBearish, coppockBearish, rviBearish, elderImpulseBear, dpoBearish, rsiAccelSell, chandBearish, ttmFirBear)
@@ -2222,26 +2228,26 @@ lagSellCount = (trendDown ? 1 : 0) + (USE_MA_STACK and maStackDown ? 1 : 0) + (U
 [volBuyScore, volSellScore] = f_volumeScore(volumeConfirm, volumeRising, pressureBullish, pressureBearish, obvBullish, cmfBullish, klingerBullish, twiggsBullish, iiiBullish, eomBullish, nviBullish, pviBullish, efiBullish, adLineBullish, obvBearish, cmfBearish, klingerBearish, twiggsBearish, iiiBearish, eomBearish, nviBearish, pviBearish, efiBearish, adLineBearish)
 [trendAlignBuyScore, trendAlignSellScore] = f_trendAlignScore(mtfD, mtf240, mtf60, mtf15, mtf5, htfTrendUp, adxStrong, vwRsiBullish, vortexBullish, vwapBullish, mcginleyBullish, alligatorBullish, vwRsiBearish, vortexBearish, vwapBearish, mcginleyBearish, alligatorBearish, bullHiddenAny, bearHiddenAny)
 
-r2Trend = rSqValue > 0.7 ? 1.08 : rSqValue > 0.5 ? 1.0 : rSqValue > 0.3 ? 0.92 : 0.85
-r2Reversal = rSqValue < 0.3 ? 1.10 : rSqValue < 0.5 ? 1.0 : rSqValue < 0.7 ? 0.95 : 0.90
+r2Trend = rSqValue > 0.7 ? 1.12 : rSqValue > 0.5 ? 1.04 : rSqValue > 0.3 ? 0.94 : 0.88
+r2Reversal = rSqValue < 0.3 ? 1.08 : rSqValue < 0.5 ? 1.0 : rSqValue < 0.7 ? 0.96 : 0.92
 
-rawBuyScore = (exhBuyScore * 0.30 * r2Reversal + revBuyScore * 0.25 * r2Reversal + structBuyScore * 0.20 + volBuyScore * 0.15 + trendAlignBuyScore * 0.10 * r2Trend) * 100.0
-rawSellScore = (exhSellScore * 0.30 * r2Reversal + revSellScore * 0.25 * r2Reversal + structSellScore * 0.20 + volSellScore * 0.15 + trendAlignSellScore * 0.10 * r2Trend) * 100.0
+rawBuyScore = (exhBuyScore * 0.20 * r2Reversal + revBuyScore * 0.18 * r2Reversal + structBuyScore * 0.22 + volBuyScore * 0.22 + trendAlignBuyScore * 0.18 * r2Trend) * 100.0
+rawSellScore = (exhSellScore * 0.20 * r2Reversal + revSellScore * 0.18 * r2Reversal + structSellScore * 0.22 + volSellScore * 0.22 + trendAlignSellScore * 0.18 * r2Trend) * 100.0
 
 [rSqMult, zScoreBuyMult, zScoreSellMult, volSpikeMult, adxReversalMult, exhaustionBoostBuy, exhaustionPenaltyBuy, exhaustionBoostSell, exhaustionPenaltySell, agreeMult, agreeMsell, sessionMult, buyCatAgreeStrong, buyCatAgree, sellCatAgreeStrong, sellCatAgree] = f_metaMultipliers(exhBuyScore, exhSellScore, revBuyScore, revSellScore, structBuyScore, structSellScore, volBuyScore, volSellScore, trendAlignBuyScore, trendAlignSellScore, zScore, hvRank, adxValue, adxStrong, lagSellCount, lagEnabledCount, lagBuyCount, USE_SESSION_FILTER, inSession)
 
 divBonusBuy = 0.0
 divBonusSell = 0.0
-wyckBonusBuy = wyckSpring ? 8.0 : 0.0
-wyckBonusSell = wyckUpthrust ? 8.0 : 0.0
-chochBonusBuy = chochBullish ? 5.0 : 0.0
-chochBonusSell = chochBearish ? 5.0 : 0.0
+wyckBonusBuy = USE_WYCKOFF and wyckSpring ? 8.0 : 0.0
+wyckBonusSell = USE_WYCKOFF and wyckUpthrust ? 8.0 : 0.0
+chochBonusBuy = USE_SMC and chochBullish ? 5.0 : 0.0
+chochBonusSell = USE_SMC and chochBearish ? 5.0 : 0.0
 
 mtfDivMultBuy = 1.0
 mtfDivMultSell = 1.0
 
-pdPenaltyBuy = inPremium ? 0.82 : 1.0
-pdPenaltySell = inDiscount ? 0.82 : 1.0
+pdPenaltyBuy = 1.0
+pdPenaltySell = 1.0
 
 signalBodyPct = math.abs(close - open) / math.max(high - low, 1e-10)
 bodyMult = signalBodyPct > 0.6 ? 1.08 : signalBodyPct < 0.25 ? 0.85 : 1.0
@@ -2269,9 +2275,10 @@ dominanceRatioSell = finalSellScore / math.max(finalBuyScore, 1.0)
 signalBarBullish = close > open and signalBodyPct > 0.15
 signalBarBearish = close < open and signalBodyPct > 0.15
 signalBarInside = high <= high[1] and low >= low[1]
+r2RegimeOk = (rSqValue >= 0.15 and adxStrong) or (math.abs(zScore[1]) > 2.0)
 
-signalBuy = USE_BUY_SELL_SIGNAL and barstate.isconfirmed and finalBuyScore >= BUY_SELL_THRESHOLD and barsSinceLastBuy >= BUY_SELL_COOLDOWN and dominanceRatioBuy >= 1.25 and buyDominance >= 8.0 and signalBarBullish and not signalBarInside and exhBuyScore > 0.25 and structBuyScore > 0.20
-signalSell = USE_BUY_SELL_SIGNAL and barstate.isconfirmed and finalSellScore >= BUY_SELL_THRESHOLD and barsSinceLastSell >= BUY_SELL_COOLDOWN and dominanceRatioSell >= 1.25 and sellDominance >= 8.0 and signalBarBearish and not signalBarInside and exhSellScore > 0.25 and structSellScore > 0.20
+signalBuy = USE_BUY_SELL_SIGNAL and barstate.isconfirmed and finalBuyScore >= BUY_SELL_THRESHOLD and barsSinceLastBuy >= BUY_SELL_COOLDOWN and dominanceRatioBuy >= 1.25 and buyDominance >= 8.0 and r2RegimeOk and (lagSellRatio < 0.75 or finalBuyScore >= 85)
+signalSell = USE_BUY_SELL_SIGNAL and barstate.isconfirmed and finalSellScore >= BUY_SELL_THRESHOLD and barsSinceLastSell >= BUY_SELL_COOLDOWN and dominanceRatioSell >= 1.25 and sellDominance >= 8.0 and r2RegimeOk and (lagBuyRatio < 0.75 or finalSellScore >= 85)
 
 if signalBuy
     barsSinceLastBuy := 0
@@ -2306,29 +2313,8 @@ slSwingAgeBuy2 = bar_index - ta.valuewhen(not na(slSwingLow), bar_index, 1)
 slLastSwingHigh2 = ta.valuewhen(not na(slSwingHigh), slSwingHigh, 1)
 slSwingAgeSell2 = bar_index - ta.valuewhen(not na(slSwingHigh), bar_index, 1)
 
-[buySL, sellSL, fixedBuyTP, fixedSellTP, structSLBuyOk, structSLBuyOk2, structSLSellOk, structSLSellOk2] = f_calcSLTP(slLastSwingHigh, slLastSwingLow, slSwingAgeBuy, slSwingAgeSell, slLastSwingLow2, slLastSwingHigh2, slSwingAgeBuy2, slSwingAgeSell2, close, atrPrev, finalBuyScore, finalSellScore, ATR_MULTIPLIER_SL, BUY_SELL_RR)
-[nearBuyTarget, buyTPSource, buyTP, buyActualRR, nearSellTarget, sellTPSource, sellTP, sellActualRR, trendExtendBuy, trendExtendSell] = f_calcTPTargets(lastSwingHigh, lastSwingLow, pivotR1, pivotS1, pivotR2, pivotS2, lastBearOBHigh, lastBullOBLow, fib382, fib618, vwapValue, bbUpper, bbLower, ema200, prevDayHigh, prevDayLow, close, atrPrev, USE_PIVOTS, buySL, sellSL, fixedBuyTP, fixedSellTP, finalBuyScore, finalSellScore, open, ATR_MULTIPLIER_TP, trendUp, trendDown, adxStrong, trendAlignBuyScore, trendAlignSellScore)
-
-buyTPPct = (buyTP - close) / close * 100
-sellTPPct = (close - sellTP) / close * 100
-buyR1Valid = not na(srR1Top) and srR1Top > close
-buyR2Valid = not na(srR2Top) and srR2Top > close
-buyFirstR = buyR1Valid ? srR1Top : (buyR2Valid ? srR2Top : na)
-buySecondR = (buyR1Valid and buyR2Valid) ? srR2Top : na
-buyFirstRValid = not na(buyFirstR)
-useSRBuy = USE_SR_ZONES and TP2_USE_SR and buyFirstRValid and buyTP > buyFirstR
-USE_TWO_T_PS_BUY = useSRBuy or (buyTPPct > TP2_MIN_PCT)
-buyTP1 = useSRBuy ? buyFirstR : (buyTPPct > TP2_MIN_PCT ? close + (buyTP - close) * 0.5 : buyTP)
-buyTP2 = useSRBuy ? (not na(buySecondR) ? math.min(buyTP, buySecondR) : buyTP) : (buyTPPct > TP2_MIN_PCT ? buyTP : buyTP)
-sellS1Valid = not na(srS1Bot) and srS1Bot < close
-sellS2Valid = not na(srS2Bot) and srS2Bot < close
-sellFirstS = sellS1Valid ? srS1Bot : (sellS2Valid ? srS2Bot : na)
-sellSecondS = (sellS1Valid and sellS2Valid) ? srS2Bot : na
-sellFirstSValid = not na(sellFirstS)
-useSRSell = USE_SR_ZONES and TP2_USE_SR and sellFirstSValid and sellTP < sellFirstS
-USE_TWO_T_PS_SELL = useSRSell or (sellTPPct > TP2_MIN_PCT)
-sellTP1 = useSRSell ? sellFirstS : (sellTPPct > TP2_MIN_PCT ? close - (close - sellTP) * 0.5 : sellTP)
-sellTP2 = useSRSell ? (not na(sellSecondS) ? math.max(sellTP, sellSecondS) : sellTP) : (sellTPPct > TP2_MIN_PCT ? sellTP : sellTP)
+[buySL, sellSL, fixedBuyTP, fixedSellTP, structSLBuyOk, structSLBuyOk2, structSLSellOk, structSLSellOk2] = f_calcSLTP(slLastSwingHigh, slLastSwingLow, slSwingAgeBuy, slSwingAgeSell, slLastSwingLow2, slLastSwingHigh2, slSwingAgeBuy2, slSwingAgeSell2, close, open, atrPrev, finalBuyScore, finalSellScore, ATR_MULTIPLIER_SL, BUY_SELL_RR, SL_MIN_PCT)
+[nearBuyTarget, buyTPSource, buyTP, buyActualRR, nearSellTarget, sellTPSource, sellTP, sellActualRR, trendExtendBuy, trendExtendSell, USE_TWO_T_PS_BUY, USE_TWO_T_PS_SELL, buyTP1, buyTP2, sellTP1, sellTP2] = f_calcTPTargets(lastSwingHigh, lastSwingLow, pivotR1, pivotS1, pivotR2, pivotS2, USE_SMC ? lastBearOBHigh : na, USE_SMC ? lastBullOBLow : na, fib382, fib618, vwapValue, bbUpper, bbLower, ema200, prevDayHigh, prevDayLow, close, atrPrev, USE_PIVOTS, buySL, sellSL, fixedBuyTP, fixedSellTP, finalBuyScore, finalSellScore, open, ATR_MULTIPLIER_TP, trendUp, trendDown, adxStrong, trendAlignBuyScore, trendAlignSellScore, srR1Top, srR2Top, srS1Bot, srS2Bot, TP2_USE_SR, TP2_MIN_PCT, TP_MIN_DISTANCE_PCT)
 
 // ==================================================================================
 // VISUALIZATION
@@ -2454,25 +2440,6 @@ if isRightVisibleBar and USE_FIB_LEVELS
     fib50Line := f50
     fib382Line := f382
     fib618Line := f618
-
-var line srR1Line = na
-var line srR2Line = na
-var line srS1Line = na
-var line srS2Line = na
-var label srR1Label = na
-var label srR2Label = na
-var label srS1Label = na
-var label srS2Label = na
-if isRightVisibleBar and USE_SR_ZONES
-    [lr1, lr2, ls1, ls2, lbR1, lbR2, lbS1, lbS2] = f_updateSRDrawings(srR1Line, srR2Line, srS1Line, srS2Line, srR1Label, srR2Label, srS1Label, srS2Label, bar_index, srR1Start, srR1Top, srR2Start, srR2Top, srS1Start, srS1Bot, srS2Start, srS2Bot)
-    srR1Line := lr1
-    srR2Line := lr2
-    srS1Line := ls1
-    srS2Line := ls2
-    srR1Label := lbR1
-    srR2Label := lbR2
-    srS1Label := lbS1
-    srS2Label := lbS2
 
 if gapValid and gapUp
     label.new(bar_index, low, "Gap Up", style=label.style_label_up, color=color.new(POSITIVE_COLOR, 30), textcolor=color.white, size=size.tiny)
@@ -2619,7 +2586,7 @@ if signalBuy
         sellTP2Line := na
         sellTP2Label := na
         sellRewardZone2 := na
-    [bE, bEL, bEZ, bZL, bSLn, bTPLn, bSLb, bTPLb, bRZ, bRW, bTP2Ln, bTP2Lb, bRW2, aRR, aSLT, aTP, aSL] = f_createBuySignalDrawings(bar_index, open, close, atr, atrPrev, finalBuyScore, buySL, buyTP, buyTP1, buyTP2, buyActualRR, buyTPSource, vwapValue, fib50, lastBullOBHigh, USE_BUY_SELL_SLTP_ENTRY, SLTP_DISPLAY_MODE, USE_TWO_T_PS_BUY, buyTooltip, structSLBuyOk, structSLBuyOk2)
+    [bE, bEL, bEZ, bZL, bSLn, bTPLn, bSLb, bTPLb, bRZ, bRW, bTP2Ln, bTP2Lb, bRW2, aRR, aSLT, aTP, aSL] = f_createBuySignalDrawings(bar_index, open, close, atr, atrPrev, finalBuyScore, buySL, buyTP, buyTP1, buyTP2, buyActualRR, buyTPSource, vwapValue, fib50, USE_SMC ? lastBullOBHigh : na, USE_BUY_SELL_SLTP_ENTRY, SLTP_DISPLAY_MODE, USE_TWO_T_PS_BUY, buyTooltip, structSLBuyOk, structSLBuyOk2)
     buyEntryLine := bE
     buyEntryLabel := bEL
     buyEntryZone := bEZ
@@ -2674,7 +2641,7 @@ if signalSell
         sellTP2Line := na
         sellTP2Label := na
         sellRewardZone2 := na
-    [sE, sEL, sEZ, sZL, sSLn, sTPLn, sSLb, sTPLb, sRZ, sRW, sTP2Ln, sTP2Lb, sRW2, aRR, aSLT, aTP, aSL] = f_createSellSignalDrawings(bar_index, open, close, atr, atrPrev, finalSellScore, sellSL, sellTP, sellTP1, sellTP2, sellActualRR, sellTPSource, vwapValue, fib50, lastBearOBLow, USE_BUY_SELL_SLTP_ENTRY, SLTP_DISPLAY_MODE, USE_TWO_T_PS_SELL, sellTooltip, structSLSellOk, structSLSellOk2)
+    [sE, sEL, sEZ, sZL, sSLn, sTPLn, sSLb, sTPLb, sRZ, sRW, sTP2Ln, sTP2Lb, sRW2, aRR, aSLT, aTP, aSL] = f_createSellSignalDrawings(bar_index, open, close, atr, atrPrev, finalSellScore, sellSL, sellTP, sellTP1, sellTP2, sellActualRR, sellTPSource, vwapValue, fib50, USE_SMC ? lastBearOBLow : na, USE_BUY_SELL_SLTP_ENTRY, SLTP_DISPLAY_MODE, USE_TWO_T_PS_SELL, sellTooltip, structSLSellOk, structSLSellOk2)
     sellEntryLine := sE
     sellEntryLabel := sEL
     sellEntryZone := sEZ
