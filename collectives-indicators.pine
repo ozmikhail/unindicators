@@ -1490,7 +1490,7 @@ f_dashMTFLevels(table dash, bool useMTF, bool mtf5, bool mtf15, bool mtf60, bool
     table.cell(dash, 3, 58, gapUp ? "Up" : gapDown ? "Dn" : "None", bgcolor=f_condColor3(gapUp, gapDown), text_color=TEXT_COLOR, text_size=size.tiny)
     table.cell(dash, 4, 58, "", bgcolor=f_rowBg(58))
 
-f_dashIntermarket(table dash, float vixC, bool vixO, bool vixSuppB, bool vixSuppS, bool vixCautionS, bool contangoVal) =>
+f_dashIntermarket(table dash, float vixC, bool vixO, bool vixSuppB, bool vixSuppS, bool vixCautionS, bool contangoVal, float adaptBuyTh, float adaptSellTh) =>
     table.cell(dash, 0, 59, " INTERMARKET", bgcolor=color.new(ACCENT_COLOR, 30), text_color=color.white, text_size=size.tiny, text_font_family=font.family_monospace, text_halign=text.align_left)
     table.cell(dash, 1, 59, "", bgcolor=color.new(ACCENT_COLOR, 75))
     table.cell(dash, 2, 59, "", bgcolor=color.new(ACCENT_COLOR, 75))
@@ -1505,6 +1505,11 @@ f_dashIntermarket(table dash, float vixC, bool vixO, bool vixSuppB, bool vixSupp
     table.cell(dash, 2, 60, "Regime", bgcolor=f_rowBg(60), text_color=TEXT_COLOR, text_size=size.tiny)
     table.cell(dash, 3, 60, regimeStr, bgcolor=vixCellBg, text_color=TEXT_COLOR, text_size=size.tiny)
     table.cell(dash, 4, 60, "", bgcolor=f_rowBg(60))
+    table.cell(dash, 0, 61, "Buy Thr", bgcolor=f_rowBg(61), text_color=TEXT_COLOR, text_size=size.tiny)
+    table.cell(dash, 1, 61, str.tostring(adaptBuyTh, "#.#"), bgcolor=f_rowBg(61), text_color=TEXT_COLOR, text_size=size.tiny)
+    table.cell(dash, 2, 61, "Sell Thr", bgcolor=f_rowBg(61), text_color=TEXT_COLOR, text_size=size.tiny)
+    table.cell(dash, 3, 61, str.tostring(adaptSellTh, "#.#"), bgcolor=f_rowBg(61), text_color=TEXT_COLOR, text_size=size.tiny)
+    table.cell(dash, 4, 61, "", bgcolor=f_rowBg(61))
 
 f_calcSLTP(float slLastHigh, float slLastLow, int slAgeBuy, int slAgeSell, float slLastLow2, float slLastHigh2, int slAgeBuy2, int slAgeSell2, float cl, float openP, float atrP, float finBuy, float finSell, float atrMultSL, float rrMult, float minSlPct) =>
     atrSLDist = atrP * atrMultSL
@@ -2330,7 +2335,7 @@ var float activeTP = na
 var float activeSL = na
 
 if USE_DASHBOARD and (isRightVisibleBar or barstate.islast)
-    var table dash = table.new(position.top_right, 5, 61, border_width=0, frame_width=0)
+    var table dash = table.new(position.top_right, 5, 62, border_width=0, frame_width=0)
     f_dashBuySellSignal(dash, USE_BUY_SELL_SIGNAL, finalBuyScore, finalSellScore, buyCatAgree, sellCatAgree, barsSinceLastBuy, barsSinceLastSell)
     f_dashTrend(dash, hullTrend, stBullish, adxValue[1], ADX_THRESHOLD, adxStrong, sarBullish, ichBullish, ichBearish, aroonUp[1], aroonDown[1], aroonBullish, linRegSlope[1], linRegBullish, vwmaBullish, htfTrendUp, maStackUp, maStackDown, donchianBullish, mcginleyBullish, demaBullish, gmmaBullish, alligatorBullish, alligatorBearish, vortexBullish)
     f_dashMomentum(dash, rsiPrev, rsiSparkline, rsiBullish, stochKVal[1], stochDVal[1], stochBullish, macdBullish, macdHist[1], macdHistBullish, cciValue[1], cciBullish, wrValue[1], wrBullish, cmoValue[1], cmoBullish, fisherBullish, efiBullish, roc[1], rocBullish, mfiValue[1], mfiBullish, sineBullish, trixVal[1], trixBullish, uoValue[1], uoBullish, kstValue[1], kstBullish, dpoValue[1], dpoBullish, rviValue[1], rviBullish, schaffVal[1], schaffBullish, pgoValue[1], pgoBullish, coppockValue[1], coppockBullish, elderImpulseBull, elderImpulseBear, vwRsiValue[1], vwRsiBullish)
@@ -2338,7 +2343,7 @@ if USE_DASHBOARD and (isRightVisibleBar or barstate.islast)
     f_dashVolatility(dash, bbPercent[1], bbNotExtremes, ttmSqueezeOn, ttmFirBull, ttmFirBear, kcBullish, chandBullish, atrInRange, massValue[1], massBulge, bbBullish)
     f_dashRegimeMetaRisk(dash, inDiscount, premiumDiscountOkBuy, htfRsiPrev, htfRsiOkBuy, rsBullish, corrValue[1], corrBullish, corrBearish, hvRank[1], hvLow, hvHigh, wyckSpring, wyckUpthrust, rSqValue, zScore[1], dominantPeriod, adxStrong, trendUp, trendDown, atrPrev, activeSL, activeSLType, activeTP, ATR_MULTIPLIER_SL, ATR_MULTIPLIER_TP, activeRR, BUY_SELL_RR)
     f_dashMTFLevels(dash, USE_MTF_HEATMAP, mtf5, mtf15, mtf60, mtf240, mtfD, pivotP[1], pivotR1, pivotS1, USE_PIVOTS, nearPivotR1, nearPivotS1, fib50[1], gapUp, gapDown)
-    f_dashIntermarket(dash, vixClose, vixOk, vixSuppressBuy, vixSuppressSell, vixCautionSell, contango)
+    f_dashIntermarket(dash, vixClose, vixOk, vixSuppressBuy, vixSuppressSell, vixCautionSell, contango, adaptiveBuyThreshold, adaptiveSellThreshold)
 
 slSwingHigh = ta.pivothigh(high, SL_SWING_LOOKBACK, SL_SWING_LOOKBACK)
 slSwingLow = ta.pivotlow(low, SL_SWING_LOOKBACK, SL_SWING_LOOKBACK)
