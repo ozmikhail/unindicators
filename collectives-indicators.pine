@@ -76,7 +76,8 @@ USE_VIX_REGIME           = input.bool(true, "Use VIX regime filter", group=gSett
 var gSettingsNumbers    = "Settings · Numbers"
 BUY_SELL_COOLDOWN       = input.int(5, "Signal Cooldown (bars)", minval=1, maxval=50, group=gSettingsNumbers)
 BUY_SELL_RR             = input.float(2.0, "Risk:Reward Ratio", minval=1.0, maxval=5.0, step=0.5, group=gSettingsNumbers)
-BUY_SELL_THRESHOLD      = input.float(70, "Signal Threshold (0-100)", minval=30, maxval=95, step=5, group=gSettingsNumbers)
+ADAPTIVE_LOOKBACK       = input.int(100, "Adaptive threshold lookback (bars)", minval=50, maxval=200, group=gSettingsNumbers)
+ADAPTIVE_TOP_N          = input.int(10, "Signal when score in top N% (1-25)", minval=5, maxval=25, step=1, group=gSettingsNumbers)
 TP2_MIN_PCT             = input.float(8.0, "Min % for two TPs (when S/R not used)", minval=4.0, maxval=20.0, step=1.0, group=gSettingsNumbers)
 TP_MIN_DISTANCE_PCT     = input.float(2.0, "Min % distance between TP1 and TP2", minval=0.5, maxval=10.0, step=0.5, group=gSettingsNumbers)
 PREVIOUS_SELL_RR        = input.int(20, "Historical Signal Opacity", minval=5, maxval=50, step=5, group=gSettingsNumbers)
@@ -2281,6 +2282,9 @@ multProductBuy = zScoreBuyMult * exhaustionBoostBuy * exhaustionPenaltyBuy * agr
 multProductSell = zScoreSellMult * exhaustionBoostSell * exhaustionPenaltySell * agreeMsell * sessionMult * volSpikeMult * pdPenaltySell * mtfDivMultSell * bodyMult * adxReversalMult * intermarketMultSell
 finalBuyScore = math.min((rawBuyScore + divBonusBuy + wyckBonusBuy + chochBonusBuy) * math.min(multProductBuy, 1.80), 100.0)
 finalSellScore = math.min((rawSellScore + divBonusSell + wyckBonusSell + chochBonusSell) * math.min(multProductSell, 1.80), 100.0)
+pctRank = 100 - ADAPTIVE_TOP_N
+adaptiveBuyThreshold = ta.percentile_nearest_rank(finalBuyScore, ADAPTIVE_LOOKBACK, pctRank)
+adaptiveSellThreshold = ta.percentile_nearest_rank(finalSellScore, ADAPTIVE_LOOKBACK, pctRank)
 
 var int barsSinceLastBuy = 999
 var int barsSinceLastSell = 999
@@ -2299,8 +2303,8 @@ signalBarBearish = close < open and signalBodyPct > 0.15
 signalBarInside = high <= high[1] and low >= low[1]
 r2RegimeOk = (rSqValue >= 0.15 and adxStrong) or (math.abs(zScore[1]) > 2.0)
 
-signalBuy = USE_BUY_SELL_SIGNAL and barstate.isconfirmed and finalBuyScore >= BUY_SELL_THRESHOLD and barsSinceLastBuy >= BUY_SELL_COOLDOWN and dominanceRatioBuy >= 1.25 and buyDominance >= 8.0 and r2RegimeOk and (lagSellRatio < 0.75 or finalBuyScore >= 85) and (not USE_VIX_REGIME or not vixSuppressBuy) and yieldCurveOkBuy
-signalSell = USE_BUY_SELL_SIGNAL and barstate.isconfirmed and finalSellScore >= BUY_SELL_THRESHOLD and barsSinceLastSell >= BUY_SELL_COOLDOWN and dominanceRatioSell >= 1.25 and sellDominance >= 8.0 and r2RegimeOk and (lagBuyRatio < 0.75 or finalSellScore >= 85) and (not USE_VIX_REGIME or not vixSuppressSell) and yieldCurveOkSell
+signalBuy = USE_BUY_SELL_SIGNAL and barstate.isconfirmed and finalBuyScore >= adaptiveBuyThreshold and barsSinceLastBuy >= BUY_SELL_COOLDOWN and dominanceRatioBuy >= 1.25 and buyDominance >= 8.0 and r2RegimeOk and (lagSellRatio < 0.75 or finalBuyScore >= 85) and (not USE_VIX_REGIME or not vixSuppressBuy) and yieldCurveOkBuy
+signalSell = USE_BUY_SELL_SIGNAL and barstate.isconfirmed and finalSellScore >= adaptiveSellThreshold and barsSinceLastSell >= BUY_SELL_COOLDOWN and dominanceRatioSell >= 1.25 and sellDominance >= 8.0 and r2RegimeOk and (lagBuyRatio < 0.75 or finalSellScore >= 85) and (not USE_VIX_REGIME or not vixSuppressSell) and yieldCurveOkSell
 
 if signalBuy
     barsSinceLastBuy := 0
