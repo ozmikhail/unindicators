@@ -2107,9 +2107,11 @@ vixClose = request.security("CBOE:VIX", "D", close, lookahead=barmerge.lookahead
 vixOk = not na(vixClose)
 vixRoc5 = vixOk and not na(vixClosePrev) ? (vixClose - vixClosePrev) : 0.0
 vixRising = vixOk and vixRoc5 > 0
-contango = vixOk and vixRoc5 <= 0
-termStructureRising = vixRising
-vixSuppressBuy = USE_VIX_REGIME and vixOk and (vixClose > VIX_SUPPRESS_BUY_LEVEL) and (termStructureRising or vixRising)
+vix3m = request.security("CBOE:VIX3M", "D", close, lookahead=barmerge.lookahead_off)
+vix3mOk = vixOk and not na(vix3m)
+contango = vix3mOk and vixClose < vix3m
+backwardation = vix3mOk and vixClose > vix3m
+vixSuppressBuy = USE_VIX_REGIME and vixOk and (vixClose > VIX_SUPPRESS_BUY_LEVEL) and (backwardation or vixRising)
 vixSuppressSell = USE_VIX_REGIME and vixOk and (vixClose < VIX_SUPPRESS_SELL_LEVEL) and contango
 
 t10y2y = request.security("FRED:T10Y2Y", "D", close, lookahead=barmerge.lookahead_off)
@@ -2256,6 +2258,8 @@ rawBuyScore = (exhBuyScore * 0.20 * r2Reversal + revBuyScore * 0.18 * r2Reversal
 rawSellScore = (exhSellScore * 0.20 * r2Reversal + revSellScore * 0.18 * r2Reversal + structSellScore * 0.22 + volSellScore * 0.22 + trendAlignSellScore * 0.18 * r2Trend) * 100.0
 
 [rSqMult, zScoreBuyMult, zScoreSellMult, volSpikeMult, adxReversalMult, exhaustionBoostBuy, exhaustionPenaltyBuy, exhaustionBoostSell, exhaustionPenaltySell, agreeMult, agreeMsell, sessionMult, buyCatAgreeStrong, buyCatAgree, sellCatAgreeStrong, sellCatAgree] = f_metaMultipliers(exhBuyScore, exhSellScore, revBuyScore, revSellScore, structBuyScore, structSellScore, volBuyScore, volSellScore, trendAlignBuyScore, trendAlignSellScore, zScore, hvRank, adxValue, adxStrong, lagSellCount, lagEnabledCount, lagBuyCount, USE_SESSION_FILTER, inSession)
+buyCatMinOk = buyCatAgree >= 3
+sellCatMinOk = sellCatAgree >= 3
 
 divBonusBuy = bullishDivergence ? 8.0 : 0.0
 divBonusSell = bearishDivergence ? 8.0 : 0.0
@@ -2303,8 +2307,8 @@ signalBarBearish = close < open and signalBodyPct > 0.15
 signalBarInside = high <= high[1] and low >= low[1]
 r2RegimeOk = (rSqValue >= 0.15 and adxStrong) or (math.abs(zScore[1]) > 2.0)
 
-signalBuy = USE_BUY_SELL_SIGNAL and barstate.isconfirmed and finalBuyScore >= adaptiveBuyThreshold and barsSinceLastBuy >= BUY_SELL_COOLDOWN and dominanceRatioBuy >= 1.25 and buyDominance >= 8.0 and r2RegimeOk and (lagSellRatio < 0.75 or finalBuyScore >= 85) and (not USE_VIX_REGIME or not vixSuppressBuy) and yieldCurveOkBuy
-signalSell = USE_BUY_SELL_SIGNAL and barstate.isconfirmed and finalSellScore >= adaptiveSellThreshold and barsSinceLastSell >= BUY_SELL_COOLDOWN and dominanceRatioSell >= 1.25 and sellDominance >= 8.0 and r2RegimeOk and (lagBuyRatio < 0.75 or finalSellScore >= 85) and (not USE_VIX_REGIME or not vixSuppressSell) and yieldCurveOkSell
+signalBuy = USE_BUY_SELL_SIGNAL and barstate.isconfirmed and finalBuyScore >= adaptiveBuyThreshold and barsSinceLastBuy >= BUY_SELL_COOLDOWN and dominanceRatioBuy >= 1.25 and buyDominance >= 8.0 and r2RegimeOk and (lagSellRatio < 0.75 or finalBuyScore >= 85) and (not USE_VIX_REGIME or not vixSuppressBuy) and yieldCurveOkBuy and buyCatMinOk
+signalSell = USE_BUY_SELL_SIGNAL and barstate.isconfirmed and finalSellScore >= adaptiveSellThreshold and barsSinceLastSell >= BUY_SELL_COOLDOWN and dominanceRatioSell >= 1.25 and sellDominance >= 8.0 and r2RegimeOk and (lagBuyRatio < 0.75 or finalSellScore >= 85) and (not USE_VIX_REGIME or not vixSuppressSell) and yieldCurveOkSell and sellCatMinOk
 
 if signalBuy
     barsSinceLastBuy := 0
