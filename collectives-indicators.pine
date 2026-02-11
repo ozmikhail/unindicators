@@ -698,9 +698,12 @@ f_ehlersSineWave() =>
     dcPeriod = math.round(smoothPeriod)
     realPart = 0.0
     imagPart = 0.0
-    for i = 0 to math.max(dcPeriod - 1, 0)
-        realPart += math.sin(2 * math.acos(1) * i / math.max(dcPeriod, 1)) * nz(smooth[i])
-        imagPart += math.cos(2 * math.acos(1) * i / math.max(dcPeriod, 1)) * nz(smooth[i])
+    loopLimit = math.min(math.max(dcPeriod - 1, 0), 50)
+    for i = 0 to loopLimit
+        twoPi = 2 * math.acos(1)
+        angle = twoPi * i / math.max(dcPeriod, 1)
+        realPart += math.sin(angle) * nz(smooth[i])
+        imagPart += math.cos(angle) * nz(smooth[i])
     dcPhase := imagPart != 0 ? math.atan(realPart / imagPart) * 180 / math.pi : 90.0 * (realPart > 0 ? 1 : -1)
     dcPhase += 90
     dcPhase += (360 / smoothPeriod > 0 ? 360 / smoothPeriod : 1)
@@ -924,34 +927,52 @@ f_calcMAStack() =>
 f_calcFiltersAndMTF(series float atr) =>
     atrAvg = ta.sma(atr, ATR_LENGTH * 2)
     atrInRange = USE_ATR_FILTER ? (ATR_MIN_PCT <= 0 or atr[1] >= atrAvg[1] * (ATR_MIN_PCT / 100.0)) and (ATR_MAX_PCT <= 0 or atr[1] <= atrAvg[1] * (1 + ATR_MAX_PCT / 100.0)) : true
-    htfRsi = request.security(syminfo.tickerid, HTF_TIMEFRAME, ta.rsi(close, HTF_RSI_LENGTH), lookahead=barmerge.lookahead_off)
+    [htfRsi, htfRsiForDiv, htfRsiForDivPrev] = request.security(syminfo.tickerid, HTF_TIMEFRAME, [ta.rsi(close, HTF_RSI_LENGTH), ta.rsi(close, RSI_LENGTH)[1], ta.rsi(close, RSI_LENGTH)[2]], lookahead=barmerge.lookahead_off)
     htfRsiPrev = htfRsi[1]
     htfRsiOkBuy = USE_HTFRSI ? htfRsiPrev < HTF_RSI_NOT_OVERBOUGHT : true
     htfRsiOkSell = USE_HTFRSI ? htfRsiPrev > HTF_RSI_NOT_OVERSOLD : true
-    [htfRsiForDiv, htfRsiForDivPrev] = request.security(syminfo.tickerid, HTF_TIMEFRAME, [ta.rsi(close, RSI_LENGTH)[1], ta.rsi(close, RSI_LENGTH)[2]], lookahead=barmerge.lookahead_off)
     mtfEmaLen = 20
-    mtf5  = request.security(syminfo.tickerid, "5",  close > ta.ema(close, mtfEmaLen), lookahead=barmerge.lookahead_off)
-    mtf15 = request.security(syminfo.tickerid, "15", close > ta.ema(close, mtfEmaLen), lookahead=barmerge.lookahead_off)
-    mtf60 = request.security(syminfo.tickerid, "60", close > ta.ema(close, mtfEmaLen), lookahead=barmerge.lookahead_off)
-    mtf240 = request.security(syminfo.tickerid, "240", close > ta.ema(close, mtfEmaLen), lookahead=barmerge.lookahead_off)
-    mtfD  = request.security(syminfo.tickerid, "D",  close > ta.ema(close, mtfEmaLen), lookahead=barmerge.lookahead_off)
+    mtf5 = false
+    mtf15 = false
+    mtf60 = false
+    mtf240 = false
+    mtfD = false
+    if USE_MTF_HEATMAP
+        mtf5  = request.security(syminfo.tickerid, "5",  close > ta.ema(close, mtfEmaLen), lookahead=barmerge.lookahead_off)
+        mtf15 = request.security(syminfo.tickerid, "15", close > ta.ema(close, mtfEmaLen), lookahead=barmerge.lookahead_off)
+        mtf60 = request.security(syminfo.tickerid, "60", close > ta.ema(close, mtfEmaLen), lookahead=barmerge.lookahead_off)
+        mtf240 = request.security(syminfo.tickerid, "240", close > ta.ema(close, mtfEmaLen), lookahead=barmerge.lookahead_off)
+        mtfD  = request.security(syminfo.tickerid, "D",  close > ta.ema(close, mtfEmaLen), lookahead=barmerge.lookahead_off)
     [prevDayHigh, prevDayLow] = request.security(syminfo.tickerid, "D", [high[1], low[1]], lookahead=barmerge.lookahead_off)
     inSession = USE_SESSION_FILTER ? not na(time(timeframe.period, SESSION_STR, syminfo.timezone)) : true
     [atrInRange, htfRsi, htfRsiPrev, htfRsiOkBuy, htfRsiOkSell, htfRsiForDiv, htfRsiForDivPrev, mtf5, mtf15, mtf60, mtf240, mtfD, prevDayHigh, prevDayLow, inSession]
 
 f_calcIchimoku() =>
-    conv = (ta.highest(high, ICH_CONVERSION) + ta.lowest(low, ICH_CONVERSION)) / 2
-    base = (ta.highest(high, ICH_BASE) + ta.lowest(low, ICH_BASE)) / 2
-    spanA = (conv + base) / 2
-    spanB = (ta.highest(high, ICH_SPAN) + ta.lowest(low, ICH_SPAN)) / 2
-    cloudTop = math.max(spanA[ICH_BASE], spanB[ICH_BASE])
-    cloudBot = math.min(spanA[ICH_BASE], spanB[ICH_BASE])
-    tkCross = conv > base
-    aboveCloud = close[1] > cloudTop[1]
-    belowCloud = close[1] < cloudBot[1]
-    greenCloud = spanA > spanB
-    ichBull = USE_ICHIMOKU ? (aboveCloud and tkCross[1]) : true
-    ichBear = USE_ICHIMOKU ? (belowCloud and not tkCross[1]) : true
+    conv = 0.0
+    base = 0.0
+    spanA = 0.0
+    spanB = 0.0
+    cloudTop = 0.0
+    cloudBot = 0.0
+    tkCross = false
+    aboveCloud = false
+    belowCloud = false
+    greenCloud = false
+    ichBull = true
+    ichBear = true
+    if USE_ICHIMOKU
+        conv := (ta.highest(high, ICH_CONVERSION) + ta.lowest(low, ICH_CONVERSION)) / 2
+        base := (ta.highest(high, ICH_BASE) + ta.lowest(low, ICH_BASE)) / 2
+        spanA := (conv + base) / 2
+        spanB := (ta.highest(high, ICH_SPAN) + ta.lowest(low, ICH_SPAN)) / 2
+        cloudTop := math.max(spanA[ICH_BASE], spanB[ICH_BASE])
+        cloudBot := math.min(spanA[ICH_BASE], spanB[ICH_BASE])
+        tkCross := conv > base
+        aboveCloud := close[1] > cloudTop[1]
+        belowCloud := close[1] < cloudBot[1]
+        greenCloud := spanA > spanB
+        ichBull := aboveCloud and tkCross[1]
+        ichBear := belowCloud and not tkCross[1]
     [conv, base, spanA, spanB, cloudTop, cloudBot, tkCross, aboveCloud, belowCloud, greenCloud, ichBull, ichBear]
 
 f_calcDEMATEMA() =>
@@ -964,37 +985,51 @@ f_calcDEMATEMA() =>
     [dVal, tVal, close[1] > dVal[1], close[1] < dVal[1], close[1] > tVal[1], close[1] < tVal[1]]
 
 f_calcGMMA() =>
-    s1 = ta.ema(close, 3)
-    s2 = ta.ema(close, 5)
-    s3 = ta.ema(close, 8)
-    s4 = ta.ema(close, 10)
-    s5 = ta.ema(close, 12)
-    s6 = ta.ema(close, 15)
-    l1 = ta.ema(close, 30)
-    l2 = ta.ema(close, 35)
-    l3 = ta.ema(close, 40)
-    l4 = ta.ema(close, 45)
-    l5 = ta.ema(close, 50)
-    l6 = ta.ema(close, 60)
-    shortAvg = (s1 + s2 + s3 + s4 + s5 + s6) / 6
-    longAvg = (l1 + l2 + l3 + l4 + l5 + l6) / 6
-    gBull = USE_GMMA ? shortAvg[1] > longAvg[1] : true
-    gBear = USE_GMMA ? shortAvg[1] < longAvg[1] : true
+    shortAvg = 0.0
+    longAvg = 0.0
+    gBull = true
+    gBear = true
+    if USE_GMMA
+        s1 = ta.ema(close, 3)
+        s2 = ta.ema(close, 5)
+        s3 = ta.ema(close, 8)
+        s4 = ta.ema(close, 10)
+        s5 = ta.ema(close, 12)
+        s6 = ta.ema(close, 15)
+        l1 = ta.ema(close, 30)
+        l2 = ta.ema(close, 35)
+        l3 = ta.ema(close, 40)
+        l4 = ta.ema(close, 45)
+        l5 = ta.ema(close, 50)
+        l6 = ta.ema(close, 60)
+        shortAvg := (s1 + s2 + s3 + s4 + s5 + s6) / 6
+        longAvg := (l1 + l2 + l3 + l4 + l5 + l6) / 6
+        gBull := shortAvg[1] > longAvg[1]
+        gBear := shortAvg[1] < longAvg[1]
     [shortAvg, longAvg, gBull, gBear]
 
 f_calcAlligator() =>
-    med = (high + low) / 2
-    jawVal = f_smma(med, ALLIGATOR_JAW)
-    teethVal = f_smma(med, ALLIGATOR_TEETH)
-    lipsVal = f_smma(med, ALLIGATOR_LIPS)
-    jawPlot = jawVal[8]
-    teethPlot = teethVal[5]
-    lipsPlot = lipsVal[3]
-    aBull = lipsPlot > teethPlot and teethPlot > jawPlot
-    aBear = lipsPlot < teethPlot and teethPlot < jawPlot
-    gatorUp = math.abs(jawPlot - teethPlot)
-    gatorLo = math.abs(teethPlot - lipsPlot)
-    gatorExp = (gatorUp > gatorUp[1] or gatorLo > gatorLo[1])
+    jawPlot = 0.0
+    teethPlot = 0.0
+    lipsPlot = 0.0
+    aBull = false
+    aBear = false
+    gatorUp = 0.0
+    gatorLo = 0.0
+    gatorExp = false
+    if USE_ALLIGATOR
+        med = (high + low) / 2
+        jawVal = f_smma(med, ALLIGATOR_JAW)
+        teethVal = f_smma(med, ALLIGATOR_TEETH)
+        lipsVal = f_smma(med, ALLIGATOR_LIPS)
+        jawPlot := jawVal[8]
+        teethPlot := teethVal[5]
+        lipsPlot := lipsVal[3]
+        aBull := lipsPlot > teethPlot and teethPlot > jawPlot
+        aBear := lipsPlot < teethPlot and teethPlot < jawPlot
+        gatorUp := math.abs(jawPlot - teethPlot)
+        gatorLo := math.abs(teethPlot - lipsPlot)
+        gatorExp := (gatorUp > gatorUp[1] or gatorLo > gatorLo[1])
     [jawPlot, teethPlot, lipsPlot, aBull, aBear, gatorUp, gatorLo, gatorExp]
 
 f_calcCandlePatterns(series float atr) =>
@@ -1145,38 +1180,68 @@ f_calcDonchianMcGinley() =>
     [donchUp, donchLo, donchMid, donchBull, donchBear, donchBreakUp, donchBreakDn, mcgVal, mcgBull, mcgBear]
 
 f_calcMomentumOscillators() =>
-    [trixV, trixSig] = f_trix(close, TRIX_LENGTH, TRIX_SIGNAL_LEN)
-    trixBull = trixV[1] > trixSig[1]
-    trixBear = trixV[1] < trixSig[1]
-    uoV = f_oscillator(UO_PERIOD_1, UO_PERIOD_2, UO_PERIOD_3)
-    uoBull = uoV[1] > 50
-    uoBear = uoV[1] < 50
-    kstR1 = ta.roc(close, KST_ROC_1)
-    kstR2 = ta.roc(close, KST_ROC_2)
-    kstR3 = ta.roc(close, KST_ROC_3)
-    kstR4 = ta.roc(close, KST_ROC_4)
-    kstV = ta.sma(kstR1 * 1 + kstR2 * 2 + kstR3 * 3 + kstR4 * 4, 10)
-    kstSig = ta.sma(kstV, KST_SMA_LEN)
-    kstBull = kstV[1] > kstSig[1]
-    kstBear = kstV[1] < kstSig[1]
-    dpoV = f_dpo(close, DPO_LENGTH)
-    dpoBull = dpoV[1] > 0
-    dpoBear = dpoV[1] < 0
-    [rviV, rviSig] = f_rvi(RVI_LENGTH)
-    rviBull = rviV[1] > rviSig[1]
-    rviBear = rviV[1] < rviSig[1]
-    [_, schaffV] = f_schaffTrendCycle(SCHAFF_CYCLE, SCHAFF_SMOOTH_1, SCHAFF_SMOOTH_2)
-    schaffBull = (schaffV[1] > 25 and schaffV[2] <= 25) or schaffV[1] > 75
-    schaffBear = (schaffV[1] < 75 and schaffV[2] >= 75) or schaffV[1] < 25
-    pgoV = (close - ta.ema(close, PGO_LENGTH)) / math.max(ta.atr(PGO_LENGTH), 1e-10)
-    pgoBull = pgoV[1] > 0
-    pgoBear = pgoV[1] < 0
-    coppockR = ta.roc(close, COPPOCK_ROC_1) + ta.roc(close, COPPOCK_ROC_2)
-    coppockV = ta.sma(coppockR, COPPOCK_SMA)
-    coppockBull = coppockV[1] > 0
-    coppockBear = coppockV[1] < 0
-    massV = f_massIndex(MASS_SINGLE, MASS_SUM)
-    massB = (massV[1] > MASS_THRESHOLD and massV[1] < massV[2])
+    trixV = 0.0
+    trixSig = 0.0
+    trixBull = false
+    trixBear = false
+    uoV = 50.0
+    uoBull = false
+    uoBear = false
+    kstV = 0.0
+    kstSig = 0.0
+    kstBull = false
+    kstBear = false
+    dpoV = 0.0
+    dpoBull = false
+    dpoBear = false
+    rviV = 0.0
+    rviSig = 0.0
+    rviBull = false
+    rviBear = false
+    schaffV = 50.0
+    schaffBull = false
+    schaffBear = false
+    pgoV = 0.0
+    pgoBull = false
+    pgoBear = false
+    coppockV = 0.0
+    coppockBull = false
+    coppockBear = false
+    massV = 0.0
+    massB = false
+    if USE_EXTENDED_OSCILLATORS
+        [trixV, trixSig] = f_trix(close, TRIX_LENGTH, TRIX_SIGNAL_LEN)
+        trixBull := trixV[1] > trixSig[1]
+        trixBear := trixV[1] < trixSig[1]
+        uoV := f_oscillator(UO_PERIOD_1, UO_PERIOD_2, UO_PERIOD_3)
+        uoBull := uoV[1] > 50
+        uoBear := uoV[1] < 50
+        kstR1 = ta.roc(close, KST_ROC_1)
+        kstR2 = ta.roc(close, KST_ROC_2)
+        kstR3 = ta.roc(close, KST_ROC_3)
+        kstR4 = ta.roc(close, KST_ROC_4)
+        kstV := ta.sma(kstR1 * 1 + kstR2 * 2 + kstR3 * 3 + kstR4 * 4, 10)
+        kstSig := ta.sma(kstV, KST_SMA_LEN)
+        kstBull := kstV[1] > kstSig[1]
+        kstBear := kstV[1] < kstSig[1]
+        dpoV := f_dpo(close, DPO_LENGTH)
+        dpoBull := dpoV[1] > 0
+        dpoBear := dpoV[1] < 0
+        [rviV, rviSig] = f_rvi(RVI_LENGTH)
+        rviBull := rviV[1] > rviSig[1]
+        rviBear := rviV[1] < rviSig[1]
+        [_, schaffV] = f_schaffTrendCycle(SCHAFF_CYCLE, SCHAFF_SMOOTH_1, SCHAFF_SMOOTH_2)
+        schaffBull := (schaffV[1] > 25 and schaffV[2] <= 25) or schaffV[1] > 75
+        schaffBear := (schaffV[1] < 75 and schaffV[2] >= 75) or schaffV[1] < 25
+        pgoV := (close - ta.ema(close, PGO_LENGTH)) / math.max(ta.atr(PGO_LENGTH), 1e-10)
+        pgoBull := pgoV[1] > 0
+        pgoBear := pgoV[1] < 0
+        coppockR = ta.roc(close, COPPOCK_ROC_1) + ta.roc(close, COPPOCK_ROC_2)
+        coppockV := ta.sma(coppockR, COPPOCK_SMA)
+        coppockBull := coppockV[1] > 0
+        coppockBear := coppockV[1] < 0
+        massV := f_massIndex(MASS_SINGLE, MASS_SUM)
+        massB := (massV[1] > MASS_THRESHOLD and massV[1] < massV[2])
     [trixV, trixSig, trixBull, trixBear, uoV, uoBull, uoBear, kstV, kstSig, kstBull, kstBear, dpoV, dpoBull, dpoBear, rviV, rviSig, rviBull, rviBear, schaffV, schaffBull, schaffBear, pgoV, pgoBull, pgoBear, coppockV, coppockBull, coppockBear, massV, massB]
 
 f_calcVortexElderVWRsiTwiggs(series float macdHist) =>
@@ -2076,21 +2141,26 @@ efiValue = ta.ema(volume * (close - close[1]), EFI_LENGTH)
 efiBullish = efiValue[1] > 0
 efiBearish = efiValue[1] < 0
 
-obDispThreshold = atr * OB_DISPLACEMENT_MULT
-bullOBCandle = close[2] < open[2] and math.abs(close[1] - open[1]) > obDispThreshold[1] and close[1] > open[1]
-bearOBCandle = close[2] > open[2] and math.abs(close[1] - open[1]) > obDispThreshold[1] and close[1] < open[1]
 var float lastBullOBHigh = na
 var float lastBullOBLow = na
 var float lastBearOBHigh = na
 var float lastBearOBLow = na
-if bullOBCandle
-    lastBullOBHigh := high[2]
-    lastBullOBLow := low[2]
-if bearOBCandle
-    lastBearOBHigh := high[2]
-    lastBearOBLow := low[2]
-nearBullOB = not na(lastBullOBLow) ? (low[1] <= lastBullOBHigh and low[1] >= lastBullOBLow) : false
-nearBearOB = not na(lastBearOBHigh) ? (high[1] >= lastBearOBLow and high[1] <= lastBearOBHigh) : false
+bullOBCandle = false
+bearOBCandle = false
+nearBullOB = false
+nearBearOB = false
+if USE_SMC
+    obDispThreshold = atr * OB_DISPLACEMENT_MULT
+    bullOBCandle := close[2] < open[2] and math.abs(close[1] - open[1]) > obDispThreshold[1] and close[1] > open[1]
+    bearOBCandle := close[2] > open[2] and math.abs(close[1] - open[1]) > obDispThreshold[1] and close[1] < open[1]
+    if bullOBCandle
+        lastBullOBHigh := high[2]
+        lastBullOBLow := low[2]
+    if bearOBCandle
+        lastBearOBHigh := high[2]
+        lastBearOBLow := low[2]
+    nearBullOB := not na(lastBullOBLow) ? (low[1] <= lastBullOBHigh and low[1] >= lastBullOBLow) : false
+    nearBearOB := not na(lastBearOBHigh) ? (high[1] >= lastBearOBLow and high[1] <= lastBearOBHigh) : false
 
 benchClose = request.security(BENCHMARK_SYMBOL, timeframe.period, close, lookahead=barmerge.lookahead_off)
 corrValue = ta.correlation(close, benchClose, CORR_LENGTH)
@@ -2103,12 +2173,11 @@ rsMA = ta.sma(rsRatio, CORR_LENGTH)
 rsBullish = rsRatio[1] > rsMA[1]
 rsBearish = rsRatio[1] < rsMA[1]
 
-vixClose = request.security("CBOE:VIX", "D", close, lookahead=barmerge.lookahead_off)
-[vixClosePrev, vixClosePrev2] = request.security("CBOE:VIX", "D", [close[1], close[2]], lookahead=barmerge.lookahead_off)
+[vixClose, vixClosePrev, vixClosePrev2] = request.security("CBOE:VIX", "D", [close, close[1], close[2]], lookahead=barmerge.lookahead_off)
+vix3m = request.security("CBOE:VIX3M", "D", close, lookahead=barmerge.lookahead_off)
 vixOk = not na(vixClose)
 vixRoc5 = vixOk and not na(vixClosePrev) ? (vixClose - vixClosePrev) : 0.0
 vixRising = vixOk and vixRoc5 > 0
-vix3m = request.security("CBOE:VIX3M", "D", close, lookahead=barmerge.lookahead_off)
 vix3mOk = vixOk and not na(vix3m)
 contango = vix3mOk and vixClose < vix3m
 backwardation = vix3mOk and vixClose > vix3m
@@ -2116,8 +2185,7 @@ vixSuppressBuy = USE_VIX_REGIME and vixOk and (vixClose > VIX_SUPPRESS_BUY_LEVEL
 vixSuppressSell = USE_VIX_REGIME and vixOk and (vixClose < VIX_SUPPRESS_SELL_LEVEL) and contango
 vixCautionSell = USE_VIX_REGIME and vixOk and vixClose > 22.0
 
-t10y2y = request.security("FRED:T10Y2Y", "D", close, lookahead=barmerge.lookahead_off)
-t10y2yPrev = request.security("FRED:T10Y2Y", "D", close[1], lookahead=barmerge.lookahead_off)
+[t10y2y, t10y2yPrev] = request.security("FRED:T10Y2Y", "D", [close, close[1]], lookahead=barmerge.lookahead_off)
 t10y2yOk = not na(t10y2y) and not na(t10y2yPrev)
 yieldCurveInverted = t10y2yOk and t10y2y < 0
 yieldCurveSteepening = t10y2yOk and t10y2y > t10y2yPrev
