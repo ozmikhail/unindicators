@@ -1,6 +1,6 @@
 //@version=6
 // M.Ozolins Author
-indicator("Indices & Funds Indicators", overlay=true, max_bars_back=500, max_lines_count=500, max_labels_count=500, max_boxes_count=500, max_polylines_count=100, explicit_plot_zorder=true)
+indicator("Technical Indicators", overlay=true, max_bars_back=500, max_lines_count=500, max_labels_count=500, max_boxes_count=500, max_polylines_count=100, explicit_plot_zorder=true)
 
 isRightVisibleBar = (time == chart.right_visible_bar_time)
 var int rightVisibleBarIndex = na
@@ -21,8 +21,8 @@ var gDisplay            = "Display Indicators"
 USE_BUY_SELL_SIGNAL     = input.bool(true, "Display Buy/Sell Signal", group=gDisplay)
 USE_BUY_SELL_SLTP_ENTRY = input.bool(true, "Display SL/TP Levels", group=gDisplay)
 SLTP_DISPLAY_MODE       = input.string("Zones", "SL/TP Display Mode", options=["Lines", "Zones"], group=gDisplay)
-USE_DASHBOARD           = input.bool(true, "Display Dashboard", group=gDisplay)
-USE_PREVIOUS_SIGNALS     = input.bool(false, "Display Historical Signals", group=gDisplay)
+USE_DASHBOARD           = input.bool(false, "Display Dashboard", group=gDisplay)
+USE_PREVIOUS_SIGNALS    = input.bool(false, "Display Historical Signals", group=gDisplay)
 USE_HULL_MA             = input.bool(false, "Display Hull MA", group=gDisplay)
 USE_VWAP_LINE           = input.bool(true, "Display VWAP Line", group=gDisplay)
 USE_BACKGROUND          = input.bool(false, "Display Trend Background", group=gDisplay)
@@ -46,7 +46,7 @@ USE_GAP                 = input.bool(false, "Display Gap Detection", group=gDisp
 var gSettingsBooleans    = "Settings · Booleans"
 USE_SINGLE_TP            = input.bool(true, "Single TP at R:R (indices)", group=gSettingsBooleans)
 TP2_USE_SR               = input.bool(true, "Use S/R for TP1/TP2", group=gSettingsBooleans)
-BUY_SELL_AUTO_EXPIRE     = input.bool(true, "Auto-Expire Signals", group=gSettingsBooleans)
+BUY_SELL_AUTO_EXPIRE     = input.bool(false, "Auto-Expire Signals", group=gSettingsBooleans)
 USE_EXTENDED_OSCILLATORS = input.bool(false, "Use extended oscillators (TRIX, KST, Schaff, etc.)", group=gSettingsBooleans)
 USE_RSI_REGIME           = input.bool(true, "Trend-Adjusted RSI", group=gSettingsBooleans)
 USE_STOCH                = input.bool(true, "Use Stochastic", group=gSettingsBooleans)
@@ -70,8 +70,6 @@ USE_SESSION_FILTER       = input.bool(false, "Use Session Filter", group=gSettin
 USE_ATR_FILTER           = input.bool(false, "Use ATR Range Filter", group=gSettingsBooleans)
 USE_PREMIUM_DISCOUNT     = input.bool(false, "Filter Prem/Disc", group=gSettingsBooleans)
 USE_MA_STACK             = input.bool(true, "Use MA Stack Filter", group=gSettingsBooleans)
-USE_YIELD_CURVE          = input.bool(false, "Use 10Y-2Y yield curve filter", group=gSettingsBooleans)
-USE_VIX_REGIME           = input.bool(true, "Use VIX regime filter", group=gSettingsBooleans)
 
 var gSettingsNumbers    = "Settings · Numbers"
 BUY_SELL_COOLDOWN       = input.int(5, "Signal Cooldown (bars)", minval=1, maxval=50, group=gSettingsNumbers)
@@ -81,8 +79,6 @@ ADAPTIVE_TOP_N          = input.int(10, "Signal when score in top N% (1-25)", mi
 TP2_MIN_PCT             = input.float(8.0, "Min % for two TPs (when S/R not used)", minval=4.0, maxval=20.0, step=1.0, group=gSettingsNumbers)
 TP_MIN_DISTANCE_PCT     = input.float(2.0, "Min % distance between TP1 and TP2", minval=0.5, maxval=10.0, step=0.5, group=gSettingsNumbers)
 PREVIOUS_SELL_RR        = input.int(20, "Historical Signal Opacity", minval=5, maxval=50, step=5, group=gSettingsNumbers)
-VIX_SUPPRESS_BUY_LEVEL  = input.float(20.0, "VIX level: suppress buy above", minval=15.0, maxval=40.0, step=1.0, group=gSettingsNumbers)
-VIX_SUPPRESS_SELL_LEVEL = input.float(15.0, "VIX level: suppress sell below", minval=10.0, maxval=25.0, step=1.0, group=gSettingsNumbers)
 SL_MIN_PCT              = input.float(0.2, "Min SL distance %", minval=0.2, maxval=5.0, step=0.1, group=gSettingsNumbers)
 SR_ZONE_LOOKBACK        = input.int(120, "SR Zone Lookback", minval=50, maxval=300, group=gSettingsNumbers)
 SR_ZONE_PIVOT_LB        = input.int(5, "SR Zone Pivot LB", minval=3, maxval=20, group=gSettingsNumbers)
@@ -376,7 +372,7 @@ f_metaMultipliers(exhB, exhS, revB, revS, strB, strS, volB, volS, trdB, trdS, zS
     sessM = 1.0
     [r2M, zBuyM, zSellM, vsM, adxM, exBoostB, exPenB, exBoostS, exPenS, agreeB, agreeS, sessM, bAgreeStrong, bAgree, sAgreeStrong, sAgree]
 
-f_signalTooltip(isBuy, slSource, finalBuyScore, finalSellScore, buyConfidence, sellConfidence, buyDominance, sellDominance, dominanceRatioBuy, dominanceRatioSell, exhBuyScore, exhSellScore, revBuyScore, revSellScore, structBuyScore, structSellScore, volBuyScore, volSellScore, trendAlignBuyScore, trendAlignSellScore, buyCatAgreeStrong, sellCatAgreeStrong, buyCatAgree, sellCatAgree, buySL, sellSL, buyTP, sellTP, buyActualRR, sellActualRR, buyTPSource, sellTPSource, bullishDivergence, bearishDivergence, USE_TWO_T_PS_BUY, USE_TWO_T_PS_SELL, buyTP1, sellTP1, buyTP2, sellTP2, inPremium, inDiscount, rSqValue, r2Reversal, r2Trend, zScore, hvRank, volSpikeMult, lagBuyCount, lagSellCount, lagEnabledCount, buyEntryPrice, sellEntryPrice, vixOk, vixClose, vixSuppressBuy, vixSuppressSell, vixCautionSell) =>
+f_signalTooltip(isBuy, slSource, finalBuyScore, finalSellScore, buyConfidence, sellConfidence, buyDominance, sellDominance, dominanceRatioBuy, dominanceRatioSell, exhBuyScore, exhSellScore, revBuyScore, revSellScore, structBuyScore, structSellScore, volBuyScore, volSellScore, trendAlignBuyScore, trendAlignSellScore, buyCatAgreeStrong, sellCatAgreeStrong, buyCatAgree, sellCatAgree, buySL, sellSL, buyTP, sellTP, buyActualRR, sellActualRR, buyTPSource, sellTPSource, bullishDivergence, bearishDivergence, USE_TWO_T_PS_BUY, USE_TWO_T_PS_SELL, buyTP1, sellTP1, buyTP2, sellTP2, inPremium, inDiscount, rSqValue, r2Reversal, r2Trend, zScore, hvRank, volSpikeMult, lagBuyCount, lagSellCount, lagEnabledCount, buyEntryPrice, sellEntryPrice) =>
     _score = isBuy ? finalBuyScore : finalSellScore
     _conf = isBuy ? buyConfidence : sellConfidence
     _dom = isBuy ? buyDominance : sellDominance
@@ -418,7 +414,6 @@ f_signalTooltip(isBuy, slSource, finalBuyScore, finalSellScore, buyConfidence, s
      + "HV Rank: " + str.tostring(hvRank[1], "#") + "%" + (volSpikeMult < 1.0 ? " ⚠" : "") + "\n"
      + "P/D Zone: " + _pdLabel + "\n"
      + "Lagging bull/bear: " + str.tostring(lagBuyCount) + "/" + str.tostring(lagSellCount) + " (of " + str.tostring(lagEnabledCount) + ")\n"
-     + "VIX regime: " + (vixOk ? (str.tostring(vixClose, "#.#") + (vixSuppressBuy ? " (suppress buy)" : vixSuppressSell ? " (suppress sell)" : (not isBuy and vixCautionSell) ? " (elevated, caution sell)" : " OK")) : "n/a") + "\n"
      + "Divergence: " + (_isDivergent ? "Yes (+8)" : "No") + "\n"
      + "━━━━━━━━━━━━━━━━━━━━\n"
      + "Entry: " + str.tostring(_entry, "#.##") + "\n"
@@ -1555,22 +1550,6 @@ f_dashMTFLevels(table dash, bool useMTF, bool mtf5, bool mtf15, bool mtf60, bool
     table.cell(dash, 3, 58, gapUp ? "Up" : gapDown ? "Dn" : "None", bgcolor=f_condColor3(gapUp, gapDown), text_color=TEXT_COLOR, text_size=size.tiny)
     table.cell(dash, 4, 58, "", bgcolor=f_rowBg(58))
 
-f_dashIntermarket(table dash, float vixC, bool vixO, bool vixSuppB, bool vixSuppS, bool vixCautionS, bool contangoVal) =>
-    table.cell(dash, 0, 59, " INTERMARKET", bgcolor=color.new(ACCENT_COLOR, 30), text_color=color.white, text_size=size.tiny, text_font_family=font.family_monospace, text_halign=text.align_left)
-    table.cell(dash, 1, 59, "", bgcolor=color.new(ACCENT_COLOR, 75))
-    table.cell(dash, 2, 59, "", bgcolor=color.new(ACCENT_COLOR, 75))
-    table.cell(dash, 3, 59, "", bgcolor=color.new(ACCENT_COLOR, 75))
-    table.cell(dash, 4, 59, "", bgcolor=color.new(ACCENT_COLOR, 75))
-    table.merge_cells(dash, 0, 59, 4, 59)
-    vixStr = vixO ? str.tostring(vixC, "#.#") : "n/a"
-    regimeStr = vixSuppB ? "Suppress Buy" : vixSuppS ? "Suppress Sell" : vixCautionS ? "Caution sell" : contangoVal ? "Contango" : "OK"
-    vixCellBg = vixSuppB ? color.new(WARNING_COLOR, 50) : vixSuppS ? color.new(POSITIVE_COLOR, 50) : vixCautionS ? color.new(WARNING_COLOR, 70) : color.new(NEUTRAL_COLOR, 50)
-    table.cell(dash, 0, 60, "VIX", bgcolor=f_rowBg(60), text_color=TEXT_COLOR, text_size=size.tiny)
-    table.cell(dash, 1, 60, vixStr, bgcolor=vixCellBg, text_color=TEXT_COLOR, text_size=size.tiny)
-    table.cell(dash, 2, 60, "Regime", bgcolor=f_rowBg(60), text_color=TEXT_COLOR, text_size=size.tiny)
-    table.cell(dash, 3, 60, regimeStr, bgcolor=vixCellBg, text_color=TEXT_COLOR, text_size=size.tiny)
-    table.cell(dash, 4, 60, "", bgcolor=f_rowBg(60))
-
 f_calcSLTP(float slLastHigh, float slLastLow, int slAgeBuy, int slAgeSell, float slLastLow2, float slLastHigh2, int slAgeBuy2, int slAgeSell2, float cl, float openP, float atrP, float finBuy, float finSell, float atrMultSL, float rrMult, float minSlPct) =>
     atrSLDist = atrP * atrMultSL
     structDistBuy = cl - slLastLow
@@ -2173,27 +2152,6 @@ rsMA = ta.sma(rsRatio, CORR_LENGTH)
 rsBullish = rsRatio[1] > rsMA[1]
 rsBearish = rsRatio[1] < rsMA[1]
 
-[vixClose, vixClosePrev, vixClosePrev2] = request.security("CBOE:VIX", "D", [close, close[1], close[2]], lookahead=barmerge.lookahead_off)
-vix3m = request.security("CBOE:VIX3M", "D", close, lookahead=barmerge.lookahead_off)
-vixOk = not na(vixClose)
-vixRoc5 = vixOk and not na(vixClosePrev) ? (vixClose - vixClosePrev) : 0.0
-vixRising = vixOk and vixRoc5 > 0
-vix3mOk = vixOk and not na(vix3m)
-contango = vix3mOk and vixClose < vix3m
-backwardation = vix3mOk and vixClose > vix3m
-vixSuppressBuy = USE_VIX_REGIME and vixOk and (vixClose > VIX_SUPPRESS_BUY_LEVEL) and (backwardation or vixRising)
-vixSuppressSell = USE_VIX_REGIME and vixOk and (vixClose < VIX_SUPPRESS_SELL_LEVEL) and contango
-vixCautionSell = USE_VIX_REGIME and vixOk and vixClose > 22.0
-
-[t10y2y, t10y2yPrev] = request.security("FRED:T10Y2Y", "D", [close, close[1]], lookahead=barmerge.lookahead_off)
-t10y2yOk = not na(t10y2y) and not na(t10y2yPrev)
-yieldCurveInverted = t10y2yOk and t10y2y < 0
-yieldCurveSteepening = t10y2yOk and t10y2y > t10y2yPrev
-yieldCurveDeepInversion = t10y2yOk and t10y2y < -0.5
-yieldCurveSuppressBuy = USE_YIELD_CURVE and t10y2yOk and yieldCurveDeepInversion and not yieldCurveSteepening
-yieldCurveOkBuy = not USE_YIELD_CURVE or not yieldCurveSuppressBuy
-yieldCurveOkSell = true
-
 [bullEngulfing, bearEngulfing, hammerBull, shootingStar, morningStar, eveningStar, doji, bullHarami, bearHarami, threeWhiteSoldiers, threeBlackCrows, tweezerBottom, tweezerTop, piercingLine, darkCloudCover, wickRejectionBuy, wickRejectionSell] = f_calcCandlePatterns(atr)
 
 zScore = (close - ta.sma(close, Z_SCORE_LENGTH)) / math.max(ta.stdev(close, Z_SCORE_LENGTH), 1e-10)
@@ -2354,11 +2312,8 @@ bodyMult = signalBodyPct > 0.6 ? 1.08 : signalBodyPct < 0.25 ? 0.85 : 1.0
 adxFalling = adxValue[1] < adxValue[4]
 adxRisingStrong = adxValue[1] > adxValue[4] and adxStrong
 
-intermarketMultBuy = (vixSuppressBuy or yieldCurveSuppressBuy) ? 0.5 : 1.0
-intermarketMultSell = vixSuppressSell ? 0.5 : 1.0
-vixCautionSellMult = vixCautionSell ? 0.90 : 1.0
-multProductBuy = zScoreBuyMult * exhaustionBoostBuy * exhaustionPenaltyBuy * agreeMult * sessionMult * volSpikeMult * pdPenaltyBuy * pdSoftPenaltyBuy * mtfDivMultBuy * bodyMult * adxReversalMult * intermarketMultBuy
-multProductSell = zScoreSellMult * exhaustionBoostSell * exhaustionPenaltySell * agreeMsell * sessionMult * volSpikeMult * pdPenaltySell * pdSoftPenaltySell * mtfDivMultSell * bodyMult * adxReversalMult * intermarketMultSell * vixCautionSellMult
+multProductBuy = zScoreBuyMult * exhaustionBoostBuy * exhaustionPenaltyBuy * agreeMult * sessionMult * volSpikeMult * pdPenaltyBuy * pdSoftPenaltyBuy * mtfDivMultBuy * bodyMult * adxReversalMult
+multProductSell = zScoreSellMult * exhaustionBoostSell * exhaustionPenaltySell * agreeMsell * sessionMult * volSpikeMult * pdPenaltySell * pdSoftPenaltySell * mtfDivMultSell * bodyMult * adxReversalMult
 finalBuyScore = math.min((rawBuyScore + divBonusBuy + wyckBonusBuy + chochBonusBuy) * math.min(multProductBuy, 1.80), 100.0)
 finalSellScore = math.min((rawSellScore + divBonusSell + wyckBonusSell + chochBonusSell) * math.min(multProductSell, 1.80), 100.0)
 pctRank = 100 - ADAPTIVE_TOP_N
@@ -2382,8 +2337,8 @@ signalBarBearish = close < open and signalBodyPct > 0.15
 signalBarInside = high <= high[1] and low >= low[1]
 r2RegimeOk = (rSqValue >= 0.15 and adxStrong) or (math.abs(zScore[1]) > 2.0)
 
-signalBuy = USE_BUY_SELL_SIGNAL and barstate.isconfirmed and finalBuyScore >= adaptiveBuyThreshold and barsSinceLastBuy >= BUY_SELL_COOLDOWN and dominanceRatioBuy >= 1.25 and buyDominance >= 8.0 and r2RegimeOk and (lagSellRatio < 0.75 or finalBuyScore >= 85) and (not USE_VIX_REGIME or not vixSuppressBuy) and yieldCurveOkBuy and buyCatMinOk and buyReversalMinOk
-signalSell = USE_BUY_SELL_SIGNAL and barstate.isconfirmed and finalSellScore >= adaptiveSellThreshold and barsSinceLastSell >= BUY_SELL_COOLDOWN and dominanceRatioSell >= 1.25 and sellDominance >= 8.0 and r2RegimeOk and (lagBuyRatio < 0.75 or finalSellScore >= 85) and (not USE_VIX_REGIME or not vixSuppressSell) and yieldCurveOkSell and sellCatMinOk and sellReversalMinOk
+signalBuy = USE_BUY_SELL_SIGNAL and barstate.isconfirmed and finalBuyScore >= adaptiveBuyThreshold and barsSinceLastBuy >= BUY_SELL_COOLDOWN and dominanceRatioBuy >= 1.25 and buyDominance >= 8.0 and r2RegimeOk and (lagSellRatio < 0.75 or finalBuyScore >= 85) and buyCatMinOk and buyReversalMinOk
+signalSell = USE_BUY_SELL_SIGNAL and barstate.isconfirmed and finalSellScore >= adaptiveSellThreshold and barsSinceLastSell >= BUY_SELL_COOLDOWN and dominanceRatioSell >= 1.25 and sellDominance >= 8.0 and r2RegimeOk and (lagBuyRatio < 0.75 or finalSellScore >= 85) and sellCatMinOk and sellReversalMinOk
 
 if signalBuy
     barsSinceLastBuy := 0
@@ -2406,7 +2361,6 @@ if USE_DASHBOARD and (isRightVisibleBar or barstate.islast)
     f_dashVolatility(dash, bbPercent[1], bbNotExtremes, ttmSqueezeOn, ttmFirBull, ttmFirBear, kcBullish, chandBullish, atrInRange, massValue[1], massBulge, bbBullish)
     f_dashRegimeMetaRisk(dash, inDiscount, premiumDiscountOkBuy, htfRsiPrev, htfRsiOkBuy, rsBullish, corrValue[1], corrBullish, corrBearish, hvRank[1], hvLow, hvHigh, wyckSpring, wyckUpthrust, rSqValue, zScore[1], dominantPeriod, adxStrong, trendUp, trendDown, atrPrev, activeSL, activeSLType, activeTP, ATR_MULTIPLIER_SL, ATR_MULTIPLIER_TP, activeRR, BUY_SELL_RR)
     f_dashMTFLevels(dash, USE_MTF_HEATMAP, mtf5, mtf15, mtf60, mtf240, mtfD, pivotP[1], pivotR1, pivotS1, USE_PIVOTS, nearPivotR1, nearPivotS1, fib50[1], gapUp, gapDown)
-    f_dashIntermarket(dash, vixClose, vixOk, vixSuppressBuy, vixSuppressSell, vixCautionSell, contango)
 
 slSwingHigh = ta.pivothigh(high, SL_SWING_LOOKBACK, SL_SWING_LOOKBACK)
 slSwingLow = ta.pivotlow(low, SL_SWING_LOOKBACK, SL_SWING_LOOKBACK)
@@ -2683,7 +2637,7 @@ else
 
 if signalBuy
     buySLSource = structSLBuyOk ? "[Swing]" : structSLBuyOk2 ? "[SwingMomentum]" : "[ATR]"
-    buyTooltip = f_signalTooltip(true, buySLSource, finalBuyScore, finalSellScore, buyConfidence, sellConfidence, buyDominance, sellDominance, dominanceRatioBuy, dominanceRatioSell, exhBuyScore, exhSellScore, revBuyScore, revSellScore, structBuyScore, structSellScore, volBuyScore, volSellScore, trendAlignBuyScore, trendAlignSellScore, buyCatAgreeStrong, sellCatAgreeStrong, buyCatAgree, sellCatAgree, buySL, sellSL, buyTP, sellTP, buyActualRR, sellActualRR, buyTPSource, sellTPSource, bullishDivergence, bearishDivergence, USE_TWO_T_PS_BUY, USE_TWO_T_PS_SELL, buyTP1, sellTP1, buyTP2, sellTP2, inPremium, inDiscount, rSqValue, r2Reversal, r2Trend, zScore, hvRank, volSpikeMult, lagBuyCount, lagSellCount, lagEnabledCount, buyEntryPrice, sellEntryPrice, vixOk, vixClose, vixSuppressBuy, vixSuppressSell, vixCautionSell)
+    buyTooltip = f_signalTooltip(true, buySLSource, finalBuyScore, finalSellScore, buyConfidence, sellConfidence, buyDominance, sellDominance, dominanceRatioBuy, dominanceRatioSell, exhBuyScore, exhSellScore, revBuyScore, revSellScore, structBuyScore, structSellScore, volBuyScore, volSellScore, trendAlignBuyScore, trendAlignSellScore, buyCatAgreeStrong, sellCatAgreeStrong, buyCatAgree, sellCatAgree, buySL, sellSL, buyTP, sellTP, buyActualRR, sellActualRR, buyTPSource, sellTPSource, bullishDivergence, bearishDivergence, USE_TWO_T_PS_BUY, USE_TWO_T_PS_SELL, buyTP1, sellTP1, buyTP2, sellTP2, inPremium, inDiscount, rSqValue, r2Reversal, r2Trend, zScore, hvRank, volSpikeMult, lagBuyCount, lagSellCount, lagEnabledCount, buyEntryPrice, sellEntryPrice)
     if USE_PREVIOUS_SIGNALS
         [grayLine, grayLabel, grayTxt, grayBox, grayBoxBorder, grayEntryLine, grayEntryLabel, grayEntryTxt, grayEntryBox, grayEntryBoxBorder] = f_prevSignalGrayColors(PREVIOUS_SELL_RR)
         f_applyGrayToAllSignals(grayLine, grayLabel, grayTxt, grayBox, grayBoxBorder, grayEntryLine, grayEntryLabel, grayEntryTxt, grayEntryBox, grayEntryBoxBorder, buyEntryLine, buyEntryLabel, buyEntryZone, buyZoneLabel, buySLLine, buyTPLine, buySLLabel, buyTPLabel, buyRiskZone, buyRewardZone, buyTP2Line, buyTP2Label, buyRewardZone2, sellEntryLine, sellEntryLabel, sellEntryZone, sellZoneLabel, sellSLLine, sellTPLine, sellSLLabel, sellTPLabel, sellRiskZone, sellRewardZone, sellTP2Line, sellTP2Label, sellRewardZone2)
@@ -2741,7 +2695,7 @@ if signalBuy
 
 if signalSell
     sellSLSource = structSLSellOk ? "[Swing]" : structSLSellOk2 ? "[SwingMomentum]" : "[ATR]"
-    sellTooltip = f_signalTooltip(false, sellSLSource, finalBuyScore, finalSellScore, buyConfidence, sellConfidence, buyDominance, sellDominance, dominanceRatioBuy, dominanceRatioSell, exhBuyScore, exhSellScore, revBuyScore, revSellScore, structBuyScore, structSellScore, volBuyScore, volSellScore, trendAlignBuyScore, trendAlignSellScore, buyCatAgreeStrong, sellCatAgreeStrong, buyCatAgree, sellCatAgree, buySL, sellSL, buyTP, sellTP, buyActualRR, sellActualRR, buyTPSource, sellTPSource, bullishDivergence, bearishDivergence, USE_TWO_T_PS_BUY, USE_TWO_T_PS_SELL, buyTP1, sellTP1, buyTP2, sellTP2, inPremium, inDiscount, rSqValue, r2Reversal, r2Trend, zScore, hvRank, volSpikeMult, lagBuyCount, lagSellCount, lagEnabledCount, buyEntryPrice, sellEntryPrice, vixOk, vixClose, vixSuppressBuy, vixSuppressSell, vixCautionSell)
+    sellTooltip = f_signalTooltip(false, sellSLSource, finalBuyScore, finalSellScore, buyConfidence, sellConfidence, buyDominance, sellDominance, dominanceRatioBuy, dominanceRatioSell, exhBuyScore, exhSellScore, revBuyScore, revSellScore, structBuyScore, structSellScore, volBuyScore, volSellScore, trendAlignBuyScore, trendAlignSellScore, buyCatAgreeStrong, sellCatAgreeStrong, buyCatAgree, sellCatAgree, buySL, sellSL, buyTP, sellTP, buyActualRR, sellActualRR, buyTPSource, sellTPSource, bullishDivergence, bearishDivergence, USE_TWO_T_PS_BUY, USE_TWO_T_PS_SELL, buyTP1, sellTP1, buyTP2, sellTP2, inPremium, inDiscount, rSqValue, r2Reversal, r2Trend, zScore, hvRank, volSpikeMult, lagBuyCount, lagSellCount, lagEnabledCount, buyEntryPrice, sellEntryPrice)
     if USE_PREVIOUS_SIGNALS
         [grayLine, grayLabel, grayTxt, grayBox, grayBoxBorder, grayEntryLine, grayEntryLabel, grayEntryTxt, grayEntryBox, grayEntryBoxBorder] = f_prevSignalGrayColors(PREVIOUS_SELL_RR)
         f_applyGrayToAllSignals(grayLine, grayLabel, grayTxt, grayBox, grayBoxBorder, grayEntryLine, grayEntryLabel, grayEntryTxt, grayEntryBox, grayEntryBoxBorder, buyEntryLine, buyEntryLabel, buyEntryZone, buyZoneLabel, buySLLine, buyTPLine, buySLLabel, buyTPLabel, buyRiskZone, buyRewardZone, buyTP2Line, buyTP2Label, buyRewardZone2, sellEntryLine, sellEntryLabel, sellEntryZone, sellZoneLabel, sellSLLine, sellTPLine, sellSLLabel, sellTPLabel, sellRiskZone, sellRewardZone, sellTP2Line, sellTP2Label, sellRewardZone2)
